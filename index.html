@@ -374,10 +374,11 @@ function seed(){
   var a=[];
   /* transcribed from the hand sketch (perspective-corrected, centimeters) */
   a.push(mkR(5,5,345,295,'חדר ילדים'));
-  a.push(mkR(360,5,160,220,'חדר כביסה'));
+  a.push(mkR(360,5,160,220,'חדר רחצה'));
   a.push(mkR(530,5,315,335,'חדר הורים'));
   a.push(mkR(530,350,315,300,'חדר אורחים'));
-  a.push(mkR(5,305,382,242,'חדר'));
+  a.push(mkR(5,305,89,242,'חדר כביסה'));
+  a.push(mkR(100,305,287,242,'שירותים'));
   a.push(mkR(397,235,123,320,'מסדרון'));
   a.push(mkR(5,557,515,538,'סלון'));
   a.push(mkR(530,660,315,435,'מטבח'));
@@ -507,7 +508,7 @@ function netDims(r){
       if(e2<tolY&&e2<db&&w.y1>cy){db=e2;B=w.y1-half;}
     }
   });
-  return {w:Math.max(0,(R===null?r.x+r.w:R)-(L===null?r.x:L)),h:Math.max(0,(B===null?r.y+r.h:B)-(T===null?r.y:T))};
+  return {w:Math.round(Math.max(0,(R===null?r.x+r.w:R)-(L===null?r.x:L))),h:Math.round(Math.max(0,(B===null?r.y+r.h:B)-(T===null?r.y:T)))};
 }
 
 /* spans (wall face to wall face) along one outer side: 'x' = left to right, 'y' = top to bottom */
