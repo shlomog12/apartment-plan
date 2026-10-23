@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <style>*{box-sizing:border-box}html,body{margin:0;height:100%}[hidden]{display:none!important}</style>
 <title>תוכנית הדירה</title>
-<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700&family=Gveret+Levin&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <style>
@@ -264,17 +263,26 @@ button.danger{color:var(--sel)}
     <div class="dlg-box">
       <h2>תוכניות: שמירה וטעינה</h2>
       <p id="curName"></p>
+      <div class="row"><span id="who" style="flex:1;align-self:center"></span>
+        <button id="loginBtn" type="button" class="on">כניסה / הרשמה</button>
+        <button id="logoutBtn" type="button" hidden>החלפת משתמש</button></div>
       <section>
         <h3>שמירה</h3>
         <div class="row">
-          <button id="saveNow" type="button" class="on">שמור בדפדפן…</button>
+          <button id="saveNow" type="button" class="on">שמור בענן…</button>
           <button id="saveFile" type="button">שמור כקובץ</button>
           <button id="copyJson" type="button">העתק כטקסט</button>
         </div>
       </section>
       <section>
         <h3>טעינה</h3>
+        <div class="row" id="chips">
+          <button type="button" data-f="all">הכול</button>
+          <button type="button" data-f="mine" id="mineChip">שלי</button>
+          <button type="button" data-f="trash" id="trashChip">נמחקו</button>
+        </div>
         <div id="planList" class="plist"></div>
+        <div class="row"><button id="migrate" type="button" hidden></button></div>
         <div class="row">
           <button id="pickFile" type="button">טען מקובץ…</button>
           <input id="fileIn" type="file" accept=".json,.txt,application/json,text/plain" hidden>
@@ -294,6 +302,20 @@ button.danger{color:var(--sel)}
       </section>
       <p id="plansMsg"></p>
       <div class="row"><button id="closePlans" type="button">סגור</button></div>
+    </div>
+  </div>
+  <div class="dlg" id="dlgLogin" hidden>
+    <div class="dlg-box">
+      <h2>כניסה</h2>
+      <p>כדי לשמור ולערוך תוכניות בוחרים שם וסיסמה קצרה (לפחות 2 תווים). הם יישמרו בדפדפן הזה ולא תצטרכו להקליד שוב. אם שכחתם, פנו למנהל האתר.</p>
+      <input id="lgName" type="text" class="txt" placeholder="שם" autocomplete="off" aria-label="שם">
+      <input id="lgPass" type="text" class="txt" placeholder="סיסמה" autocomplete="off" aria-label="סיסמה">
+      <p id="lgMsg"></p>
+      <div class="row">
+        <button id="lgIn" type="button" class="on">כניסה</button>
+        <button id="lgNew" type="button">משתמש חדש</button>
+        <button id="lgView" type="button">צפייה בלבד</button>
+      </div>
     </div>
   </div>
   <div class="dlg" id="dlgSw" hidden>
@@ -1616,6 +1638,7 @@ function loadText(txt){
     if(!valid(objs)){$('plansMsg').textContent='הטקסט אינו תוכנית תקינה.';return;}
     var before=snapshot();state.objs=objs;if(!Array.isArray(d)&&typeof d.name==='string'&&d.name)state.name=d.name;normalize();fixNid();pushHist(before);sel=null;elSig='';renderPanel();
     if(view==='plan')fit();else if(view==='elev')elWall=null;
+    if(typeof onImported==='function')onImported();
     draw();save();$('dlgPlans').hidden=true;flash('התוכנית נטענה. אפשר לבטל בכפתור ↶');
   }catch(err){$('plansMsg').textContent='הטקסט אינו תוכנית תקינה.';}
 }
@@ -1653,74 +1676,227 @@ $('modeBtn').addEventListener('click',function(){
   flash(panOnly?'מצב תזוזה: גוררים להזזת המסך, שתי אצבעות לזום. שום דבר לא זז':'מצב עריכה: אפשר לגרור פריטים');
 });
 
-/* ---------- saved plans library ---------- */
-function readLib(){try{var a=JSON.parse(localStorage.getItem(LIB)||'[]');return Array.isArray(a)?a.filter(function(p){return p&&typeof p.name==='string'&&valid(p.objs);}):[];}catch(x){return [];}}
-function writeLib(a){try{localStorage.setItem(LIB,JSON.stringify(a));return true;}catch(x){return false;}}
+/* ---------- shared plans library (Supabase) ---------- */
+var CLOUD={url:'__SUPABASE_URL__',key:'__SUPABASE_KEY__'};
+var CUR_KEY='apt-cloud-cur',USER_KEY='apt-cloud-user',cloudOn=CLOUD.url.indexOf('http')===0;
+var cur={id:null,ts:null,owner:null,snap:null},me=null,filt='all',rows=[],skipLogin=false,busy=false,forceUpd=false,listT=null;
+try{cur=Object.assign(cur,JSON.parse(localStorage.getItem(CUR_KEY)||'{}'));}catch(x){}
+try{me=JSON.parse(localStorage.getItem(USER_KEY)||'null');}catch(x){}
+if(!me||typeof me.name!=='string'||typeof me.pass!=='string')me=null;
+function persistCur(){try{localStorage.setItem(CUR_KEY,JSON.stringify(cur));}catch(x){}}
 function plansMsg(t){$('plansMsg').textContent=t||'';}
+function api(path,opt){
+  opt=opt||{};
+  var hd={apikey:CLOUD.key,'Content-Type':'application/json'};
+  if(CLOUD.key.indexOf('eyJ')===0)hd.Authorization='Bearer '+CLOUD.key;
+  return fetch(CLOUD.url+'/rest/v1/'+path,{method:opt.method||'GET',headers:hd,body:opt.body?JSON.stringify(opt.body):undefined}).then(function(r){
+    if(!r.ok)throw new Error('http '+r.status);
+    return r.json();
+  });
+}
+function rpc(fn,args){return api('rpc/'+fn,{method:'POST',body:args});}
+function errText(code){
+  return {bad_login:'השם או הסיסמה שגויים',title_exists:'כבר יש לך תוכנית בשם הזה, בחרו שם אחר',not_owner:'אפשר לערוך רק תוכניות שיצרתם. צרו עותק',
+    conflict:'מישהו עדכן את התוכנית בינתיים (אולי ממכשיר אחר). אפשר לדרוס או לשמור כחדשה',bad_title:'כתבו שם לתוכנית',bad_plan:'התוכנית גדולה או לא תקינה',not_found:'התוכנית לא נמצאה',
+    exists:'השם כבר תפוס, בחרו שם אחר או היכנסו',bad_name:'כתבו שם',bad_pass:'הסיסמה צריכה להיות לפחות 2 תווים'}[code]||'שגיאה לא צפויה';
+}
+function setMe(u){
+  me=u;try{if(u)localStorage.setItem(USER_KEY,JSON.stringify(u));else localStorage.removeItem(USER_KEY);}catch(x){}
+}
+function onImported(){cur.id=null;cur.owner=null;cur.ts=null;cur.snap=null;persistCur();}
 function curDirty(){
   if(!state.objs.length)return false;
-  var cur=snapshot();
-  if(state.name===BUILTIN&&cur===JSON.stringify(seed()))return false;
-  var m=readLib().filter(function(p){return p.name===state.name;})[0];
-  return !(m&&JSON.stringify(m.objs)===cur);
+  var s=snapshot();
+  if(cur.snap)return s!==cur.snap;
+  return !(state.name===BUILTIN&&s===JSON.stringify(seed()));
 }
-function suggestName(){return state.name===BUILTIN?'התוכנית שלי':state.name;}
-function isSaved(n){return readLib().some(function(p){return p.name===n;});}
-function saveCurrent(name,overwrite){
-  name=String(name||'').trim();
-  if(!name){return 'כתבו שם לתוכנית';}
-  if(name===BUILTIN)return 'השם הזה שמור לתוכנית המקורית, בחרו שם אחר';
-  var a=readLib(),i,found=-1;
-  for(i=0;i<a.length;i++)if(a[i].name===name)found=i;
-  if(found>=0&&!overwrite)return 'כבר יש תוכנית בשם הזה. בחרו שם אחר או עדכנו אותה';
-  var rec={id:found>=0?a[found].id:'p'+Date.now(),name:name,ts:Date.now(),objs:JSON.parse(snapshot())};
-  if(found>=0)a[found]=rec;else a.push(rec);
-  if(!writeLib(a))return 'אין מקום לשמור בדפדפן. מחקו תוכנית ישנה או השתמשו בשמירה כקובץ';
-  state.name=name;save();
-  return '';
+function suggestName(){
+  if(state.name===BUILTIN)return 'התוכנית שלי';
+  return state.name;
 }
-function applyPlan(objs,name){
+function applyPlan(objs,name,meta){
   var before=snapshot();
   state.objs=JSON.parse(JSON.stringify(objs));state.name=name;
   normalize();fixNid();pushHist(before);sel=null;elSig='';elWall=null;renderPanel();
+  cur=Object.assign({id:null,ts:null,owner:null},meta||{});cur.snap=snapshot();persistCur();
   if(view==='plan')fit();else if(view==='elev'){pickWall();elFit();}
   draw();save();
 }
-function renderPlans(){
-  $('curName').textContent='התוכנית הנוכחית: '+state.name;
-  var list=$('planList'),h='',a=readLib();
-  h+='<div class="pitem'+(state.name===BUILTIN?' cur':'')+'"><span class="nm">'+esc(BUILTIN)+' <small>(המקורית)</small></span><button type="button" data-p="b" class="on">פתח</button></div>';
-  a.slice().sort(function(x,y){return y.ts-x.ts;}).forEach(function(p){
-    h+='<div class="pitem'+(p.name===state.name?' cur':'')+'"><span class="nm">'+esc(p.name)+' <small>'+new Date(p.ts).toLocaleDateString('he-IL')+'</small></span>'+
-       '<button type="button" data-p="'+esc(p.id)+'" class="on">פתח</button><button type="button" data-d="'+esc(p.id)+'">מחק</button></div>';
-  });
-  if(!a.length)h+='<p>עדיין אין תוכניות שמורות. שמרו את התוכנית הנוכחית בשם כדי שתופיע כאן.</p>';
-  list.innerHTML=h;
+function fmtDate(t){try{return new Date(t).toLocaleDateString('he-IL');}catch(x){return '';}}
+function renderWho(){
+  $('who').textContent=me?'מחובר כ: '+me.name:'לא מחובר (צפייה בלבד)';
+  $('logoutBtn').hidden=!me;$('loginBtn').hidden=!!me;
 }
-function openPlans(){plansMsg('');renderPlans();$('json').value=exportText();refreshPrev();$('dlgPlans').hidden=false;}
+function localLib(){try{var a=JSON.parse(localStorage.getItem(LIB)||'[]');return Array.isArray(a)?a.filter(function(p){return p&&typeof p.name==='string'&&valid(p.objs);}):[];}catch(x){return [];}}
+function renderPlans(){
+  $('curName').textContent='התוכנית הנוכחית: '+state.name+(cur.id&&cur.owner?' (של '+cur.owner+')':'');
+  renderWho();
+  var chips=$('chips').querySelectorAll('button');
+  for(var i=0;i<chips.length;i++)chips[i].classList.toggle('on',chips[i].getAttribute('data-f')===filt);
+  $('trashChip').hidden=!me;$('mineChip').hidden=!me;
+  var h='';
+  if(filt==='all'){
+    h+='<div class="pitem'+(state.name===BUILTIN&&!cur.id?' cur':'')+'"><span class="nm">'+esc(BUILTIN)+' <small>(המקורית)</small></span><button type="button" data-p="b" class="on">פתח</button></div>';
+  }
+  var list=rows.filter(function(r){
+    if(filt==='all')return !r.deleted;
+    if(filt==='mine')return !r.deleted&&me&&r.owner===me.name;
+    return r.deleted&&me&&r.owner===me.name;
+  });
+  list.forEach(function(r){
+    var mine=me&&r.owner===me.name;
+    h+='<div class="pitem'+(r.id===cur.id?' cur':'')+'"><span class="nm">'+esc(r.title)+' <small>'+esc(r.owner)+' · '+fmtDate(r.updated_at)+'</small></span>';
+    if(filt==='trash')h+='<button type="button" data-r="'+esc(r.id)+'" class="on">שחזר</button>';
+    else{
+      h+='<button type="button" data-p="'+esc(r.id)+'" class="on">פתח</button><button type="button" data-c="'+esc(r.id)+'">עותק</button>';
+      if(mine)h+='<button type="button" data-v="'+esc(r.id)+'">גרסה קודמת</button><button type="button" data-d="'+esc(r.id)+'">מחק</button>';
+    }
+    h+='</div>';
+  });
+  if(!list.length)h+='<p>'+(filt==='all'?'עדיין אין תוכניות משותפות.':filt==='mine'?'עדיין לא שמרתם תוכניות.':'אין תוכניות שנמחקו.')+'</p>';
+  $('planList').innerHTML=h;
+  var n=localLib().length;
+  $('migrate').hidden=!(me&&n);$('migrate').textContent='העלה את השמורות שבדפדפן ('+n+')';
+}
+function loadList(){
+  if(!cloudOn){plansMsg('האפליקציה עדיין לא מחוברת לענן.');renderPlans();return Promise.resolve();}
+  return api('plans?select=id,owner,title,updated_at,deleted&order=updated_at.desc&limit=500').then(function(a){
+    rows=Array.isArray(a)?a:[];if(!$('dlgPlans').hidden){renderPlans();}
+  },function(){plansMsg('אין חיבור לשרת. הרשימה לא מעודכנת.');});
+}
+function openPlans(){
+  if(!me&&!skipLogin){askLogin(openPlans);return;}
+  plansMsg('');renderPlans();$('json').value=exportText();refreshPrev();$('dlgPlans').hidden=false;
+  loadList();clearInterval(listT);listT=setInterval(function(){if($('dlgPlans').hidden)clearInterval(listT);else loadList();},20000);
+}
+/* login */
+var loginAfter=null;
+function askLogin(after){loginAfter=after||null;$('lgMsg').textContent='';$('dlgPlans').hidden=true;$('dlgSw').hidden=true;$('dlgLogin').hidden=false;}
+function lgDone(u){
+  setMe(u);$('dlgLogin').hidden=true;var f=loginAfter;loginAfter=null;(f||openPlans)();
+}
+function lgGo(fn){
+  if(busy)return;
+  var n=$('lgName').value.trim(),p=$('lgPass').value;
+  if(!n){$('lgMsg').textContent='כתבו שם';return;}
+  if(p.length<2){$('lgMsg').textContent='הסיסמה צריכה להיות לפחות 2 תווים';return;}
+  if(!cloudOn){$('lgMsg').textContent='האפליקציה עדיין לא מחוברת לענן.';return;}
+  busy=true;$('lgMsg').textContent='רגע...';
+  rpc(fn,{p_name:n,p_pass:p}).then(function(r){
+    busy=false;
+    if(r&&r.ok)lgDone({name:r.name||n,pass:p});else $('lgMsg').textContent=errText(r&&r.error);
+  },function(){busy=false;$('lgMsg').textContent='אין חיבור לשרת';});
+}
+$('lgIn').addEventListener('click',function(){lgGo('app_login');});
+$('lgNew').addEventListener('click',function(){lgGo('app_register');});
+$('lgView').addEventListener('click',function(){skipLogin=true;$('dlgLogin').hidden=true;loginAfter=null;openPlans();});
+$('lgPass').addEventListener('keydown',function(e){if(e.key==='Enter')lgGo('app_login');});
+$('loginBtn').addEventListener('click',function(){skipLogin=false;askLogin(openPlans);});
+$('logoutBtn').addEventListener('click',function(){setMe(null);skipLogin=false;$('lgName').value='';$('lgPass').value='';askLogin(openPlans);});
+/* saving */
 var svAfter=null;
+function canUpdate(){return !!(me&&cur.id&&cur.owner===me.name);}
 function askSave(o){
-  svAfter=o.after;
+  if(!me){askLogin(function(){askSave(o);});return;}
+  svAfter=o.after;forceUpd=false;
   $('svTitle').textContent=o.title;
   $('svInfo').textContent=o.info||'';
-  var upd=state.name!==BUILTIN&&isSaved(state.name);
+  var upd=canUpdate();
   $('svUpdate').hidden=!upd;
   if(upd)$('svUpdate').textContent='עדכן את "'+state.name+'"';
   var nm=suggestName();
-  if(upd||isSaved(nm)){var k=2;while(isSaved(nm+' ('+k+')'))k++;nm=nm+' ('+k+')';}
+  if(upd||(cur.id&&cur.owner!==me.name)){nm=state.name+(cur.owner&&cur.owner!==me.name?' - עותק':' (2)');}
   $('svName').value=nm;
   $('svSkip').hidden=!o.skipLabel;$('svSkip').textContent=o.skipLabel||'';
   $('dlgPlans').hidden=true;$('dlgSw').hidden=false;
 }
 function svDone(){var f=svAfter;svAfter=null;$('dlgSw').hidden=true;if(f)f();}
-function switchTo(objs,name){
-  function go(){applyPlan(objs,name);$('dlgPlans').hidden=true;flash('נפתחה: '+name+' (↶ מחזיר את הקודמת)');}
+function doSave(id,title,force){
+  if(busy)return;
+  title=String(title||'').trim();
+  if(!title){$('svInfo').textContent=errText('bad_title');return;}
+  if(title===BUILTIN){$('svInfo').textContent='השם הזה שמור לתוכנית המקורית, בחרו שם אחר';return;}
+  busy=true;$('svInfo').textContent='שומר...';
+  rpc('app_save',{p_name:me.name,p_pass:me.pass,p_id:id,p_title:title,p_objs:JSON.parse(snapshot()),p_expected:(id&&!force)?cur.ts:null}).then(function(r){
+    busy=false;
+    if(r&&r.ok){
+      state.name=title;cur={id:r.id,ts:r.updated_at,owner:me.name,snap:snapshot()};persistCur();save();
+      loadList();svDone();return;
+    }
+    if(r&&r.error==='conflict'){forceUpd=true;$('svUpdate').textContent='דרוס את העדכון של האחר';}
+    $('svInfo').textContent=errText(r&&r.error);
+  },function(){busy=false;$('svInfo').textContent='אין חיבור לשרת. לא נשמר';});
+}
+$('svCancel').addEventListener('click',function(){svAfter=null;$('dlgSw').hidden=true;});
+$('svSkip').addEventListener('click',svDone);
+$('svUpdate').addEventListener('click',function(){doSave(cur.id,state.name,forceUpd);});
+$('svNew').addEventListener('click',function(){doSave(null,$('svName').value,false);});
+$('saveNow').addEventListener('click',function(){
+  askSave({title:'שמירה בענן',info:'מעדכנים את התוכנית שלכם, או שומרים עותק חדש בשם אחר.',after:function(){openPlans();plansMsg('נשמר: '+state.name);}});
+});
+/* open / copy / previous version / delete */
+function switchTo(objs,name,meta,post){
+  function go(){applyPlan(objs,name,meta);$('dlgPlans').hidden=true;flash('נפתחה: '+name+' (↶ מחזיר את הקודמת)');if(post)post();}
   if(!curDirty()){go();return;}
   askSave({title:'לשמור לפני המעבר?',info:'יש שינויים שלא נשמרו ב"'+state.name+'". אפשר לעדכן אותה או לשמור כחדשה, ואז נפתח את "'+name+'".',skipLabel:'עבור בלי לשמור',after:go});
 }
+function fetchPlan(id){
+  return api('plans?id=eq.'+encodeURIComponent(id)+'&select=id,owner,title,objs,versions,updated_at').then(function(a){
+    var r=a&&a[0];if(!r||!valid(r.objs))throw new Error('bad');return r;
+  });
+}
+function openRow(id,mode){
+  plansMsg('טוען...');
+  fetchPlan(id).then(function(r){
+    plansMsg('');
+    if(mode==='copy'){
+      switchTo(r.objs,r.title+' - עותק',{id:null,ts:null,owner:null},function(){
+        askSave({title:'שמירת העותק',info:'שמרו את העותק בשם משלכם כדי שתוכלו לערוך אותו.'});
+      });
+    }else if(mode==='ver'){
+      var v=(r.versions||[]).filter(function(x){return x&&valid(x.objs);})[0];
+      if(!v){plansMsg('אין גרסאות קודמות לתוכנית הזו');return;}
+      switchTo(v.objs,r.title,{id:r.id,ts:r.updated_at,owner:r.owner});
+    }else switchTo(r.objs,r.title,{id:r.id,ts:r.updated_at,owner:r.owner});
+  },function(){plansMsg('לא ניתן לטעון את התוכנית');});
+}
+var delArm=null;
+$('planList').addEventListener('click',function(e){
+  var t=e.target,g=function(k){return t.getAttribute&&t.getAttribute(k);};
+  var p=g('data-p'),c=g('data-c'),v=g('data-v'),d=g('data-d'),r=g('data-r');
+  if(p){if(p==='b')switchTo(seed(),BUILTIN,{id:null,ts:null,owner:null});else openRow(p,'open');return;}
+  if(c){openRow(c,'copy');return;}
+  if(v){openRow(v,'ver');return;}
+  if(d||r){
+    var id=d||r;
+    if(d&&delArm!==d){delArm=d;t.textContent='בטוח? מחק';t.classList.add('danger');return;}
+    delArm=null;
+    rpc('app_delete',{p_name:me.name,p_pass:me.pass,p_id:id,p_deleted:!!d}).then(function(x){
+      if(x&&x.ok){plansMsg(d?'הועברה ל"נמחקו"':'שוחזרה');loadList();}else plansMsg(errText(x&&x.error));
+    },function(){plansMsg('אין חיבור לשרת');});
+  }
+});
+$('chips').addEventListener('click',function(e){var f=e.target.getAttribute&&e.target.getAttribute('data-f');if(f){filt=f;renderPlans();}});
+$('migrate').addEventListener('click',function(){
+  var a=localLib(),i=0,ok=0,skip=0;
+  if(!me||!a.length)return;
+  plansMsg('מעלה...');
+  (function next(){
+    if(i>=a.length){plansMsg('הועלו '+ok+' תוכניות'+(skip?' ('+skip+' כבר קיימות בשם הזה)':''));loadList();return;}
+    var p=a[i++];
+    rpc('app_save',{p_name:me.name,p_pass:me.pass,p_id:null,p_title:p.name,p_objs:p.objs,p_expected:null}).then(function(r){
+      if(r&&r.ok)ok++;else skip++;next();
+    },function(){plansMsg('אין חיבור לשרת. הועלו '+ok);});
+  })();
+});
+$('plansBtn').addEventListener('click',function(){openPlans();});
+$('closePlans').addEventListener('click',function(){$('dlgPlans').hidden=true;});
+$('dlgPlans').addEventListener('click',function(e){if(e.target===$('dlgPlans'))$('dlgPlans').hidden=true;});
+/* clear */
 function doClear(){
   try{localStorage.setItem(PREV,snapshot());}catch(x){}
   var before=snapshot();state.objs=[];pushHist(before);sel=null;elSig='';elWall=null;renderPanel();
+  cur.id=null;cur.owner=null;cur.ts=null;cur.snap=snapshot();persistCur();
   if(view==='plan')fit();else if(view==='elev'){pickWall();elFit();}
   draw();save();$('dlgConfirm').hidden=true;$('dlgPlans').hidden=true;flash('הלוח נוקה. ↶ מחזיר את השינויים');
 }
@@ -1729,40 +1905,7 @@ function startClear(){
     askSave({title:'לשמור לפני הניקוי?',info:'יש שינויים שלא נשמרו ב"'+state.name+'".',skipLabel:'נקה בלי לשמור',after:doClear});
   }else{$('dlgPlans').hidden=true;$('dlgConfirm').hidden=false;}
 }
-$('plansBtn').addEventListener('click',openPlans);
-$('closePlans').addEventListener('click',function(){$('dlgPlans').hidden=true;});
-$('dlgPlans').addEventListener('click',function(e){if(e.target===$('dlgPlans'))$('dlgPlans').hidden=true;});
-$('saveNow').addEventListener('click',function(){
-  askSave({title:'שמירה בדפדפן',info:'מעדכנים את התוכנית הקיימת או שומרים עותק חדש בשם אחר.',after:function(){openPlans();plansMsg('נשמר: '+state.name);}});
-});
-var delArm=null;
-$('planList').addEventListener('click',function(e){
-  var t=e.target,p=t.getAttribute&&t.getAttribute('data-p'),d=t.getAttribute&&t.getAttribute('data-d');
-  if(p){
-    if(p==='b'){switchTo(seed(),BUILTIN);return;}
-    var rec=readLib().filter(function(x){return x.id===p;})[0];
-    if(rec)switchTo(rec.objs,rec.name);
-    return;
-  }
-  if(d){
-    if(delArm!==d){delArm=d;t.textContent='בטוח? מחק';t.classList.add('danger');return;}
-    delArm=null;writeLib(readLib().filter(function(x){return x.id!==d;}));renderPlans();plansMsg('נמחקה');
-  }
-});
-$('svCancel').addEventListener('click',function(){svAfter=null;$('dlgSw').hidden=true;});
-$('svSkip').addEventListener('click',svDone);
-$('svUpdate').addEventListener('click',function(){
-  var r=saveCurrent(state.name,true);
-  if(r){$('svInfo').textContent=r;return;}
-  svDone();
-});
-$('svNew').addEventListener('click',function(){
-  var r=saveCurrent($('svName').value,false);
-  if(r){$('svInfo').textContent=r;return;}
-  svDone();
-});
 $('clearAsk').addEventListener('click',startClear);
-
 document.addEventListener('keydown',function(e){
   var tg=e.target&&e.target.tagName;
   if(tg==='INPUT'||tg==='TEXTAREA'||tg==='SELECT')return;
