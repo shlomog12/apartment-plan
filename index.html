@@ -195,6 +195,7 @@ button.danger{color:var(--sel)}
       <button id="addDoor" type="button">+ דלת</button>
       <button id="addWin" type="button">+ חלון</button>
       <label class="chk" for="gridChk"><input id="gridChk" type="checkbox">הצג רשת</label>
+      <label class="chk" for="dimsChk"><input id="dimsChk" type="checkbox">מידות חדרים</label>
       <label class="chk" for="snapSel">הצמדה
         <select id="snapSel" aria-label="הצמדה לרשת">
           <option value="0">כבויה</option><option value="5">5 ס״מ</option><option value="10">10 ס״מ</option><option value="25">25 ס״מ</option>
@@ -422,7 +423,7 @@ function wallH(w){return w.wh||250;}
 /* ---------- state ---------- */
 var panOnly=false;
 var BUILTIN='התוכנית של יודה ונועם',LIB='apartment-plan-v1-lib';
-var state={objs:[],step:5,grid:true,name:BUILTIN};
+var state={objs:[],step:5,grid:true,dims:true,name:BUILTIN};
 var panelFold=false,lastTap={id:null,t:0};
 var V={x:0,y:0,k:1};
 var view='plan';
@@ -462,7 +463,7 @@ function load(){
   try{
     var s=localStorage.getItem(KEY);
     if(s){var d=JSON.parse(s);
-      if(valid(d.objs)){state.objs=d.objs;state.step=(d.step!==undefined)?(+d.step||0):(d.snap===false?0:5);state.grid=d.grid!==false;state.name=(typeof d.name==='string'&&d.name)?d.name:BUILTIN;
+      if(valid(d.objs)){state.objs=d.objs;state.step=(d.step!==undefined)?(+d.step||0):(d.snap===false?0:5);state.grid=d.grid!==false;state.dims=d.dims!==false;state.name=(typeof d.name==='string'&&d.name)?d.name:BUILTIN;
         if(d.view&&isFinite(d.view.k)&&isFinite(d.view.x)&&isFinite(d.view.y)){V.x=d.view.x;V.y=d.view.y;V.k=clamp(d.view.k,.1,4);hasView=true;}
         normalize();fixNid();return true;}}
   }catch(e){}
@@ -472,9 +473,33 @@ function save(){
   clearTimeout(saveT);
   saveT=setTimeout(function(){
     var ok=true;
-    try{localStorage.setItem(KEY,JSON.stringify({objs:state.objs,name:state.name,step:state.step,grid:state.grid,view:V}));}catch(e){ok=false;}
+    try{localStorage.setItem(KEY,JSON.stringify({objs:state.objs,name:state.name,step:state.step,grid:state.grid,dims:state.dims,view:V}));}catch(e){ok=false;}
     if(!ok)flash('השמירה בדפדפן לא זמינה, השתמשו בגיבוי');
   },150);
+}
+
+/* ---------- room net dimensions (wall face to wall face) ---------- */
+function netDims(r){
+  var cx=r.x+r.w/2,cy=r.y+r.h/2,tolX=Math.max(30,r.w*.15),tolY=Math.max(30,r.h*.15);
+  var L=null,R=null,T=null,B=null,dl=1e9,dr=1e9,dt=1e9,db=1e9;
+  state.objs.forEach(function(w){
+    if(w.type!=='wall')return;
+    var half=(w.t||0)/2;
+    if(Math.abs(w.x1-w.x2)<.01){
+      var lo=Math.min(w.y1,w.y2),hi=Math.max(w.y1,w.y2);
+      if(cy<lo||cy>hi)return;
+      var d1=Math.abs(w.x1-r.x),d2=Math.abs(w.x1-(r.x+r.w));
+      if(d1<tolX&&d1<dl&&w.x1<cx){dl=d1;L=w.x1+half;}
+      if(d2<tolX&&d2<dr&&w.x1>cx){dr=d2;R=w.x1-half;}
+    }else if(Math.abs(w.y1-w.y2)<.01){
+      var lo2=Math.min(w.x1,w.x2),hi2=Math.max(w.x1,w.x2);
+      if(cx<lo2||cx>hi2)return;
+      var e1=Math.abs(w.y1-r.y),e2=Math.abs(w.y1-(r.y+r.h));
+      if(e1<tolY&&e1<dt&&w.y1<cy){dt=e1;T=w.y1+half;}
+      if(e2<tolY&&e2<db&&w.y1>cy){db=e2;B=w.y1-half;}
+    }
+  });
+  return {w:Math.max(0,(R===null?r.x+r.w:R)-(L===null?r.x:L)),h:Math.max(0,(B===null?r.y+r.h:B)-(T===null?r.y:T))};
 }
 
 /* ---------- geometry ---------- */
@@ -552,6 +577,13 @@ function render(){
     s+='<text class="ptx" x="'+o.x+'" y="'+o.y+'" font-size="'+o.fs+'">'+esc(o.text)+'</text>';
     s+='<rect class="hitr" data-id="'+o.id+'" x="'+bx.x+'" y="'+bx.y+'" width="'+bx.w+'" height="'+bx.h+'"/>';
   });
+  if(state.dims){
+    objs.forEach(function(o){
+      if(o.type!=='rect'||o.kind!=='room')return;
+      var nd=netDims(o),cx=o.x+o.w/2,cy=o.y+o.h/2,lf=clamp(Math.min(o.w,o.h)/6,15,30),df=clamp(Math.min(o.w,o.h)/7.5,12,22);
+      s+='<text class="dt" x="'+cx+'" y="'+(cy+(o.label?lf*1.05:0))+'" font-size="'+df+'">'+fmt(nd.w)+' × '+fmt(nd.h)+'</text>';
+    });
+  }
   var b=bboxAll(true);
   if(b.w>20&&b.h>20){
     var ty=b.y-34*inv,rx=b.x+b.w+34*inv,tk=5*inv,fs2=12*inv;
@@ -1479,7 +1511,7 @@ function printSvg(){
     var cx=o.x+o.w/2,cy=o.y+o.h/2;
     if(o.kind==='room'){
       if(o.label)s+='<text x="'+cx+'" y="'+cy+'" text-anchor="middle" font-size="'+u(3.4)+'" fill="#111" '+F+'>'+esc(o.label)+'</text>';
-      s+='<text x="'+cx+'" y="'+(cy+u(3.6))+'" text-anchor="middle" font-size="'+u(2.2)+'" fill="#666" '+F+'>'+fmt(o.w)+' × '+fmt(o.h)+'</text>';
+      if(state.dims){var nd=netDims(o);s+='<text x="'+cx+'" y="'+(cy+u(3.6))+'" text-anchor="middle" font-size="'+u(2.2)+'" fill="#666" '+F+'>'+fmt(nd.w)+' × '+fmt(nd.h)+'</text>';}
     }else if(o.label){
       var rot=o.h>2.2*o.w?' transform="rotate(-90 '+cx+' '+cy+')"':'';
       s+='<text x="'+cx+'" y="'+cy+'" text-anchor="middle" dominant-baseline="central" font-size="'+u(2.2)+'" fill="#555" '+F+rot+'>'+esc(o.label)+'</text>';
@@ -1624,9 +1656,11 @@ $('fit').addEventListener('click',function(){
 });
 function syncGrid(){
   $('gridChk').checked=state.grid;
+  $('dimsChk').checked=state.dims;
   $('snapSel').value=String(state.step);
   $('elGrid').classList.toggle('on',state.grid);
 }
+$('dimsChk').addEventListener('change',function(e){state.dims=e.target.checked;save();draw();});
 $('gridChk').addEventListener('change',function(e){state.grid=e.target.checked;syncGrid();save();draw();});
 $('snapSel').addEventListener('change',function(e){state.step=parseInt(e.target.value,10)||0;save();flash(state.step?'ההצמדה: '+state.step+' ס״מ':'ההצמדה כבויה');});
 var PREV=KEY+'-prev';
