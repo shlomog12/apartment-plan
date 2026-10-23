@@ -1795,6 +1795,11 @@ $('modeBtn').addEventListener('click',function(){
   flash(panOnly?'מצב תזוזה: גוררים להזזת המסך, שתי אצבעות לזום. שום דבר לא זז':'מצב עריכה: אפשר לגרור פריטים');
 });
 
+panOnly=true;
+$('app').classList.add('panonly');
+$('modeBtn').textContent='✋ תזוזה בלבד';
+$('modeBtn').setAttribute('aria-pressed','true');
+
 /* ---------- shared plans library (Supabase) ---------- */
 var CLOUD={url:'https://lbygdpogkssdxedazwxk.supabase.co',key:'sb_publishable_rjC9mjWTM9aIIMLTg4Nkgw_DB7tfRmF'};
 var CUR_KEY='apt-cloud-cur',USER_KEY='apt-cloud-user',cloudOn=CLOUD.url.indexOf('http')===0;
