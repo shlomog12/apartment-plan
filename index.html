@@ -91,6 +91,8 @@ button.danger{color:var(--sel)}
 .hit{stroke:transparent;fill:none;pointer-events:stroke;cursor:move}
 .ptx{fill:var(--ink);text-anchor:middle;dominant-baseline:central;font-family:var(--font-ui);pointer-events:none;user-select:none}
 .hitr{fill:transparent;pointer-events:all;cursor:move}
+.sym{fill:none;stroke:var(--ink);stroke-width:1;pointer-events:none}
+.sym *{vector-effect:non-scaling-stroke}
 .furn{fill:var(--furn);stroke:var(--ink);stroke-width:1.5;vector-effect:non-scaling-stroke;cursor:move}
 .leaf{stroke:var(--ink);stroke-width:2;vector-effect:non-scaling-stroke;fill:none}
 .arc{stroke:var(--ink);stroke-width:1;stroke-dasharray:4 3;fill:none;vector-effect:non-scaling-stroke;opacity:.7}
@@ -395,11 +397,11 @@ function seed(){
   a.push(mkW(97,416,97,500,5));
   a.push(mkR(5,503,382,44,'ספרייה קשתית','furn'));
   a.push(mkR(90,604,294,156,'שולחן אוכל','furn','ellipse'));
-  a.push(mkR(5,830,73,258,'ספה','furn'));
-  var sofa2=mkR(78,1024,222,68,'','furn');sofa2.fh=60;a.push(sofa2);
+  var sofa1=mkR(5,830,73,258,'ספה','furn');sofa1.rot=270;a.push(sofa1);
+  var sofa2=mkR(78,1024,222,68,'ספה','furn');sofa2.rot=180;a.push(sofa2);
   a.push(mkR(544,662,301,70,'ארון','furn'));
   a.push(mkR(776,732,69,363,'משטח עבודה','furn'));
-  a.push(mkR(790,804,42,92,'כיור','furn'));
+  a.push(mkR(790,804,42,92,'כיור מטבח','furn'));
   a.push(mkR(542,902,75,193,'מזווה','furn'));
   var ctr2=mkR(617,1024,159,71,'','furn');ctr2.fh=90;a.push(ctr2);
   a.push(mkD('door',480,1100,88,0,-1,-1));
@@ -412,20 +414,75 @@ function seed(){
 }
 var FURN=[
   ['ספה',200,90],['כורסה',80,80],['מיטה זוגית',160,200],['מיטה יחיד',90,200],
-  ['שולחן אוכל',160,90],['שולחן עגול',110,110,'ellipse'],['שולחן עבודה',140,70],
-  ['ארון בגדים',120,60],['ארון',100,50],['מקרר',70,70],['מיטת תינוק',70,130]
+  ['שולחן אוכל',160,90],['שולחן עגול',110,110,'ellipse'],['שולחן עבודה',140,70],['כיסא',45,45],
+  ['ארון בגדים',120,60],['ארון',100,50],['מיטת תינוק',70,130],
+  ['אסלה',40,70],['כיור',60,45],['אמבטיה',170,75],['מקלחון',90,90],
+  ['כיור מטבח',80,50],['כיריים',60,60],['מקרר',70,70],['מכונת כביסה',60,60]
 ];
+var HREF={toilet:75,sink:92,ksink:91,bath:55,shower:200,bed:80,sofa:85,stove:90,fridge:180,washer:85,chair:90};
+function furnType(o){
+  var l=(o&&o.label)||'';
+  if(/אסלה/.test(l))return 'toilet';
+  if(/כיור/.test(l))return /מטבח/.test(l)?'ksink':'sink';
+  if(/אמבט/.test(l))return 'bath';
+  if(/מקלחון|מקלחת/.test(l))return 'shower';
+  if(/כיריים|תנור/.test(l))return 'stove';
+  if(/מקרר/.test(l))return 'fridge';
+  if(/כביסה|מייבש/.test(l))return 'washer';
+  if(/ספה|ספת|כורסה/.test(l))return 'sofa';
+  if(/מיטה|מיטת/.test(l))return 'bed';
+  if(/כיסא|כסא/.test(l))return 'chair';
+  return '';
+}
 function furnH(o){
   if(o.fh)return o.fh;
+  var t=furnType(o);
+  if(t)return HREF[t];
   var l=o.label||'';
-  if(/מקרר/.test(l))return 180;
   if(/ארון בגדים|ספרי|מזווה/.test(l))return 210;
   if(/ארון/.test(l))return 200;
-  if(/משטח|דלפק|כיור/.test(l))return 90;
-  if(/מיטה|מיטת/.test(l))return 50;
-  if(/ספה|כורסה/.test(l))return 60;
+  if(/משטח|דלפק/.test(l))return 90;
   if(/שולחן/.test(l))return 75;
   return 80;
+}
+function furnRot(o){return ((o.rot||0)%360+360)%360;}
+function sym2d(o,t){
+  var r=furnRot(o),sw=(r===90||r===270),W=sw?o.h:o.w,H=sw?o.w:o.h,hw=W/2,hh=H/2,m=Math.min(W,H),s='';
+  function f(n){return Math.round(n*10)/10;}
+  function E(cx,cy,rx,ry){return '<ellipse cx="'+f(cx)+'" cy="'+f(cy)+'" rx="'+f(rx)+'" ry="'+f(ry)+'"/>';}
+  function C(cx,cy,r){return E(cx,cy,r,r);}
+  function R(x,y,w,h,rx){return '<rect x="'+f(x)+'" y="'+f(y)+'" width="'+f(w)+'" height="'+f(h)+'" rx="'+f(rx||0)+'"/>';}
+  function L(a,b,c,d){return '<line x1="'+f(a)+'" y1="'+f(b)+'" x2="'+f(c)+'" y2="'+f(d)+'"/>';}
+  var i;
+  if(t==='toilet'){
+    s+=R(-hw*.8,-hh,W*.8,H*.26,2)+E(0,-hh+H*.26+H*.37,W*.42,H*.37)+E(0,-hh+H*.26+H*.37,W*.3,H*.27);
+  }else if(t==='sink'){
+    s+=E(0,hh*.15,W*.36,H*.3)+C(0,-hh+H*.14,m*.05)+C(0,hh*.15,m*.03);
+  }else if(t==='ksink'){
+    s+=R(-hw+W*.08,-hh+H*.14,W*.55,H*.72,4)+C(-hw+W*.355,0,m*.04)+C(hw-W*.14,-hh+H*.2,m*.05);
+    for(i=0;i<3;i++)s+=L(hw-W*.3,-hh+H*(.34+i*.1),hw-W*.12,-hh+H*(.34+i*.1));
+  }else if(t==='bath'){
+    s+=R(-hw+m*.1,-hh+m*.1,W-m*.2,H-m*.2,m*.3)+C(-hw+Math.max(m*.3,W*.1),0,m*.04)+C(hw-m*.2,0,m*.05);
+  }else if(t==='shower'){
+    s+=R(-hw+m*.08,-hh+m*.08,W-m*.16,H-m*.16,0)+L(-hw,-hh,hw,hh)+L(-hw,hh,hw,-hh)+C(0,0,m*.06);
+  }else if(t==='bed'){
+    var n=W>=120?2:1,pw=W*(n===2?.38:.7),ph=H*.14;
+    for(i=0;i<n;i++)s+=R((n===2?(i?1:-1)*W*.23:0)-pw/2,-hh+H*.05,pw,ph,4);
+    s+=L(-hw+W*.04,-hh+H*.3,hw-W*.04,-hh+H*.3);
+  }else if(t==='sofa'){
+    var ar=Math.min(W*.14,16),bd=Math.min(H*.28,22),nn=Math.max(1,Math.round((W-2*ar)/65));
+    s+=L(-hw+ar,-hh+bd,hw-ar,-hh+bd)+L(-hw+ar,-hh,-hw+ar,hh)+L(hw-ar,-hh,hw-ar,hh);
+    for(i=1;i<nn;i++){var x=-hw+ar+(W-2*ar)*i/nn;s+=L(x,-hh+bd,x,hh);}
+  }else if(t==='stove'){
+    [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(function(q){s+=C(q[0]*W*.22,q[1]*H*.22,m*.15)+C(q[0]*W*.22,q[1]*H*.22,m*.06);});
+  }else if(t==='fridge'){
+    s+=L(-hw,hh-H*.12,hw,hh-H*.12)+L(hw-W*.2,hh-H*.12,hw-W*.2,hh);
+  }else if(t==='washer'){
+    s+=L(-hw,-hh+H*.2,hw,-hh+H*.2)+C(0,H*.1,m*.34)+C(0,H*.1,m*.22);
+  }else if(t==='chair'){
+    s+=R(-hw+W*.05,-hh+H*.02,W*.9,H*.18,2)+R(-hw+W*.1,-hh+H*.24,W*.8,H*.68,3);
+  }
+  return '<g class="sym" transform="translate('+f(o.x+o.w/2)+' '+f(o.y+o.h/2)+') rotate('+r+')">'+s+'</g>';
 }
 function wallH(w){return w.wh||250;}
 
@@ -603,6 +660,7 @@ function render(){
     if(o.type!=='rect'||o.kind==='room')return;
     if(o.shape==='ellipse')s+='<ellipse class="furn" data-id="'+o.id+'" cx="'+(o.x+o.w/2)+'" cy="'+(o.y+o.h/2)+'" rx="'+(o.w/2)+'" ry="'+(o.h/2)+'"/>';
     else s+='<rect class="furn" data-id="'+o.id+'" x="'+o.x+'" y="'+o.y+'" width="'+o.w+'" height="'+o.h+'"/>';
+    var ft=furnType(o);if(ft)s+=sym2d(o,ft);
   });
   doors.forEach(function(d){
     var w=d.w,hh=Math.max(12,(coarse?16:12)*inv);
@@ -621,6 +679,7 @@ function render(){
     if(o.type!=='rect'||!o.label)return;
     var cx=o.x+o.w/2,cy=o.y+o.h/2,fs,cls,rot='';
     if(o.kind==='room'){fs=clamp(Math.min(o.w,o.h)/6,15,30);cls='lr';}
+    else if(/^(toilet|sink|ksink|shower|stove|washer|chair)$/.test(furnType(o))){fs=11;cls='lf';cy=o.y+o.h+fs*.95;}
     else{fs=clamp(Math.min(o.w,o.h)/3.2,9,15);cls='lf';if(o.h>2.2*o.w)rot=' transform="rotate(-90 '+cx+' '+cy+')"';}
     s+='<text class="'+cls+'" x="'+cx+'" y="'+cy+'" font-size="'+fs+'"'+rot+'>'+esc(o.label)+'</text>';
   });
@@ -811,6 +870,7 @@ function rotateSel(o){
     o.x1=mx+vy;o.y1=my-vx;o.x2=mx-vy;o.y2=my+vx;
   }else if(o.type==='rect'){
     var cx=o.x+o.w/2,cy=o.y+o.h/2,w=o.w;o.w=o.h;o.h=w;o.x=cx-o.w/2;o.y=cy-o.h/2;
+    if(o.kind!=='room')o.rot=(furnRot(o)+90)%360;
   }else o.rot=(o.rot+90)%360;
 }
 function dupSel(o){
@@ -1402,6 +1462,14 @@ function tdBuild(){
   state.objs.forEach(function(o){
     if(o.type!=='rect'||o.kind==='room')return;
     var h=furnH(o),mat=m3(furnColor(o.label||''));
+    var ft=furnType(o);
+    if(ft){
+      var fg=furn3d(o,ft);
+      fg.scale.y=h/HREF[ft];
+      fg.rotation.y=-furnRot(o)*Math.PI/180;
+      fg.position.set((o.x+o.w/2)/100,0,(o.y+o.h/2)/100);
+      root.add(fg);return;
+    }
     var m;
     if(o.shape==='ellipse'){
       m=new THREE.Mesh(new THREE.CylinderGeometry(1,1,h/100,40),mat);
@@ -1410,6 +1478,81 @@ function tdBuild(){
     m.position.set((o.x+o.w/2)/100,h/200,(o.y+o.h/2)/100);
     m.castShadow=true;m.receiveShadow=true;root.add(m);
   });
+}
+function furn3d(o,t){
+  var r=furnRot(o),sw=(r===90||r===270),W=sw?o.h:o.w,D=sw?o.w:o.h,g=new THREE.Group(),m=Math.min(W,D);
+  function add(mesh,x,y,z){mesh.position.set(x/100,y/100,z/100);mesh.castShadow=true;mesh.receiveShadow=true;g.add(mesh);return mesh;}
+  function bx(w,h,d,x,y,z,mat){return add(new THREE.Mesh(new THREE.BoxGeometry(w/100,h/100,d/100),mat),x,y,z);}
+  function cy(rx,rz,h,x,y,z,mat){var c=add(new THREE.Mesh(new THREE.CylinderGeometry(1,1,h/100,36),mat),x,y,z);c.scale.set(rx/100,1,rz/100);return c;}
+  var white=m3(0xf3f5f6,{roughness:.35}),dark=m3(0x3b4650,{roughness:.6}),chrome=m3(0xbfc7cf,{roughness:.25,metalness:.6}),water=m3(0xcfe3f0,{roughness:.3});
+  var col=furnColor(o.label||'');
+  var i;
+  if(t==='toilet'){
+    var tb=D*.26;
+    bx(W*.8,40,tb,0,55,-D/2+tb/2,white);
+    cy(W*.42,D*.37,38,0,19,-D/2+tb+D*.37,white);
+    cy(W*.4,D*.35,3,0,40,-D/2+tb+D*.37,m3(0xe8ecee,{roughness:.4}));
+    bx(6,3,3,0,77,-D/2+tb/2,chrome);
+  }else if(t==='sink'){
+    bx(W*.28,72,D*.3,0,36,-D/2+D*.3,white);
+    bx(W,12,D,0,80,0,white);
+    cy(W*.36,D*.3,.6,0,86.3,D*.06,water);
+    cy(2,2,7,0,89.5,-D/2+D*.14,chrome);
+  }else if(t==='ksink'){
+    bx(W,90,D,0,45,0,m3(0xc8c3bb));
+    bx(W,2,D,0,91,0,m3(0x9aa3a8,{roughness:.4,metalness:.4}));
+    bx(W*.55,1,D*.7,-W*.15,91.8,D*.03,dark);
+    cy(2,2,14,W*.3,98,-D/2+D*.2,chrome);
+  }else if(t==='bath'){
+    var wt=6;
+    bx(W,20,D,0,10,0,white);
+    bx(W,35,wt,0,37.5,-D/2+wt/2,white);bx(W,35,wt,0,37.5,D/2-wt/2,white);
+    bx(wt,35,D-2*wt,-W/2+wt/2,37.5,0,white);bx(wt,35,D-2*wt,W/2-wt/2,37.5,0,white);
+    bx(W-2*wt,1,D-2*wt,0,28,0,water);
+    cy(2,2,10,W/2-wt-4,58,0,chrome);
+  }else if(t==='shower'){
+    var gl=m3(0x9ec5e6,{transparent:true,opacity:.3,roughness:.1});
+    bx(W,6,D,0,3,0,white);
+    cy(m*.06,m*.06,.5,0,6.3,0,dark);
+    bx(W,190,1,0,101,D/2-.5,gl);bx(1,190,D,W/2-.5,101,0,gl);
+    bx(W,3,3,0,197,D/2-1.5,chrome);bx(3,3,D,W/2-1.5,197,0,chrome);
+    cy(1.5,1.5,200,-W/2+8,100,-D/2+5,chrome);
+    cy(8,8,3,-W/2+8,198,-D/2+13,chrome);
+  }else if(t==='bed'){
+    var wood=m3(0xa68a6c);
+    bx(W,25,D,0,12.5,0,wood);
+    bx(W-6,22,D-6,0,36,3,m3(0xf1ede6));
+    bx(W,80,6,0,40,-D/2+3,wood);
+    var n=W>=120?2:1,pw=W*(n===2?.4:.78);
+    for(i=0;i<n;i++)bx(pw,9,28,n===2?(i?1:-1)*W*.24:0,51.5,-D/2+22,m3(0xfbfaf7));
+    bx(W-4,3,D*.62,0,48.5,D/2-D*.31-1,m3(0x6f86a8));
+  }else if(t==='sofa'){
+    var ar=Math.min(W*.14,16),bd=Math.min(D*.28,22),sm=m3(col);
+    bx(W,28,D,0,14,0,sm);
+    bx(W-2*ar,12,D-bd,0,34,bd/2,m3(col+0x101010));
+    bx(W,57,bd,0,56.5,-D/2+bd/2,sm);
+    bx(ar,60,D,-W/2+ar/2,30,0,sm);bx(ar,60,D,W/2-ar/2,30,0,sm);
+  }else if(t==='stove'){
+    bx(W,88,D,0,44,0,white);
+    bx(W,2,D,0,89,0,dark);
+    [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(function(q){cy(m*.15,m*.15,1,q[0]*W*.22,90.5,q[1]*D*.22,m3(0x23292f));});
+    bx(W*.7,36,1,0,40,D/2+.3,dark);
+  }else if(t==='fridge'){
+    var fm=m3(0xd9dee1,{roughness:.4});
+    bx(W,180,D,0,90,0,fm);
+    bx(W+.4,1,D+.4,0,118,0,dark);
+    bx(3,30,3,W/2-8,140,D/2+1.5,chrome);bx(3,40,3,W/2-8,90,D/2+1.5,chrome);
+  }else if(t==='washer'){
+    bx(W,85,D,0,42.5,0,white);
+    var dr=cy(m*.32,m*.32,1.5,0,42,D/2+.5,dark);dr.rotation.x=Math.PI/2;dr.scale.set(m*.32/100,1,m*.32/100);
+    bx(W*.9,8,1,0,76,D/2+.3,m3(0xcfd5d8));
+  }else if(t==='chair'){
+    var wm=m3(0xa47c55);
+    bx(W,4,D,0,45,0,wm);
+    bx(W,45,3,0,67.5,-D/2+1.5,wm);
+    [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(function(q){bx(3,45,3,q[0]*(W/2-2),22.5,q[1]*(D/2-2),wm);});
+  }
+  return g;
 }
 function tdStartRoom(){
   var o=sel?byId(sel):null,best=null,ba=0;
