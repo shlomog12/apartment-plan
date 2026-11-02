@@ -298,6 +298,7 @@ button.danger{color:var(--sel)}
 .verbar #verMsg:empty{display:none}
 .app.elevmode .verbar{top:62px}
 .app.v3d .verbar{top:52px}
+.app.v3d #modeSeg{display:none}
 @media (max-width:760px){
   .dlg.sheet{place-items:end stretch;padding:0}
   .dlg.sheet .dlg-box{border-radius:14px 14px 0 0;width:100%;max-height:85%;padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))}
@@ -2403,6 +2404,21 @@ function tdStartRoom(){
   });
   return best;
 }
+/* like a photo of a room: stand in a corner that is free of furniture and look at the opposite corner */
+function tdCornerView(r){
+  var m=45,cs=[[r.x+m,r.y+m],[r.x+r.w-m,r.y+m],[r.x+m,r.y+r.h-m],[r.x+r.w-m,r.y+r.h-m]];
+  var furn=state.objs.filter(function(o){return o.type==='rect'&&o.kind!=='room';});
+  if(r.w<150||r.h<150)return null;
+  /* the corner with the most room around it (distance to the nearest piece of furniture) */
+  var c=null,bestD=-1;
+  cs.forEach(function(q){
+    var d=furn.reduce(function(mn,f){var dx=Math.max(f.x-q[0],0,q[0]-(f.x+f.w)),dy=Math.max(f.y-q[1],0,q[1]-(f.y+f.h));return Math.min(mn,Math.hypot(dx,dy));},1e9);
+    if(d>bestD){bestD=d;c=q;}
+  });
+  if(bestD<25)return null;
+  var tx=r.x+r.w+r.x-c[0],tz=r.y+r.h+r.y-c[1];
+  return {x:c[0]/100,z:c[1]/100,tx:tx/100,tz:tz/100};
+}
 function tdMode(m){
   if(!tdEnsure())return;
   T.mode=m;
@@ -2413,10 +2429,14 @@ function tdMode(m){
     T.dist=clamp(Math.max(bb.h/100,bb.w/100/Math.max(.4,a))/(2*Math.tan(27.5*Math.PI/180))*1.12+1,6,60);
     T.mode='orbit';
   }else{
-    var r=tdStartRoom();
-    if(r){T.pos.x=(r.x+r.w/2)/100;T.pos.z=(r.y+r.h/2)/100;}
-    var dx=T.center.x-T.pos.x,dz=T.center.z-T.pos.z;
-    T.yaw=Math.atan2(-dx,-dz);T.pitch=0;
+    var r=tdStartRoom(),st=r?tdCornerView(r):null;
+    if(st){T.pos.x=st.x;T.pos.z=st.z;T.yaw=Math.atan2(-(st.tx-st.x),-(st.tz-st.z));}
+    else{
+      if(r){T.pos.x=(r.x+r.w/2)/100;T.pos.z=(r.y+r.h/2)/100;}
+      var dx=T.center.x-T.pos.x,dz=T.center.z-T.pos.z;
+      T.yaw=(dx||dz)?Math.atan2(-dx,-dz):0;
+    }
+    T.pitch=-.05;
   }
   ['vOrbit','vTop','vIn'].forEach(function(id){$(id).classList.remove('on');});
   $(m==='orbit'?'vOrbit':m==='top'?'vTop':'vIn').classList.add('on');
@@ -2486,7 +2506,7 @@ function flash(t,ms){
   /* on phones the inspector sits at the bottom: show the message at the top instead of covering it */
   var top=narrow&&!$('panel').hidden;
   toastEl.style.top=top?((view==='elev'?(coarse?62:54):8)+'px'):'auto';
-  toastEl.style.bottom=top?'auto':'12px';
+  toastEl.style.bottom=top?'auto':((view==='3d'&&T.mode==='inside')?'124px':'12px');
   toastEl.textContent=t;toastEl.style.display='block';clearTimeout(toastT);
   toastT=setTimeout(function(){toastEl.style.display='none';},ms||clamp(1800+t.length*60,2500,7000));
 }
@@ -3318,8 +3338,9 @@ function setPanOnly(v,quiet){
   if(changed&&!quiet)flash(v?'הזזת מסך: גוררים להזזת המסך, שתי אצבעות לזום. שום פריט לא זז':'עריכה: לוחצים על פריט כדי לבחור אותו, וגוררים כדי להזיז');
 }
 var hintT=null;
+var panHints=0;
 function panTapHint(){
-  flash('כדי לערוך פריט, עברו למצב ✎ עריכה (בפינת המסך)');
+  if(panHints++<2)flash('כדי לערוך פריט, עברו למצב ✎ עריכה (בפינת המסך)');
   var b=$('modeEdit');b.classList.remove('pulse');void b.offsetWidth;b.classList.add('pulse');
   clearTimeout(hintT);hintT=setTimeout(function(){b.classList.remove('pulse');},1200);
 }
