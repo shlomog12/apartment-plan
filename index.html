@@ -225,6 +225,32 @@ button.danger{color:var(--sel)}
 .uitem:has(input:checked){border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--panel))}
 .uitem input{width:18px;height:18px;accent-color:var(--accent)}
 #pShareBox{align-items:center}
+.uitem{flex-wrap:wrap}
+.uitem .un{display:flex;gap:8px;align-items:center;flex:1;min-width:120px;cursor:pointer}
+.perm{display:flex}
+.perm button{height:30px;padding:0 10px;font-size:12px;border-radius:0}
+.perm button:first-child{border-radius:0 6px 6px 0}
+.perm button:last-child{border-radius:6px 0 0 6px;margin-inline-start:-1px}
+.acts{display:grid;gap:6px}
+.acts button{height:44px;text-align:start;font-size:14px;padding:0 12px}
+.dlg-box .sub{margin-top:-4px}
+.vlist{display:grid;gap:6px;max-height:50vh;overflow:auto}
+.vitem{display:flex;gap:8px;align-items:center;height:auto;min-height:44px;padding:6px 10px;text-align:start;white-space:normal}
+.vitem b{font-weight:500}
+.vitem small{color:var(--muted)}
+.vitem .sp{flex:1}
+.vitem.sel{border-color:var(--sel);box-shadow:inset 0 0 0 1px var(--sel)}
+.verbar{position:absolute;z-index:7;top:8px;left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100% - 16px);display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;background:var(--panel);border:2px solid var(--sel);border-radius:10px;padding:6px 10px;box-shadow:0 2px 10px rgba(0,0,0,.2)}
+.verbar .vt{font-weight:500}
+.verbar #verMsg{color:var(--sel);font-size:12px;flex-basis:100%;text-align:center}
+.verbar #verMsg:empty{display:none}
+.app.elevmode .verbar{top:62px}
+.app.v3d .verbar{top:52px}
+@media (max-width:760px){
+  .dlg.sheet{place-items:end stretch;padding:0}
+  .dlg.sheet .dlg-box{border-radius:14px 14px 0 0;width:100%;max-height:85%;padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))}
+  .verbar{top:6px;width:calc(100% - 12px)}
+}
 .pitem small{color:var(--muted);font-size:11px}
 .pitem.cur{border-color:var(--accent)}
 .dlg-box button.pri{font-weight:500}
@@ -318,6 +344,13 @@ button.hl{animation:hl .6s ease 3;border-color:var(--sel)}
       <button type="button" data-k="ArrowRight" aria-label="ימינה" title="ימינה">▶</button>
     </div>
     <div class="mini" id="mini" hidden></div>
+    <div class="verbar" id="verBar" role="status" hidden>
+      <span class="vt" id="verTxt"></span>
+      <button id="verRestore" type="button" class="pri">שחזר גרסה זו</button>
+      <button id="verOther" type="button">גרסה אחרת…</button>
+      <button id="verExit" type="button">חזרה לנוכחית</button>
+      <span id="verMsg"></span>
+    </div>
     <div class="note" id="note"></div>
     <div class="float" id="panel" hidden></div>
     <div class="pop" id="help" hidden>
@@ -353,7 +386,7 @@ button.hl{animation:hl .6s ease 3;border-color:var(--sel)}
           <button id="pSvLogin" type="button" class="pri">כניסה / הרשמה</button>
         </div>
         <div id="pSvBox" style="display:grid;gap:6px">
-          <div class="row" id="pShareBox" hidden><span id="pShareTxt" style="flex:1"></span><button id="pShare" type="button">שיתוף…</button></div>
+          <div class="row" id="pShareBox" hidden><span id="pShareTxt" style="flex:1"></span><button id="pShare" type="button">👥 שיתוף…</button><button id="pHist" type="button">🕘 היסטוריה</button></div>
           <div class="row"><button id="pSvUpdate" type="button" class="pri"></button></div>
           <div class="row">
             <input id="pSvName" type="text" class="txt" placeholder="שם לתוכנית חדשה" aria-label="שם לתוכנית חדשה">
@@ -439,9 +472,26 @@ button.hl{animation:hl .6s ease 3;border-color:var(--sel)}
       <input id="shSearch" type="search" class="txt" placeholder="חיפוש משתמש…" aria-label="חיפוש משתמש">
       <div class="row"><button id="shAll" type="button">סמן את כולם</button><button id="shNone" type="button">נקה סימון</button><span id="shCount" style="align-self:center;color:var(--muted)"></span></div>
       <div id="shList" class="ulist"></div>
-      <p>מי ששיתפתם יכול לצפות בתוכנית ולשמור עותק משלו. רק אתם יכולים לעדכן אותה.</p>
+      <p><b>👁 צפייה</b>: רואים את התוכנית ויכולים לשמור עותק משלהם. <b>✏️ עריכה</b>: יכולים גם לעדכן אותה. רק אתם יכולים לשתף ולמחוק.</p>
       <p id="shMsg"></p>
       <div class="row"><button id="shSave" type="button" class="pri">שמור שיתוף</button><button id="shCancel" type="button">ביטול</button></div>
+    </div>
+  </div>
+  <div class="dlg sheet" id="dlgAct" hidden>
+    <div class="dlg-box" role="dialog" aria-modal="true" aria-labelledby="actTitle">
+      <h2 id="actTitle"></h2>
+      <p class="sub" id="actSub"></p>
+      <div class="acts" id="actList"></div>
+      <div class="row"><button id="actClose" type="button">סגור</button></div>
+    </div>
+  </div>
+  <div class="dlg sheet" id="dlgHist" hidden>
+    <div class="dlg-box" role="dialog" aria-modal="true" aria-labelledby="hsTitle">
+      <h2 id="hsTitle">היסטוריית גרסאות</h2>
+      <p>כל שמירה בענן נשמרת כאן (50 האחרונות). בחרו גרסה כדי לראות אותה על הלוח. אחר כך אפשר לשחזר אותה או לחזור לגרסה הנוכחית.</p>
+      <div id="hsList" class="vlist"></div>
+      <p id="hsMsg"></p>
+      <div class="row"><button id="hsClose" type="button">סגור</button></div>
     </div>
   </div>
   <div class="dlg" id="dlgTour" hidden>
@@ -1994,7 +2044,7 @@ function setView(v){
   for(var i=0;i<tb.length;i++)tb[i].classList.toggle('on',tb[i].getAttribute('data-v')===v);
   svg.toggleAttribute('hidden',v!=='plan');ev.toggleAttribute('hidden',v!=='elev');$('td').hidden=v!=='3d';
   $('planTools').style.display=v==='plan'?'contents':'none';
-  $('elBar').hidden=v!=='elev';$('tdTools').hidden=v!=='3d';$('mini').hidden=v!=='elev';$('app').classList.toggle('elevmode',v==='elev');if(v!=='3d')$('pad').hidden=true;
+  $('elBar').hidden=v!=='elev';$('tdTools').hidden=v!=='3d';$('mini').hidden=v!=='elev';$('app').classList.toggle('elevmode',v==='elev');$('app').classList.toggle('v3d',v==='3d');if(v!=='3d')$('pad').hidden=true;
   $('note').textContent='';
   if(v==='plan'){renderPanel();render();}
   else if(v==='elev'){pickWall();elFit();renderPanel();renderElev();
@@ -2233,6 +2283,7 @@ function suggestName(){
   return state.name;
 }
 function applyPlan(objs,name,meta){
+  if(verPrev)endPreview();
   var before=snapshot();
   state.objs=JSON.parse(JSON.stringify(objs));state.name=name;
   normalize();fixNid();pushHist(before);sel=null;elSig='';elWall=null;renderPanel();
@@ -2243,7 +2294,8 @@ function applyPlan(objs,name,meta){
 function updStatus(){
   var nm=$('stName'),st=$('stState');if(!nm||!st)return;
   var dirty=curDirty(),txt,cls;
-  if(!state.objs.length&&!cur.id){txt='לוח ריק';cls='';}
+  if(typeof verPrev!=='undefined'&&verPrev){txt='🕘 תצוגת גרסה מההיסטוריה';cls='dirty';}
+  else if(!state.objs.length&&!cur.id){txt='לוח ריק';cls='';}
   else if(dirty){txt=cur.id?'• יש שינויים שלא נשמרו בענן':'• לא נשמרה בענן';cls='dirty';}
   else if(cur.id){txt='✓ שמורה בענן';cls='ok';}
   else{txt='';cls='';}
@@ -2258,7 +2310,7 @@ function renderWho(){
 }
 function localLib(){try{var a=JSON.parse(localStorage.getItem(LIB)||'[]');return Array.isArray(a)?a.filter(function(p){return p&&typeof p.name==='string'&&valid(p.objs);}):[];}catch(x){return [];}}
 function renderPlans(){
-  $('curName').textContent='התוכנית הנוכחית: '+state.name+(cur.id&&cur.owner?' (של '+cur.owner+')':'');
+  $('curName').textContent='התוכנית הנוכחית: '+state.name+(cur.id&&cur.owner&&!(me&&cur.owner===me.name)?' (של '+cur.owner+(cur.role==='edit'?' · ✏️ הרשאת עריכה':' · 👁 צפייה')+')':'');
   renderWho();
   var chips=$('chips').querySelectorAll('button');
   for(var i=0;i<chips.length;i++)chips[i].classList.toggle('on',chips[i].getAttribute('data-f')===filt);
@@ -2278,13 +2330,9 @@ function renderPlans(){
   });
   list.forEach(function(r){
     var mine=me&&r.owner===me.name;
-    h+='<div class="pitem'+(r.id===cur.id?' cur':'')+'"><span class="nm">'+esc(r.title)+' '+visBadge(r)+' <small>'+(mine?'':esc(r.owner)+' · ')+fmtDate(r.updated_at)+'</small></span>';
+    h+='<div class="pitem'+(r.id===cur.id?' cur':'')+'"><span class="nm">'+esc(r.title)+' '+visBadge(r)+' <small>'+(mine?'':esc(r.owner)+' · ')+fmtDate(r.updated_at)+(r.updated_by&&r.updated_by!==r.owner?' · עודכנה ע״י '+esc(r.updated_by):'')+'</small></span>';
     if(filt==='trash')h+='<button type="button" data-r="'+esc(r.id)+'" class="pri">שחזר</button>';
-    else{
-      h+='<button type="button" data-p="'+esc(r.id)+'" class="pri">פתח</button><button type="button" data-c="'+esc(r.id)+'">עותק</button>';
-      if(mine&&!legacyCloud)h+='<button type="button" data-s="'+esc(r.id)+'">שיתוף…</button>';
-      if(mine)h+='<button type="button" data-v="'+esc(r.id)+'" title="פותח את הגרסה שנשמרה לפני השמירה האחרונה">פתח גרסה קודמת</button><button type="button" data-d="'+esc(r.id)+'"'+(delArm===r.id?' class="danger">בטוח? מחק':'>מחק')+'</button>';
-    }
+    else h+='<button type="button" data-p="'+esc(r.id)+'" class="pri">פתח</button><button type="button" data-m="'+esc(r.id)+'" aria-label="פעולות נוספות: '+esc(r.title)+'" title="פעולות נוספות">⋯</button>';
     h+='</div>';
   });
   if(!list.length)h+='<p>'+({shared:'עדיין אף אחד לא שיתף איתכם תוכנית.',mine:'עדיין לא שמרתם תוכניות.',public:'אין עדיין תוכניות ציבוריות בענן.',trash:'אין תוכניות שנמחקו.'}[filt])+'</p>';
@@ -2297,13 +2345,15 @@ function visBadge(r){
   if(!r.visibility||legacyCloud)return '';
   if(r.visibility==='public')return '<span class="badge pub">🌐 ציבורית</span>';
   if(me&&r.owner===me.name)return '<span class="badge">🔒 '+(r.share_count?'שותפה עם '+r.share_count:'פרטית')+'</span>';
-  return '<span class="badge">🔒 שותפה איתך</span>';
+  return '<span class="badge">'+(r.role==='edit'?'✏️ שותפה איתך לעריכה':'👁 שותפה איתך לצפייה')+'</span>';
 }
 function rowOf(id){for(var i=0;i<rows.length;i++)if(rows[i].id===id)return rows[i];return null;}
 function updShareLine(){
   var show=canUpdate()&&!legacyCloud;$('pShareBox').hidden=!show;if(!show)return;
-  var r=rowOf(cur.id),t;
-  if(r&&r.visibility==='public')t='🌐 התוכנית ציבורית: כולם רואים אותה.';
+  var r=rowOf(cur.id),t,owner=cur.owner===me.name;
+  $('pShare').hidden=!owner;
+  if(!owner)t='✏️ תוכנית של '+cur.owner+', שותפה איתכם לעריכה.';
+  else if(r&&r.visibility==='public')t='🌐 התוכנית ציבורית: כולם רואים אותה.';
   else if(r&&r.share_count)t='🔒 פרטית, שותפה עם '+r.share_count+' משתמשים.';
   else t='🔒 פרטית: רק אתם רואים אותה.';
   $('pShareTxt').textContent=t;
@@ -2351,7 +2401,7 @@ function renderSaveTab(){
   if(upd)$('pSvUpdate').textContent='עדכן את "'+state.name+'"';
   $('pSvNew').classList.toggle('pri',!upd);
   $('pSvName').value=defaultSaveName();
-  $('pSvInfo').textContent=upd?'מעדכנים את התוכנית שפתוחה עכשיו, או שומרים עותק בשם אחר.':(cur.id?'זו תוכנית של '+cur.owner+'. כדי לערוך אותה שומרים עותק בשם שלכם.':'בחרו שם לתוכנית ולחצו שמור.');
+  $('pSvInfo').textContent=(upd&&cur.role==='edit'&&cur.owner!==me.name)?'זו תוכנית של '+cur.owner+' ששותפה איתכם לעריכה. "עדכן" שומר את השינויים אצל '+cur.owner+'. אפשר גם לשמור עותק משלכם.':upd?'מעדכנים את התוכנית שפתוחה עכשיו, או שומרים עותק בשם אחר.':(cur.id?'זו תוכנית של '+cur.owner+'. כדי לערוך אותה שומרים עותק בשם שלכם.':'בחרו שם לתוכנית ולחצו שמור.');
   updShareLine();
 }
 function openPlans(tab){
@@ -2400,7 +2450,8 @@ $('loginBtn').addEventListener('click',function(){skipLogin=false;askLogin(openP
 $('logoutBtn').addEventListener('click',function(){setMe(null);skipLogin=false;$('lgName').value='';$('lgPass').value='';askLogin(openPlans);});
 /* saving */
 var svAfter=null;
-function canUpdate(){return !!(me&&cur.id&&cur.owner===me.name);}
+function roleOf(o){if(!o)return null;if(me&&o.owner===me.name)return 'owner';return o.role||'view';}
+function canUpdate(){return !!(me&&cur.id&&(cur.owner===me.name||cur.role==='edit'));}
 function askSave(o){
   if(!me){askLogin(function(){askSave(o);});return;}
   svAfter=o.after;forceUpd=false;
@@ -2427,7 +2478,9 @@ function doSave(id,title,force,ui){
   rpc('app_save',{p_name:me.name,p_pass:me.pass,p_id:id,p_title:title,p_objs:JSON.parse(snapshot()),p_expected:(id&&!force)?cur.ts:null}).then(function(r){
     busy=false;
     if(r&&r.ok){
-      state.name=title;cur={id:r.id,ts:r.updated_at,owner:me.name,snap:snapshot()};persistCur();save();updStatus();
+      state.name=title;
+      cur={id:r.id,ts:r.updated_at,owner:id?(cur.owner||me.name):me.name,role:id?(cur.role||'owner'):'owner',snap:snapshot()};
+      persistCur();save();updStatus();if(verPrev)endPreview();
       loadList();ui.done();return;
     }
     if(r&&r.error==='conflict'){forceUpd=true;$(ui.upd).hidden=false;$(ui.upd).textContent='דרוס את העדכון של האחר';}
@@ -2454,6 +2507,7 @@ function fetchPlan(id){
     :rpc('app_get',{p_name:me?me.name:null,p_pass:me?me.pass:null,p_id:id}).then(function(r){if(!r||!r.ok)throw new Error((r&&r.error)||'bad');return r.plan;});
   return p.then(function(r){if(!r||!valid(r.objs))throw new Error('bad');return r;});
 }
+function metaOf(r){return {id:r.id,ts:r.updated_at,owner:r.owner,role:r.role||(me&&r.owner===me.name?'owner':'view')};}
 function openRow(id,mode){
   plansMsg('טוען...');
   fetchPlan(id).then(function(r){
@@ -2462,47 +2516,151 @@ function openRow(id,mode){
       switchTo(r.objs,r.title+' - עותק',{id:null,ts:null,owner:null},function(){
         askSave({title:'שמירת העותק',info:'שמרו את העותק בשם משלכם כדי שתוכלו לערוך אותו.'});
       });
-    }else if(mode==='ver'){
-      var v=(r.versions||[]).filter(function(x){return x&&valid(x.objs);})[0];
-      if(!v){plansMsg('אין גרסאות קודמות לתוכנית הזו');return;}
-      switchTo(v.objs,r.title,{id:r.id,ts:r.updated_at,owner:r.owner});
-    }else switchTo(r.objs,r.title,{id:r.id,ts:r.updated_at,owner:r.owner});
+    }else switchTo(r.objs,r.title,metaOf(r));
   },function(){plansMsg('לא ניתן לטעון את התוכנית');});
 }
-var delArm=null,delT=null;
+
 $('planList').addEventListener('click',function(e){
   var t=e.target,g=function(k){return t.getAttribute&&t.getAttribute(k);};
-  var p=g('data-p'),c=g('data-c'),v=g('data-v'),d=g('data-d'),r=g('data-r'),sh=g('data-s');
-  if(sh){var row=rowOf(sh);openShare(sh,row?row.title:'');return;}
+  var p=g('data-p'),m=g('data-m'),r=g('data-r');
+  if(m){openActions(m);return;}
   if(p){if(p==='b')switchTo(seed(),BUILTIN,{id:null,ts:null,owner:null});else openRow(p,'open');return;}
-  if(c){openRow(c,'copy');return;}
-  if(v){openRow(v,'ver');return;}
-  if(d||r){
-    var id=d||r;
-    if(d&&delArm!==d){
-      delArm=d;renderPlans();
-      clearTimeout(delT);delT=setTimeout(function(){if(delArm===d){delArm=null;renderPlans();}},4000);
-      return;
-    }
-    clearTimeout(delT);
-    delArm=null;
-    rpc('app_delete',{p_name:me.name,p_pass:me.pass,p_id:id,p_deleted:!!d}).then(function(x){
-      if(x&&x.ok){plansMsg(d?'הועברה ל"נמחקו"':'שוחזרה');loadList();}else plansMsg(errText(x&&x.error));
-    },function(){plansMsg('אין חיבור לשרת');});
-  }
+  if(r)setDeleted(r,false);
 });
+function setDeleted(id,del){
+  rpc('app_delete',{p_name:me.name,p_pass:me.pass,p_id:id,p_deleted:del}).then(function(x){
+    if(x&&x.ok){plansMsg(del?'הועברה ל"נמחקו". אפשר לשחזר אותה משם.':'שוחזרה');loadList();}else plansMsg(errText(x&&x.error));
+  },function(){plansMsg('אין חיבור לשרת');});
+}
+/* per-plan actions sheet (bottom sheet on phones) */
+var actId=null,actArm=false,actT=null;
+function fmtWhen(t){
+  try{
+    var d=new Date(t),n=new Date(),hm=d.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
+    var day=function(x){return new Date(x.getFullYear(),x.getMonth(),x.getDate()).getTime();},diff=Math.round((day(n)-day(d))/864e5);
+    if(diff===0)return 'היום '+hm;if(diff===1)return 'אתמול '+hm;
+    return d.toLocaleDateString('he-IL')+' '+hm;
+  }catch(x){return '';}
+}
+function openActions(id){actId=id;actArm=false;renderActions();$('dlgAct').hidden=false;var b=$('actList').querySelector('button');if(b)b.focus();}
+function closeActions(){$('dlgAct').hidden=true;actArm=false;clearTimeout(actT);}
+function renderActions(){
+  var r=rowOf(actId);if(!r){closeActions();return;}
+  var role=roleOf(r),h='';
+  $('actTitle').textContent=r.title;
+  $('actSub').textContent=(role==='owner'?'שלכם':'של '+r.owner+(role==='edit'?' · ✏️ הרשאת עריכה':' · 👁 צפייה'))+' · עודכנה '+fmtWhen(r.updated_at)+(r.updated_by&&r.updated_by!==(me&&me.name)?' ע״י '+r.updated_by:'');
+  h+='<button type="button" data-a="copy">📄 שמור עותק משלי</button>';
+  if(role==='owner'&&!legacyCloud)h+='<button type="button" data-a="share">👥 שיתוף והרשאות…</button>';
+  if((role==='owner'||role==='edit')&&!legacyCloud)h+='<button type="button" data-a="hist">🕘 היסטוריית גרסאות</button>';
+  if(role==='owner')h+='<button type="button" data-a="del" class="danger">'+(actArm?'⚠️ לחצו שוב לאישור: העבר לנמחקו':'🗑 העבר לנמחקו')+'</button>';
+  $('actList').innerHTML=h;
+}
+$('actList').addEventListener('click',function(e){
+  var a=e.target.closest&&e.target.closest('button'),k=a&&a.getAttribute('data-a'),r=rowOf(actId);if(!k||!r)return;
+  if(k==='del'){
+    if(!actArm){actArm=true;renderActions();clearTimeout(actT);actT=setTimeout(function(){actArm=false;if(!$('dlgAct').hidden)renderActions();},4000);return;}
+    closeActions();setDeleted(r.id,true);return;
+  }
+  closeActions();
+  if(k==='copy')openRow(r.id,'copy');
+  else if(k==='share')openShare(r.id,r.title);
+  else if(k==='hist')openHistory(r.id,r.title);
+});
+$('actClose').addEventListener('click',closeActions);
+$('dlgAct').addEventListener('click',function(e){if(e.target===$('dlgAct'))closeActions();});
+/* version history */
+var hsPlan=null,hsTitle='',hsList=[],verPrev=null,hsBack=null;
+function openHistory(id,title){
+  if(!me)return;
+  hsPlan=id;hsTitle=title;hsBack=$('dlgPlans').hidden?null:pTab;
+  $('hsTitle').textContent='היסטוריית גרסאות: '+title;$('hsMsg').textContent='טוען...';$('hsList').innerHTML='';
+  $('dlgPlans').hidden=true;$('dlgHist').hidden=false;
+  rpc('app_versions',{p_name:me.name,p_pass:me.pass,p_id:id}).then(function(r){
+    if(!r||!r.ok){$('hsMsg').textContent=errText(r&&r.error);return;}
+    hsList=r.versions||[];$('hsMsg').textContent=hsList.length?'':'אין עדיין גרסאות שמורות.';renderHistory();
+  },function(err){$('hsMsg').textContent=String(err&&err.message)==='http 404'?'היסטוריית גרסאות תעבוד אחרי עדכון מסד הנתונים.':'אין חיבור לשרת';});
+}
+function renderHistory(){
+  var h='';
+  hsList.forEach(function(v,i){
+    h+='<button type="button" class="vitem'+(verPrev&&verPrev.vid===v.id?' sel':'')+'" data-vid="'+v.id+'"><b>'+fmtWhen(v.created_at)+'</b><small>'+(v.saved_by?esc(v.saved_by):'')+(v.title!==hsTitle?' · "'+esc(v.title)+'"':'')+'</small><span class="sp"></span>'+(i===0?'<span class="badge pub">נוכחית</span>':'')+'</button>';
+  });
+  $('hsList').innerHTML=h;
+}
+function closeHistory(){$('dlgHist').hidden=true;if(hsBack&&!verPrev)openPlans(hsBack);}
+$('hsClose').addEventListener('click',closeHistory);
+$('dlgHist').addEventListener('click',function(e){if(e.target===$('dlgHist'))closeHistory();});
+$('hsList').addEventListener('click',function(e){
+  var b=e.target.closest&&e.target.closest('[data-vid]');if(!b)return;
+  var vid=+b.getAttribute('data-vid'),idx=hsList.findIndex(function(v){return v.id===vid;}),v=hsList[idx];
+  var sameTs=cur.ts&&v&&new Date(cur.ts).getTime()===new Date(v.created_at).getTime();
+  if(idx===0&&cur.id===hsPlan&&sameTs&&!curDirty()&&!verPrev){$('hsMsg').textContent='זו הגרסה שכבר פתוחה.';return;}
+  $('hsMsg').textContent='טוען...';
+  rpc('app_version_get',{p_name:me.name,p_pass:me.pass,p_vid:vid}).then(function(r){
+    if(!r||!r.ok||!valid(r.version.objs)){$('hsMsg').textContent=errText(r&&r.error);return;}
+    var ver=r.version;ver.label=fmtWhen(ver.created_at)+(ver.saved_by?' · '+ver.saved_by:'');ver.isLatest=idx===0;
+    if(cur.id===hsPlan){$('dlgHist').hidden=true;startPreview(ver);return;}
+    /* another plan: open it first (offers to save unsaved work), then show the version */
+    fetchPlan(hsPlan).then(function(pl){
+      $('dlgHist').hidden=true;
+      switchTo(pl.objs,pl.title,metaOf(pl),function(){startPreview(ver);});
+    },function(){$('hsMsg').textContent='לא ניתן לטעון את התוכנית';});
+  },function(){$('hsMsg').textContent='אין חיבור לשרת';});
+});
+function setBoard(objs){
+  var before=snapshot();state.objs=JSON.parse(JSON.stringify(objs));normalize();fixNid();pushHist(before);
+  sel=null;elSig='';elWall=null;renderPanel();
+  if(view==='plan')fit();else if(view==='elev'){pickWall();elFit();}
+  draw();save();updStatus();
+}
+function startPreview(ver){
+  if(!verPrev)verPrev={objs:JSON.parse(snapshot())};
+  verPrev.vid=ver.id;verPrev.label=ver.label;verPrev.latest=ver.isLatest;verPrev.ts=ver.created_at;
+  setBoard(ver.objs);updStatus();
+  $('verTxt').textContent='🕘 '+(ver.isLatest?'הגרסה האחרונה שנשמרה':'גרסה שנשמרה '+ver.label);
+  $('verMsg').textContent='';forceUpd=false;
+  $('verRestore').textContent=ver.isLatest?'המשך מגרסה זו':'שחזר גרסה זו';
+  $('verRestore').hidden=!canUpdate();
+  $('verBar').hidden=false;
+}
+function endPreview(){verPrev=null;$('verBar').hidden=true;$('verMsg').textContent='';updStatus();}
+var SV_VER={info:'verMsg',upd:'verRestore',done:function(){
+  var l=verPrev&&verPrev.label;endPreview();
+  flash('שוחזר: הגרסה'+(l?' שנשמרה '+l:'')+' היא עכשיו הנוכחית. מה שהיה לפני נשמר בהיסטוריה');
+}};
+$('verRestore').addEventListener('click',function(){
+  if(!verPrev||!canUpdate())return;
+  if(verPrev.latest){
+    /* the newest saved version is already the current one in the cloud: just continue from it */
+    cur.ts=verPrev.ts;cur.snap=snapshot();persistCur();endPreview();updStatus();
+    flash('ממשיכים מהגרסה האחרונה שנשמרה בענן');return;
+  }
+  doSave(cur.id,state.name,forceUpd,SV_VER);
+});
+$('verExit').addEventListener('click',function(){
+  if(!verPrev)return;var o=verPrev.objs;endPreview();setBoard(o);flash('חזרתם לגרסה הנוכחית');
+});
+$('verOther').addEventListener('click',function(){openHistory(cur.id,state.name);});
+$('pHist').addEventListener('click',function(){openHistory(cur.id,state.name);});
 /* sharing */
 var shId=null,shUsers=[],shSel={},shBack='open';
 function shSelected(){return shUsers.filter(function(n){return shSel[n];});}
+var shEdit={},shNoPerm=false;
 function renderShare(){
   var q=$('shSearch').value.trim().toLowerCase(),h='';
   var list=shUsers.filter(function(n){return !q||n.toLowerCase().indexOf(q)>=0;});
-  list.forEach(function(n){h+='<label class="uitem"><input type="checkbox" data-u="'+esc(n)+'"'+(shSel[n]?' checked':'')+'><span>'+esc(n)+'</span></label>';});
+  list.forEach(function(n){
+    var e=esc(n);
+    h+='<div class="uitem"><label class="un"><input type="checkbox" data-u="'+e+'"'+(shSel[n]?' checked':'')+'><span>'+e+'</span></label>';
+    if(shSel[n]&&!shNoPerm)h+='<div class="perm" role="group" aria-label="הרשאה ל'+e+'"><button type="button" data-pu="'+e+'" data-pv="view" class="'+(shEdit[n]?'':'on')+'" aria-pressed="'+!shEdit[n]+'">👁 צפייה</button><button type="button" data-pu="'+e+'" data-pv="edit" class="'+(shEdit[n]?'on':'')+'" aria-pressed="'+!!shEdit[n]+'">✏️ עריכה</button></div>';
+    h+='</div>';
+  });
   if(!shUsers.length)h='<p>אין עדיין משתמשים אחרים באפליקציה.</p>';
   else if(!list.length)h='<p>אין משתמש שמתאים לחיפוש.</p>';
   $('shList').innerHTML=h;
   var c=shSelected().length;
-  $('shCount').textContent=c?'נבחרו '+c+' מתוך '+shUsers.length:'לא נבחרו משתמשים';
+  var ce=shSelected().filter(function(n){return shEdit[n];}).length;
+  $('shCount').textContent=c?'נבחרו '+c+' מתוך '+shUsers.length+(ce?' ('+ce+' עם עריכה)':''):'לא נבחרו משתמשים';
   $('shPubNote').hidden=!$('shPub').checked;
 }
 function openShare(id,title){
@@ -2513,6 +2671,7 @@ function openShare(id,title){
     if(!r||!r.ok){plansMsg(errText(r&&r.error));return;}
     shId=id;shUsers=Array.isArray(r.users)?r.users:[];shSel={};
     (r.shared||[]).forEach(function(n){shSel[n]=true;});
+    shNoPerm=!Array.isArray(r.editors);shEdit={};(r.editors||[]).forEach(function(n){shEdit[n]=true;});
     $('shTitle').textContent='שיתוף: '+title;
     $(r.visibility==='public'?'shPub':'shPriv').checked=true;
     $('shSearch').value='';$('shMsg').textContent='';renderShare();
@@ -2520,16 +2679,21 @@ function openShare(id,title){
   },function(){plansMsg('אין חיבור לשרת');});
 }
 function closeShare(){$('dlgShare').hidden=true;openPlans(shBack);}
-$('shList').addEventListener('change',function(e){var u=e.target.getAttribute&&e.target.getAttribute('data-u');if(u!==null){shSel[u]=e.target.checked;renderShare();}});
+$('shList').addEventListener('change',function(e){var u=e.target.getAttribute&&e.target.getAttribute('data-u');if(u!==null){shSel[u]=e.target.checked;if(!e.target.checked)delete shEdit[u];renderShare();}});
+$('shList').addEventListener('click',function(e){
+  var b=e.target.closest&&e.target.closest('[data-pu]');if(!b)return;
+  shEdit[b.getAttribute('data-pu')]=b.getAttribute('data-pv')==='edit';renderShare();
+});
 $('shSearch').addEventListener('input',renderShare);
 $('shPub').addEventListener('change',renderShare);$('shPriv').addEventListener('change',renderShare);
 $('shAll').addEventListener('click',function(){var q=$('shSearch').value.trim().toLowerCase();shUsers.forEach(function(n){if(!q||n.toLowerCase().indexOf(q)>=0)shSel[n]=true;});renderShare();});
-$('shNone').addEventListener('click',function(){shSel={};renderShare();});
+$('shNone').addEventListener('click',function(){shSel={};shEdit={};renderShare();});
 $('shCancel').addEventListener('click',closeShare);
 $('shSave').addEventListener('click',function(){
   if(busy)return;busy=true;$('shMsg').textContent='שומר...';
-  var vis=$('shPub').checked?'public':'private',users=shSelected();
-  rpc('app_share_set',{p_name:me.name,p_pass:me.pass,p_id:shId,p_visibility:vis,p_users:users}).then(function(r){
+  var vis=$('shPub').checked?'public':'private',users=shSelected(),args={p_name:me.name,p_pass:me.pass,p_id:shId,p_visibility:vis,p_users:users};
+  if(!shNoPerm)args.p_editors=users.filter(function(n){return shEdit[n];});
+  rpc('app_share_set',args).then(function(r){
     busy=false;
     if(!r||!r.ok){$('shMsg').textContent=errText(r&&r.error);return;}
     flash(vis==='public'?'התוכנית ציבורית עכשיו: כולם רואים אותה':users.length?'שותפה עם '+users.length+' משתמשים':'התוכנית פרטית: רק אתם רואים אותה');
@@ -2556,6 +2720,7 @@ $('closePlans').addEventListener('click',function(){$('dlgPlans').hidden=true;})
 $('dlgPlans').addEventListener('click',function(e){if(e.target===$('dlgPlans'))$('dlgPlans').hidden=true;});
 /* clear */
 function doClear(){
+  if(verPrev)endPreview();
   try{localStorage.setItem(PREV,snapshot());}catch(x){}
   var before=snapshot();state.objs=[];pushHist(before);sel=null;elSig='';elWall=null;renderPanel();
   cur.id=null;cur.owner=null;cur.ts=null;cur.snap=snapshot();persistCur();
@@ -2580,6 +2745,8 @@ document.addEventListener('keydown',function(e){
   var tg=e.target&&e.target.tagName;
   if(tg==='INPUT'||tg==='TEXTAREA'||tg==='SELECT')return;
   if(e.key==='Escape'&&!$('help').hidden){$('help').hidden=true;return;}
+  if(e.key==='Escape'&&!$('dlgAct').hidden){closeActions();return;}
+  if(e.key==='Escape'&&!$('dlgHist').hidden){closeHistory();return;}
   if(!$('dlgTour').hidden)return;
   if(view==='3d')return;
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();if(e.shiftKey)doRedo();else doUndo();return;}
