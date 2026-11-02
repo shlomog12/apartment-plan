@@ -54,7 +54,10 @@ button,select{font:inherit;color:var(--ink);background:var(--btn);border:1px sol
 button:hover:not(:disabled){border-color:var(--accent)}
 button:disabled{opacity:.4;cursor:default}
 button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-button.on{background:var(--accent);color:var(--paper);border-color:var(--accent);font-weight:500}
+/* .on = currently selected / toggled on; .pri = the recommended action */
+button.on{background:color-mix(in srgb,var(--accent) 16%,var(--btn));color:var(--accent);border-color:var(--accent);font-weight:700;box-shadow:inset 0 -2px 0 var(--accent)}
+button.pri{background:var(--accent);color:var(--paper);border-color:var(--accent);font-weight:500}
+button.pri:hover:not(:disabled){filter:brightness(1.08)}
 button.danger{color:var(--sel)}
 .tabs{display:flex;gap:0}
 .tabs button{border-radius:0}
@@ -70,11 +73,12 @@ button.danger{color:var(--sel)}
 .ovl.br button{width:32px;height:32px;padding:0;font-size:16px}
 .ovl.tr{top:8px;right:8px;flex-wrap:wrap;max-width:calc(100% - 16px)}
 .ovl button,.ovl select{box-shadow:0 1px 3px rgba(0,0,0,.15)}
-.float{position:absolute;z-index:4;top:8px;left:8px;width:208px;max-height:calc(100% - 16px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px;box-shadow:0 2px 10px rgba(0,0,0,.18)}
+.float{position:absolute;z-index:4;top:8px;left:8px;width:236px;max-height:calc(100% - 16px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px;box-shadow:0 2px 10px rgba(0,0,0,.18)}
 .float h2{margin:0 0 6px;font-size:13px;display:flex;justify-content:space-between;align-items:center}
 .float h2 button{height:22px;width:22px;padding:0}
-.f{display:grid;grid-template-columns:54px minmax(0,1fr);gap:6px;align-items:center;margin-bottom:5px}
-.f span{color:var(--muted);font-size:12px}
+.f{display:grid;grid-template-columns:62px minmax(0,1fr) 24px;gap:5px;align-items:center;margin-bottom:5px}
+.f span{color:var(--muted);font-size:12px;line-height:1.15}
+.f i{font-style:normal;color:var(--muted);font-size:11px}
 .f input{width:100%;height:28px;border:1px solid var(--line);border-radius:5px;padding:0 6px;background:var(--paper);color:var(--ink);font:inherit}
 .f input[type=number]{direction:ltr;text-align:right}
 .btns{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
@@ -130,6 +134,7 @@ button.danger{color:var(--sel)}
 .elbar{position:absolute;z-index:5;top:0;left:0;right:0;height:46px;display:flex;gap:6px;align-items:center;padding:0 8px;background:var(--panel);border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
 .elbar>*{flex:none}
 .elbar .add{border-color:var(--accent);color:var(--accent);font-weight:500}
+.elbar .chk{padding:0 4px}
 .eltitle{font-weight:700;white-space:nowrap;min-width:110px;text-align:center}
 .app.elevmode>header{display:none}
 .app.elevmode{grid-template-rows:minmax(0,1fr)}
@@ -198,7 +203,7 @@ button.danger{color:var(--sel)}
 .pitem .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pitem small{color:var(--muted);font-size:11px}
 .pitem.cur{border-color:var(--accent)}
-.dlg-box button.on{font-weight:500}
+.dlg-box button.pri{font-weight:500}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
@@ -218,7 +223,7 @@ button.danger{color:var(--sel)}
     <span class="sep"></span>
     <span id="planTools" style="display:contents">
       <button id="addWall" type="button">+ קיר</button>
-      <button id="addMeas" type="button">📏 מדידה</button>
+      <button id="addMeas" type="button" title="קו מדידה בין שתי נקודות">+ מדידה</button>
       <button id="addRoom" type="button">+ חדר</button>
       <select id="furnSel" aria-label="סוג ריהוט"></select>
       <button id="addFurn" type="button">+ ריהוט</button>
@@ -227,18 +232,18 @@ button.danger{color:var(--sel)}
       <button id="addWin" type="button">+ חלון</button>
       <label class="chk" for="gridChk"><input id="gridChk" type="checkbox">הצג רשת</label>
       <label class="chk" for="dimsChk"><input id="dimsChk" type="checkbox">מידות חדרים</label>
-      <label class="chk" for="snapSel">הצמדה
+      <label class="chk" for="snapSel" title="פריטים שנגררים קופצים לכפולות של המרווח שנבחר">הצמדה לרשת
         <select id="snapSel" aria-label="הצמדה לרשת">
           <option value="0">כבויה</option><option value="5">5 ס״מ</option><option value="10">10 ס״מ</option><option value="25">25 ס״מ</option>
         </select>
       </label>
       <span class="sep"></span>
     </span>
-    <button id="undo" type="button" aria-label="בטל">↶</button>
-    <button id="redo" type="button" aria-label="שחזר">↷</button>
+    <button id="undo" type="button" aria-label="בטל" title="בטל את הפעולה האחרונה (Ctrl+Z)">↶</button>
+    <button id="redo" type="button" aria-label="שחזר" title="החזר את מה שבוטל (Ctrl+Y)">↷</button>
     <span class="sep"></span>
-    <button id="pdf" type="button">PDF</button>
-    <button id="helpBtn" type="button" aria-label="עזרה">?</button>
+    <button id="pdf" type="button" title="שמירת התוכנית כקובץ PDF להדפסה">⬇ ייצוא PDF</button>
+    <button id="helpBtn" type="button" aria-label="עזרה" title="עזרה">?</button>
   </header>
   <main class="stage" id="stage">
     <svg id="cv" xmlns="http://www.w3.org/2000/svg"></svg>
@@ -249,23 +254,23 @@ button.danger{color:var(--sel)}
         <button id="modePan" type="button" aria-pressed="true" title="גרירה מזיזה את המסך בלבד. שום פריט לא זז">✋ הזזת מסך</button>
         <button id="modeEdit" type="button" aria-pressed="false" title="לחיצה בוחרת פריט, גרירה מזיזה אותו">✎ עריכה</button>
       </div>
-      <button id="zoomIn" type="button" aria-label="הגדל">+</button>
-      <button id="zoomOut" type="button" aria-label="הקטן">−</button>
-      <button id="fit" type="button" aria-label="התאם למסך">⤢</button>
+      <button id="zoomIn" type="button" aria-label="הגדל" title="הגדל (או גלגלת / צביטה)">+</button>
+      <button id="zoomOut" type="button" aria-label="הקטן" title="הקטן">−</button>
+      <button id="fit" type="button" aria-label="התאם למסך" title="הצג את כל התוכנית במסך">⤢</button>
     </div>
     <div class="elbar" id="elBar" hidden>
-      <button id="elBack" type="button" class="on">→ חזרה לתוכנית</button>
-      <button id="elPrev" type="button" aria-label="הקיר הקודם">◀</button>
+      <button id="elBack" type="button" class="pri">→ חזרה לתוכנית</button>
+      <button id="elPrev" type="button" aria-label="הקיר הקודם" title="הקיר הקודם">▶ הקודם</button>
       <span id="elTitle" class="eltitle">חזית קיר</span>
-      <button id="elNext" type="button" aria-label="הקיר הבא">▶</button>
+      <button id="elNext" type="button" aria-label="הקיר הבא" title="הקיר הבא">הבא ◀</button>
       <span class="sep"></span>
-      <button id="elWin" type="button" class="add">＋ הוסף חלון</button>
-      <button id="elDoor" type="button" class="add">＋ הוסף דלת</button>
+      <button id="elWin" type="button" class="add">+ חלון</button>
+      <button id="elDoor" type="button" class="add">+ דלת</button>
       <span class="sep"></span>
-      <button id="elUndo" type="button" aria-label="בטל">↶</button>
-      <button id="elRedo" type="button" aria-label="שחזר">↷</button>
-      <button id="elFlip" type="button">צד שני</button>
-      <button id="elGrid" type="button">רשת</button>
+      <button id="elUndo" type="button" aria-label="בטל" title="בטל את הפעולה האחרונה (Ctrl+Z)">↶</button>
+      <button id="elRedo" type="button" aria-label="שחזר" title="החזר את מה שבוטל (Ctrl+Y)">↷</button>
+      <button id="elFlip" type="button" title="מציג את הקיר כפי שהוא נראה מהחדר שמעברו השני">הצג מהצד השני</button>
+      <label class="chk" for="elGrid"><input id="elGrid" type="checkbox">הצג רשת</label>
     </div>
     <div class="ovl tr" id="tdTools" hidden>
       <button id="vOrbit" type="button" class="on">מבחוץ</button>
@@ -274,10 +279,10 @@ button.danger{color:var(--sel)}
       <button id="vPng" type="button">שמור תמונה</button>
     </div>
     <div class="pad" id="pad" hidden>
-      <button type="button" data-k="ArrowUp" aria-label="קדימה">▲</button>
-      <button type="button" data-k="ArrowLeft" aria-label="שמאלה">◀</button>
-      <button type="button" data-k="ArrowDown" aria-label="אחורה">▼</button>
-      <button type="button" data-k="ArrowRight" aria-label="ימינה">▶</button>
+      <button type="button" data-k="ArrowUp" aria-label="קדימה" title="קדימה">▲</button>
+      <button type="button" data-k="ArrowLeft" aria-label="שמאלה" title="שמאלה">◀</button>
+      <button type="button" data-k="ArrowDown" aria-label="אחורה" title="אחורה">▼</button>
+      <button type="button" data-k="ArrowRight" aria-label="ימינה" title="ימינה">▶</button>
     </div>
     <div class="mini" id="mini" hidden></div>
     <div class="note" id="note"></div>
@@ -300,18 +305,19 @@ button.danger{color:var(--sel)}
       <h2>תוכניות: שמירה וטעינה</h2>
       <p id="curName"></p>
       <div class="row"><span id="who" style="flex:1;align-self:center"></span>
-        <button id="loginBtn" type="button" class="on">כניסה / הרשמה</button>
+        <button id="loginBtn" type="button" class="pri">כניסה / הרשמה</button>
         <button id="logoutBtn" type="button" hidden>החלפת משתמש</button></div>
       <section>
         <h3>שמירה</h3>
         <div class="row">
-          <button id="saveNow" type="button" class="on">שמור בענן…</button>
+          <button id="saveNow" type="button" class="pri">שמור בענן…</button>
           <button id="saveFile" type="button">שמור כקובץ</button>
           <button id="copyJson" type="button">העתק כטקסט</button>
         </div>
       </section>
       <section>
-        <h3>טעינה</h3>
+        <h3>פתיחה</h3>
+        <div class="row"><button id="newPlan" type="button" title="מתחיל לוח ריק. אפשר לחזור עם ↶">+ תוכנית חדשה</button></div>
         <div class="row" id="chips">
           <button type="button" data-f="all">הכול</button>
           <button type="button" data-f="mine" id="mineChip">שלי</button>
@@ -326,7 +332,7 @@ button.danger{color:var(--sel)}
         <details class="tx">
           <summary>טעינה או העתקה כטקסט</summary>
           <textarea id="json" spellcheck="false" aria-label="טקסט התוכנית"></textarea>
-          <div class="row"><button id="loadJson" type="button" class="on">טען מהטקסט</button></div>
+          <div class="row"><button id="loadJson" type="button" class="pri">טען מהטקסט</button></div>
         </details>
       </section>
       <section class="dz">
@@ -348,7 +354,7 @@ button.danger{color:var(--sel)}
       <input id="lgPass" type="text" class="txt" placeholder="סיסמה" autocomplete="off" aria-label="סיסמה">
       <p id="lgMsg"></p>
       <div class="row">
-        <button id="lgIn" type="button" class="on">כניסה</button>
+        <button id="lgIn" type="button" class="pri">כניסה</button>
         <button id="lgNew" type="button">משתמש חדש</button>
         <button id="lgView" type="button">המשך בלי חשבון</button>
       </div>
@@ -358,10 +364,10 @@ button.danger{color:var(--sel)}
     <div class="dlg-box">
       <h2 id="svTitle">שמירה</h2>
       <p id="svInfo"></p>
-      <div class="row"><button id="svUpdate" type="button" class="on"></button></div>
+      <div class="row"><button id="svUpdate" type="button" class="pri"></button></div>
       <div class="row">
         <input id="svName" type="text" class="txt" placeholder="שם לתוכנית חדשה" aria-label="שם לשמירה">
-        <button id="svNew" type="button" class="on">שמור כחדשה</button>
+        <button id="svNew" type="button" class="pri">שמור כחדשה</button>
       </div>
       <div class="row">
         <button id="svSkip" type="button" class="danger"></button>
@@ -371,10 +377,10 @@ button.danger{color:var(--sel)}
   </div>
   <div class="dlg" id="dlgConfirm" hidden>
     <div class="dlg-box">
-      <h2>לנקות את הלוח?</h2>
-      <p>כל מה שעל הלוח יימחק ויישאר לוח ריק. מיד אחר כך אפשר ללחוץ על ↶ כדי לבטל, ובנוסף נשמר עותק שאפשר לשחזר מחלון השמירה והייבוא.</p>
+      <h2 id="cfTitle">לנקות את הלוח?</h2>
+      <p id="cfText">כל מה שעל הלוח יימחק ויישאר לוח ריק. מיד אחר כך אפשר ללחוץ על ↶ כדי לבטל, ובנוסף נשמר עותק שאפשר לשחזר מחלון השמירה והייבוא.</p>
       <div class="row">
-        <button id="resetNo" type="button" class="on">ביטול, השאר את התוכנית</button>
+        <button id="resetNo" type="button" class="pri">ביטול, השאר את התוכנית</button>
         <button id="resetYes" type="button" class="danger">כן, נקה</button>
       </div>
     </div>
@@ -810,37 +816,38 @@ function draw(){
 var NAMES={measure:'מדידה',text:'טקסט',wall:'קיר',room:'חדר',furn:'ריהוט',door:'דלת',window:'חלון'};
 function txtBox(o){var w=Math.max(o.fs*1.5,String(o.text).length*o.fs*.6+o.fs*.6),h=o.fs*1.5;return {x:o.x-w/2,y:o.y-h/2,w:w,h:h};}
 function kindOf(o){return o.type==='rect'?(o.kind==='room'?'room':'furn'):o.type;}
-function fld(lab,k,v,isText){
-  return '<label class="f"><span>'+lab+'</span><input id="f_'+k+'" type="'+(isText?'text':'number')+'" data-k="'+k+'" value="'+esc(v)+'"'+(isText?'':' step="5" inputmode="decimal"')+'></label>';
+function fld(lab,k,v,isText,unit){
+  if(unit===undefined)unit=isText?'':'ס״מ';
+  return '<label class="f"><span>'+lab+'</span><input id="f_'+k+'" type="'+(isText?'text':'number')+'" data-k="'+k+'" value="'+esc(v)+'"'+(isText?'':' step="5" inputmode="decimal"')+'><i>'+unit+'</i></label>';
 }
 function renderPanel(){
   var o=sel?byId(sel):null,p=$('panel'),h='';
   if(!o||view==='3d'){p.hidden=true;p.innerHTML='';return;}
   var kd=kindOf(o);
-  h+='<h2><span>'+NAMES[kd]+'</span><span><button type="button" data-a="fold" aria-label="צמצם">'+(panelFold?'▴':'▾')+'</button> <button type="button" data-a="close" aria-label="סגור">×</button></span></h2><div class="fg">';
+  h+='<h2><span>'+NAMES[kd]+'</span><span><button type="button" data-a="fold" aria-label="'+(panelFold?'הרחב':'צמצם')+'" title="'+(panelFold?'הרחב':'צמצם')+'">'+(panelFold?'▴':'▾')+'</button> <button type="button" data-a="close" aria-label="סגור" title="סגור (Esc)">×</button></span></h2><div class="fg">';
   if(o.type==='measure'){
     h+=fld('מרחק','len',fmt(Math.hypot(o.x2-o.x1,o.y2-o.y1)));
   }else if(o.type==='wall'){
     h+=fld('אורך','len',fmt(Math.hypot(o.x2-o.x1,o.y2-o.y1)))+fld('עובי','t',fmt(o.t))+fld('גובה','wh',fmt(wallH(o)));
   }else if(o.type==='text'){
-    h+=fld('טקסט','text',o.text,true)+fld('גודל','fs',fmt(o.fs));
-    if(view==='plan')h+=fld('X','x',fmt(o.x))+fld('Y','y',fmt(o.y));
+    h+=fld('טקסט','text',o.text,true)+fld('גודל אות','fs',fmt(o.fs),false,'');
+    if(view==='plan')h+=fld('מיקום אופקי','x',fmt(o.x))+fld('מיקום אנכי','y',fmt(o.y));
   }else if(o.type==='rect'){
     h+=fld('שם','label',o.label,true)+fld('רוחב','w',fmt(o.w))+fld('אורך','h',fmt(o.h));
     if(o.kind==='room')h+='<div class="meta" id="area">שטח: '+(o.w*o.h/10000).toFixed(1)+' מ״ר</div>';
     else h+=fld('גובה','fh',fmt(furnH(o)));
-    if(view==='plan')h+=fld('X','x',fmt(o.x))+fld('Y','y',fmt(o.y));
+    if(view==='plan')h+=fld('מיקום אופקי','x',fmt(o.x))+fld('מיקום אנכי','y',fmt(o.y));
   }else{
     h+=fld('רוחב','w',fmt(o.w))+fld('גובה','h',fmt(o.h));
-    if(o.type==='window')h+=fld('מהרצפה','sl',fmt(o.sl));
-    if(view==='elev')h+=fld('מקום','pos',fmt(openPos(o)));
+    if(o.type==='window')h+=fld('גובה מהרצפה','sl',fmt(o.sl));
+    if(view==='elev')h+=fld('מרחק מתחילת הקיר','pos',fmt(openPos(o)));
   }
-  h+='</div><div class="btns"><button type="button" data-a="ok" class="on" title="השינויים כבר עודכנו בתוכנית. סוגר את החלון">✓ סיום</button>';
+  h+='</div><div class="btns"><button type="button" data-a="ok" class="pri" title="השינויים כבר עודכנו בתוכנית. סוגר את החלון">✓ סיום</button>';
   if(o.type!=='text'&&o.type!=='measure'&&(view==='plan'||o.type==='wall'||o.type==='rect'))h+='<button type="button" data-a="rot">סובב</button>';
-  if(view==='plan'&&(o.type==='wall'||isOpen(o)))h+='<button type="button" data-a="elev" class="on">חזית הקיר ←</button>';
-  if(isOpen(o)&&view==='plan'){
-    h+='<button type="button" data-a="fx">הפוך צד</button>';
-    if(o.type==='door')h+='<button type="button" data-a="fy">כיוון פתיחה</button>';
+  if(view==='plan'&&(o.type==='wall'||isOpen(o)))h+='<button type="button" data-a="elev" class="pri">חזית הקיר ←</button>';
+  if(o.type==='door'&&view==='plan'){
+    h+='<button type="button" data-a="fx" title="מעביר את הצירים לצד השני של הפתח">⇆ צד הציר</button>';
+    h+='<button type="button" data-a="fy" title="הדלת תיפתח לחדר שמעבר לקיר">⇅ פתיחה לצד השני</button>';
   }
   h+='<button type="button" data-a="dup">'+((view==='elev'&&isOpen(o))?'שכפל לידו':'שכפל')+'</button><button type="button" data-a="del" class="danger">מחק</button></div>';
   p.innerHTML=h;p.hidden=false;p.classList.toggle('fold',panelFold);
@@ -1244,7 +1251,7 @@ function renderElev(){
   });
   if(!ops.length){
     s+='<text class="lf" x="'+(L/2)+'" y="'+(-H/2-12*inv)+'" font-size="'+(16*inv)+'">אין על הקיר הזה דלת או חלון</text>';
-    s+='<text class="lf" x="'+(L/2)+'" y="'+(-H/2+14*inv)+'" font-size="'+(13*inv)+'">לחצו על ＋ הוסף חלון או ＋ הוסף דלת בסרגל שלמעלה</text>';
+    s+='<text class="lf" x="'+(L/2)+'" y="'+(-H/2+14*inv)+'" font-size="'+(13*inv)+'">לחצו על + חלון או + דלת בסרגל שלמעלה</text>';
   }
   var by=26+22*inv,lx=-24*inv,tk=5*inv;
   s+='<path class="dim" d="M 0 '+by+' H '+L+' M 0 '+(by-tk)+' V '+(by+tk)+' M '+L+' '+(by-tk)+' V '+(by+tk)+'"/>';
@@ -1902,7 +1909,7 @@ $('elPrev').addEventListener('click',function(){elStep(-1);});
 $('elNext').addEventListener('click',function(){elStep(1);});
 $('elUndo').addEventListener('click',doUndo);
 $('elRedo').addEventListener('click',doRedo);
-$('elGrid').addEventListener('click',function(){state.grid=!state.grid;syncGrid();save();renderElev();});
+$('elGrid').addEventListener('change',function(e){state.grid=e.target.checked;syncGrid();save();renderElev();});
 $('elFlip').addEventListener('click',function(){elFlip=!elFlip;$('elFlip').classList.toggle('on',elFlip);renderPanel();renderElev();});
 $('elDoor').addEventListener('click',function(){addOpening('door');});
 $('elWin').addEventListener('click',function(){addOpening('window');});
@@ -1983,7 +1990,7 @@ function syncGrid(){
   $('gridChk').checked=state.grid;
   $('dimsChk').checked=state.dims;
   $('snapSel').value=String(state.step);
-  $('elGrid').classList.toggle('on',state.grid);
+  $('elGrid').checked=state.grid;
 }
 $('dimsChk').addEventListener('change',function(e){state.dims=e.target.checked;save();draw();});
 $('gridChk').addEventListener('change',function(e){state.grid=e.target.checked;syncGrid();save();draw();});
@@ -2020,7 +2027,12 @@ $('fileIn').addEventListener('change',function(e){
 });
 $('resetNo').addEventListener('click',function(){$('dlgConfirm').hidden=true;});
 $('dlgConfirm').addEventListener('click',function(e){if(e.target===$('dlgConfirm'))$('dlgConfirm').hidden=true;});
-$('resetYes').addEventListener('click',doClear);
+var cfAction=null;
+function askConfirm(title,text,yes,fn){
+  $('cfTitle').textContent=title;$('cfText').textContent=text;$('resetYes').textContent=yes;cfAction=fn;
+  $('dlgPlans').hidden=true;$('dlgConfirm').hidden=false;
+}
+$('resetYes').addEventListener('click',function(){var f=cfAction||doClear;cfAction=null;f();});
 $('restorePrev').addEventListener('click',function(){
   var t=null;try{t=localStorage.getItem(PREV);}catch(x){}
   if(t)loadText(JSON.stringify({objs:JSON.parse(t)}));
@@ -2117,7 +2129,7 @@ function renderPlans(){
   $('trashChip').hidden=!me;$('mineChip').hidden=!me;
   var h='';
   if(filt==='all'){
-    h+='<div class="pitem'+(state.name===BUILTIN&&!cur.id?' cur':'')+'"><span class="nm">'+esc(BUILTIN)+' <small>(המקורית)</small></span><button type="button" data-p="b" class="on">פתח</button></div>';
+    h+='<div class="pitem'+(state.name===BUILTIN&&!cur.id?' cur':'')+'"><span class="nm">'+esc(BUILTIN)+' <small>(המקורית)</small></span><button type="button" data-p="b" class="pri">פתח</button></div>';
   }
   var list=rows.filter(function(r){
     if(filt==='all')return !r.deleted;
@@ -2127,10 +2139,10 @@ function renderPlans(){
   list.forEach(function(r){
     var mine=me&&r.owner===me.name;
     h+='<div class="pitem'+(r.id===cur.id?' cur':'')+'"><span class="nm">'+esc(r.title)+' <small>'+esc(r.owner)+' · '+fmtDate(r.updated_at)+'</small></span>';
-    if(filt==='trash')h+='<button type="button" data-r="'+esc(r.id)+'" class="on">שחזר</button>';
+    if(filt==='trash')h+='<button type="button" data-r="'+esc(r.id)+'" class="pri">שחזר</button>';
     else{
-      h+='<button type="button" data-p="'+esc(r.id)+'" class="on">פתח</button><button type="button" data-c="'+esc(r.id)+'">עותק</button>';
-      if(mine)h+='<button type="button" data-v="'+esc(r.id)+'">גרסה קודמת</button><button type="button" data-d="'+esc(r.id)+'">מחק</button>';
+      h+='<button type="button" data-p="'+esc(r.id)+'" class="pri">פתח</button><button type="button" data-c="'+esc(r.id)+'">עותק</button>';
+      if(mine)h+='<button type="button" data-v="'+esc(r.id)+'" title="פותח את הגרסה שנשמרה לפני השמירה האחרונה">פתח גרסה קודמת</button><button type="button" data-d="'+esc(r.id)+'">מחק</button>';
     }
     h+='</div>';
   });
@@ -2282,10 +2294,18 @@ function doClear(){
   draw();save();$('dlgConfirm').hidden=true;$('dlgPlans').hidden=true;flash('הלוח נוקה. ↶ מחזיר את השינויים');
 }
 function startClear(){
-  if(curDirty()){
+  var clearTxt='כל מה שעל הלוח יימחק ויישאר לוח ריק. מיד אחר כך אפשר ללחוץ על ↶ כדי לבטל, ובנוסף נשמר עותק שאפשר לשחזר מחלון השמירה והייבוא.';
+  if(curDirty()&&me){
     askSave({title:'לשמור לפני הניקוי?',info:'יש שינויים שלא נשמרו ב"'+state.name+'".',skipLabel:'נקה בלי לשמור',after:doClear});
-  }else{$('dlgPlans').hidden=true;$('dlgConfirm').hidden=false;}
+  }else askConfirm('לנקות את הלוח?',clearTxt,'כן, נקה',doClear);
 }
+function doNew(){doClear();state.name='תוכנית חדשה';save();updStatus();flash('נפתחה תוכנית חדשה. ↶ מחזיר את הקודמת');}
+function startNew(){
+  if(!curDirty()){doNew();return;}
+  if(me)askSave({title:'לשמור לפני תוכנית חדשה?',info:'יש שינויים שלא נשמרו ב"'+state.name+'". אפשר לעדכן אותה או לשמור כחדשה, ואז ייפתח לוח ריק.',skipLabel:'פתח חדשה בלי לשמור',after:doNew});
+  else askConfirm('לפתוח תוכנית חדשה?','השינויים ב"'+state.name+'" לא שמורים בענן. כדי לשמור אותם, בטלו ושמרו כקובץ או התחברו. אפשר גם לחזור אליהם אחר כך עם ↶.','כן, תוכנית חדשה',doNew);
+}
+$('newPlan').addEventListener('click',startNew);
 $('clearAsk').addEventListener('click',startClear);
 document.addEventListener('keydown',function(e){
   var tg=e.target&&e.target.tagName;
