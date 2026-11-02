@@ -49,6 +49,28 @@ create table if not exists plan_versions (
 );
 create index if not exists plan_versions_plan_idx on plan_versions(plan_id, created_at desc);
 
+-- Comments pinned on a plan. obj_id: the item the comment is attached to (it moves with it);
+-- ox/oy: that item's anchor when the comment was made. parent_id: replies.
+create table if not exists plan_comments (
+  id bigserial primary key,
+  plan_id uuid not null references plans(id) on delete cascade,
+  parent_id bigint references plan_comments(id) on delete cascade,
+  x real, y real, obj_id text, ox real, oy real,
+  author text not null references app_users(name) on update cascade on delete cascade,
+  body text not null,
+  resolved boolean not null default false,
+  resolved_by text,
+  created_at timestamptz not null default now()
+);
+create index if not exists plan_comments_plan_idx on plan_comments(plan_id, created_at);
+-- when each user last looked at a plan's comments, for the "new comments" badge
+create table if not exists comment_reads (
+  user_name text not null references app_users(name) on update cascade on delete cascade,
+  plan_id uuid not null references plans(id) on delete cascade,
+  last_seen timestamptz not null default now(),
+  primary key (user_name, plan_id)
+);
+
 create table if not exists app_migrations (
   name text primary key,
   applied_at timestamptz not null default now()
@@ -88,6 +110,8 @@ alter table plans enable row level security;
 alter table plan_shares enable row level security;
 alter table app_migrations enable row level security;
 alter table plan_versions enable row level security;
+alter table plan_comments enable row level security;
+alter table comment_reads enable row level security;
 
 drop policy if exists "everyone reads plans" on plans;
 
@@ -96,6 +120,8 @@ revoke all on plans from anon, authenticated;
 revoke all on plan_shares from anon, authenticated;
 revoke all on app_migrations from anon, authenticated;
 revoke all on plan_versions from anon, authenticated;
+revoke all on plan_comments from anon, authenticated;
+revoke all on comment_reads from anon, authenticated;
 
 create or replace function app_check(p_name text, p_pass text) returns boolean
 language sql security definer set search_path = public as $$
@@ -217,7 +243,9 @@ begin
     select jsonb_agg(to_jsonb(x) order by x.updated_at desc) from (
       select p.id, p.owner, p.title, p.updated_at, p.updated_by, p.deleted, p.visibility, app_role(u, p.id) as role,
         exists (select 1 from plan_shares s where s.plan_id = p.id and s.user_name = u) as shared,
-        case when p.owner = u then (select count(*) from plan_shares s where s.plan_id = p.id) end as share_count
+        case when p.owner = u then (select count(*) from plan_shares s where s.plan_id = p.id) end as share_count,
+        case when u is null then 0 else (select count(*) from plan_comments c where c.plan_id = p.id and c.author <> u
+          and c.created_at > coalesce((select r.last_seen from comment_reads r where r.user_name = u and r.plan_id = p.id), '-infinity')) end as new_comments
       from plans p
       where app_can_see(u, p.id)
       order by p.updated_at desc
@@ -307,6 +335,91 @@ begin
     'share_count', (select count(*) from plan_shares where plan_id = p_id));
 end $$;
 
+-- All comments of a plan, for anyone who can see the plan (viewers too; public plans also without an account).
+create or replace function app_comments(p_name text, p_pass text, p_id uuid) returns jsonb
+language plpgsql stable security definer set search_path = public as $$
+declare u text;
+begin
+  if p_name is not null then
+    if not app_check(p_name, p_pass) then return jsonb_build_object('ok', false, 'error', 'bad_login'); end if;
+    u := p_name;
+  end if;
+  if app_role(u, p_id) is null then return jsonb_build_object('ok', false, 'error', 'not_found'); end if;
+  return jsonb_build_object('ok', true, 'comments', coalesce((
+    select jsonb_agg(jsonb_build_object('id', c.id, 'parent_id', c.parent_id, 'x', c.x, 'y', c.y, 'obj_id', c.obj_id, 'ox', c.ox, 'oy', c.oy,
+      'author', c.author, 'body', c.body, 'resolved', c.resolved, 'resolved_by', c.resolved_by, 'created_at', c.created_at) order by c.created_at, c.id)
+    from plan_comments c where c.plan_id = p_id), '[]'::jsonb),
+    'last_seen', (select last_seen from comment_reads where user_name = u and plan_id = p_id));
+end $$;
+
+-- Add a comment or a reply. Anyone logged in who can see the plan may comment.
+create or replace function app_comment_add(p_name text, p_pass text, p_id uuid, p_parent bigint, p_x real, p_y real, p_obj text, p_ox real, p_oy real, p_body text)
+returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare b text; r plan_comments%rowtype;
+begin
+  if not app_check(p_name, p_pass) then return jsonb_build_object('ok', false, 'error', 'bad_login'); end if;
+  if app_role(p_name, p_id) is null then return jsonb_build_object('ok', false, 'error', 'not_found'); end if;
+  b := btrim(coalesce(p_body, ''));
+  if length(b) < 1 or length(b) > 1000 then return jsonb_build_object('ok', false, 'error', 'bad_comment'); end if;
+  if p_parent is not null and not exists (select 1 from plan_comments where id = p_parent and plan_id = p_id and parent_id is null) then
+    return jsonb_build_object('ok', false, 'error', 'not_found');
+  end if;
+  if p_parent is null and (p_x is null or p_y is null) then return jsonb_build_object('ok', false, 'error', 'bad_comment'); end if;
+  insert into plan_comments(plan_id, parent_id, x, y, obj_id, ox, oy, author, body)
+    values (p_id, p_parent, case when p_parent is null then p_x end, case when p_parent is null then p_y end,
+            case when p_parent is null then p_obj end, case when p_parent is null then p_ox end, case when p_parent is null then p_oy end, p_name, b)
+    returning * into r;
+  if p_parent is not null then update plan_comments set resolved = false, resolved_by = null where id = p_parent; end if;
+  insert into comment_reads(user_name, plan_id, last_seen) values (p_name, p_id, now())
+    on conflict (user_name, plan_id) do update set last_seen = now();
+  return jsonb_build_object('ok', true, 'id', r.id);
+end $$;
+
+-- Resolve or reopen a thread: the plan's owner, its editors, or whoever started the thread.
+create or replace function app_comment_resolve(p_name text, p_pass text, p_cid bigint, p_resolved boolean) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare r plan_comments%rowtype; role text;
+begin
+  if not app_check(p_name, p_pass) then return jsonb_build_object('ok', false, 'error', 'bad_login'); end if;
+  select * into r from plan_comments where id = p_cid and parent_id is null;
+  if not found then return jsonb_build_object('ok', false, 'error', 'not_found'); end if;
+  role := app_role(p_name, r.plan_id);
+  if role is null then return jsonb_build_object('ok', false, 'error', 'not_found'); end if;
+  if role not in ('owner', 'edit') and r.author <> p_name then return jsonb_build_object('ok', false, 'error', 'not_owner'); end if;
+  update plan_comments set resolved = p_resolved, resolved_by = case when p_resolved then p_name end where id = p_cid;
+  return jsonb_build_object('ok', true);
+end $$;
+
+-- Delete your own comment (a thread's first comment takes its replies with it).
+create or replace function app_comment_delete(p_name text, p_pass text, p_cid bigint) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare r plan_comments%rowtype;
+begin
+  if not app_check(p_name, p_pass) then return jsonb_build_object('ok', false, 'error', 'bad_login'); end if;
+  select * into r from plan_comments where id = p_cid;
+  if not found then return jsonb_build_object('ok', false, 'error', 'not_found'); end if;
+  if r.author <> p_name then return jsonb_build_object('ok', false, 'error', 'not_owner'); end if;
+  delete from plan_comments where id = p_cid;
+  return jsonb_build_object('ok', true);
+end $$;
+
+-- Mark a plan's comments as seen by this user.
+create or replace function app_comments_seen(p_name text, p_pass text, p_id uuid) returns jsonb
+language plpgsql security definer set search_path = public as $$
+begin
+  if not app_check(p_name, p_pass) then return jsonb_build_object('ok', false, 'error', 'bad_login'); end if;
+  if app_role(p_name, p_id) is null then return jsonb_build_object('ok', false, 'error', 'not_found'); end if;
+  insert into comment_reads(user_name, plan_id, last_seen) values (p_name, p_id, now())
+    on conflict (user_name, plan_id) do update set last_seen = now();
+  return jsonb_build_object('ok', true);
+end $$;
+
+grant execute on function app_comments(text, text, uuid) to anon, authenticated;
+grant execute on function app_comment_add(text, text, uuid, bigint, real, real, text, real, real, text) to anon, authenticated;
+grant execute on function app_comment_resolve(text, text, bigint, boolean) to anon, authenticated;
+grant execute on function app_comment_delete(text, text, bigint) to anon, authenticated;
+grant execute on function app_comments_seen(text, text, uuid) to anon, authenticated;
 grant execute on function app_register(text, text) to anon, authenticated;
 grant execute on function app_list(text, text) to anon, authenticated;
 grant execute on function app_get(text, text, uuid) to anon, authenticated;

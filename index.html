@@ -157,6 +157,23 @@ button.danger{color:var(--sel)}
 .esym.pl .solid{fill:var(--plumb)}
 .esym.pl text{fill:var(--plumb)}
 .eplate.pl{stroke:var(--plumb)}
+/* collision checks and comments */
+.isshit,.cmhit{fill:transparent;cursor:pointer;pointer-events:all}
+.issbtn{color:#B45309;border-color:#F59E0B;font-weight:700}
+.cmbtn.new{border-color:#7C3AED;color:#7C3AED;font-weight:700}
+.issrow{display:grid;gap:6px;border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.issrow.warn{border-color:#F59E0B}
+.issrow .row button{height:34px}
+.msg{border:1px solid var(--line);border-radius:8px;padding:6px 10px;display:grid;gap:2px}
+.msg .who{font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center}
+.msg .who button{height:24px;padding:0 6px;font-size:11px;margin-inline-start:auto}
+.msg .body{white-space:pre-wrap;word-break:break-word}
+.cmrow{display:flex;gap:8px;align-items:flex-start;text-align:start;height:auto;min-height:44px;padding:8px 10px;white-space:normal;width:100%}
+.cmrow .pinno{flex:none;width:24px;height:24px;border-radius:50%;background:#7C3AED;color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700}
+.cmrow.res .pinno{background:#9AA3AE}
+.cmrow .tx{flex:1;min-width:0;display:grid;gap:2px}
+.cmrow .tx small{color:var(--muted)}
+.cmtxt{width:100%;min-height:80px;border:1px solid var(--line);border-radius:6px;padding:8px;font:inherit;background:var(--paper);color:var(--ink);resize:vertical}
 /* per-room summary */
 .sumcard{display:grid;gap:4px;text-align:start;height:auto;min-height:44px;padding:8px 10px;white-space:normal;width:100%}
 .sumcard b{font-size:14px}
@@ -309,6 +326,8 @@ button.hl{animation:hl .6s ease 3;border-color:var(--sel)}
     <h1>תוכנית הדירה</h1>
     <button id="plansBtn" type="button" title="שמירה בענן או כקובץ, ופתיחת תוכניות">💾 שמירה ופתיחה</button>
     <button id="status" type="button" class="status" title="מצב השמירה. לחצו לשמירה ופתיחה"><span class="nm" id="stName"></span><span class="st" id="stState"></span></button>
+    <button id="issBtn" type="button" class="issbtn" hidden title="בעיות אפשריות בתוכנית: רהיט שחוסם דלת, נכנס לקיר וכו׳"></button>
+    <button id="cmBtn" type="button" class="cmbtn" title="הערות על התוכנית">💬</button>
     <span class="sep"></span>
     <div class="tabs" id="tabs">
       <button type="button" data-v="plan" class="on" title="תוכנית מבט־על: קירות, חדרים, ריהוט">תוכנית</button>
@@ -407,6 +426,8 @@ button.hl{animation:hl .6s ease 3;border-color:var(--sel)}
         <li>ריהוט: בוחרים פריט מהרשימה "+ ריהוט…" והוא מתווסף מיד.</li>
         <li>שכבות (🗂): עובדים על שכבה אחת, "קירות וריהוט" או "חשמל". השנייה חיוורת ונעולה. כשמוסיפים חשמל עוברים לשכבת החשמל אוטומטית.</li>
         <li>אינסטלציה: "+ אינסטלציה…" מוסיף נקודות מים, ניקוז וגז, באותו אופן כמו חשמל.</li>
+        <li>⚠️ בדיקות: האפליקציה מסמנת בנקודה כתומה רהיט שחוסם דלת, נכנס לקיר, חופף לרהיט אחר או שאין מולו מקום. אפשר לסמן "זה בכוונה".</li>
+        <li>💬 הערות: על תוכנית שמורה בענן. לחיצה ארוכה על התוכנית (במצב הזזת מסך) או "+ הערה חדשה" מוסיפים הערה; כל מי שרואה את התוכנית יכול לענות.</li>
         <li>📋 סיכום: כמה נקודות חשמל ואינסטלציה יש בכל חדר, לשליחה לחשמלאי או לאינסטלטור.</li>
         <li>חשמל: "+ חשמל…" מוסיף שקע, מתג או תאורה על הקיר. גוררים לאורך הקיר (גם לצד השני שלו), ואת הגובה קובעים בחזית הקיר או בשדה "גובה מהרצפה".</li>
         <li>הדמיה 3D: גרירה מסובבת, גלגלת מקרבת. במבט פנימי: חיצים או WASD.</li>
@@ -523,6 +544,44 @@ button.hl{animation:hl .6s ease 3;border-color:var(--sel)}
       <p><b>👁 צפייה</b>: רואים את התוכנית ויכולים לשמור עותק משלהם. <b>✏️ עריכה</b>: יכולים גם לעדכן אותה. רק אתם יכולים לשתף ולמחוק.</p>
       <p id="shMsg"></p>
       <div class="row"><button id="shSave" type="button" class="pri">שמור שיתוף</button><button id="shCancel" type="button">ביטול</button></div>
+    </div>
+  </div>
+  <div class="dlg sheet" id="dlgIss" hidden>
+    <div class="dlg-box" role="dialog" aria-modal="true" aria-labelledby="issTitle">
+      <h2 id="issTitle">⚠️ בדיקות</h2>
+      <p class="sub" id="issSub"></p>
+      <div id="issList" class="vlist"></div>
+      <label class="chk"><input type="checkbox" id="issOn"> בדיקות פעילות</label>
+      <div class="row"><button id="issAll" type="button" hidden>הצג את כל הבעיות</button><button id="issReset" type="button" hidden></button><button id="issClose" type="button">סגור</button></div>
+    </div>
+  </div>
+  <div class="dlg sheet" id="dlgCms" hidden>
+    <div class="dlg-box" role="dialog" aria-modal="true" aria-labelledby="cmsTitle">
+      <h2 id="cmsTitle">💬 הערות</h2>
+      <p class="sub" id="cmsSub">כל מי שרואה את התוכנית יכול להעיר. לחיצה ארוכה על התוכנית (במצב הזזת מסך) מוסיפה הערה במקום הזה.</p>
+      <div class="row" id="cmsChips"><button type="button" data-cf="open" class="on">פתוחות</button><button type="button" data-cf="res">נפתרו</button><button type="button" data-cf="mine">שלי</button></div>
+      <div id="cmsList" class="vlist"></div>
+      <label class="chk"><input type="checkbox" id="cmsShow" checked> הצג הערות על התוכנית</label>
+      <div class="row"><button id="cmsAdd" type="button" class="pri">+ הערה חדשה</button><button id="cmsClose" type="button">סגור</button></div>
+    </div>
+  </div>
+  <div class="dlg sheet" id="dlgCm" hidden>
+    <div class="dlg-box" role="dialog" aria-modal="true" aria-labelledby="cmTitle">
+      <h2 id="cmTitle">הערה חדשה</h2>
+      <textarea id="cmText" class="cmtxt" maxlength="1000" placeholder="מה רוצים להגיד על המקום הזה?" aria-label="טקסט ההערה"></textarea>
+      <label class="chk" id="cmAttachL" hidden><input type="checkbox" id="cmAttach" checked> <span id="cmAttachT"></span></label>
+      <p id="cmMsg"></p>
+      <div class="row"><button id="cmSend" type="button" class="pri">שלח</button><button id="cmCancel" type="button">ביטול</button></div>
+    </div>
+  </div>
+  <div class="dlg sheet" id="dlgTh" hidden>
+    <div class="dlg-box" role="dialog" aria-modal="true" aria-labelledby="thTitle">
+      <h2 id="thTitle"></h2>
+      <p class="sub" id="thSub"></p>
+      <div id="thList" class="vlist"></div>
+      <textarea id="thText" class="cmtxt" maxlength="1000" placeholder="תגובה…" aria-label="תגובה"></textarea>
+      <p id="thMsg"></p>
+      <div class="row"><button id="thSend" type="button" class="pri">שלח תגובה</button><button id="thRes" type="button"></button><button id="thGo" type="button">🎯 הצג בתוכנית</button><button id="thClose" type="button">סגור</button></div>
     </div>
   </div>
   <div class="dlg sheet" id="dlgSum" hidden>
@@ -795,7 +854,7 @@ function load(){
   try{
     var s=localStorage.getItem(KEY);
     if(s){var d=JSON.parse(s);
-      if(valid(d.objs)){state.objs=d.objs;state.step=(d.step!==undefined)?(+d.step||0):(d.snap===false?0:5);state.grid=d.grid!==false;state.dims=d.dims!==false;state.name=(typeof d.name==='string'&&d.name)?d.name:BUILTIN;
+      if(valid(d.objs)){state.objs=d.objs;state.step=(d.step!==undefined)?(+d.step||0):(d.snap===false?0:5);state.grid=d.grid!==false;state.dims=d.dims!==false;state.checks=d.checks!==false;state.name=(typeof d.name==='string'&&d.name)?d.name:BUILTIN;
         if(d.view&&isFinite(d.view.k)&&isFinite(d.view.x)&&isFinite(d.view.y)){V.x=d.view.x;V.y=d.view.y;V.k=clamp(d.view.k,.1,4);hasView=true;}
         if(d.lay&&/^(base|elec|plumb)$/.test(d.lay.act)){var dh=d.lay.hide||{};state.lay={act:d.lay.act,hide:{base:!!dh.base,elec:!!dh.elec,plumb:!!dh.plumb}};}
         state.lay.hide[state.lay.act]=false;
@@ -807,7 +866,7 @@ function save(){
   clearTimeout(saveT);
   saveT=setTimeout(function(){
     var ok=true;
-    try{localStorage.setItem(KEY,JSON.stringify({objs:state.objs,name:state.name,step:state.step,grid:state.grid,dims:state.dims,view:V,lay:state.lay}));}catch(e){ok=false;}
+    try{localStorage.setItem(KEY,JSON.stringify({objs:state.objs,name:state.name,step:state.step,grid:state.grid,dims:state.dims,view:V,lay:state.lay,checks:state.checks!==false}));}catch(e){ok=false;}
     if(!ok)flash('השמירה בדפדפן לא זמינה, השתמשו בגיבוי');
     updStatus();
   },150);
@@ -977,6 +1036,22 @@ function render(){
     });
     s+='</g>';
   });
+  if(!(drag&&drag.mode!=='pan')){
+    /* collision markers (only when nothing is being dragged) */
+    var IS=issues(),mk={};
+    IS.forEach(function(it){var m=mk[it.obj]||(mk[it.obj]={warn:false});if(it.lvl==='warn')m.warn=true;});
+    s+='<g class="Lb">';
+    Object.keys(mk).forEach(function(id){
+      var o=byId(id);if(!o)return;
+      var r=(coarse?11:9)*inv,cx=o.x+o.w-r*.4,cy=o.y+r*.4,w=mk[id].warn;
+      s+='<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" style="fill:'+(w?'#F59E0B':'#94A3B8')+';stroke:#fff;stroke-width:'+(1.5*inv)+'"/>';
+      s+='<text x="'+cx+'" y="'+cy+'" font-size="'+(r*1.35)+'" style="fill:#fff;font-weight:700;text-anchor:middle;dominant-baseline:central;font-family:var(--font-ui);pointer-events:none">'+(w?'!':'i')+'</text>';
+      s+='<circle class="isshit" data-iss="'+id+'" cx="'+cx+'" cy="'+cy+'" r="'+Math.max(r,(coarse?22:12)*inv)+'"/>';
+    });
+    s+='</g>';
+    updIssBtn();
+  }
+  s+=pinsSvg(inv);
   var b=bboxAll(true);
   if(b.w>20&&b.h>20){
     var ty=b.y-(state.dims?50:34)*inv,rx=b.x+b.w+(state.dims?50:34)*inv,tk=5*inv,fs2=12*inv;
@@ -1067,7 +1142,7 @@ function syncTabs(){
   });
 }
 function draw(){
-  syncTabs();
+  syncTabs();if(view!=='plan')updIssBtn();
   if(view==='plan')render();
   else if(view==='elev'){pickWall();renderElev();}
   else if(view==='3d'&&T.r)tdBuild();
@@ -1443,8 +1518,12 @@ svg.addEventListener('pointerdown',function(e){
   if(e.button&&e.button!==0&&e.pointerType==='mouse')return;
   try{svg.setPointerCapture(e.pointerId);}catch(x){}
   ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
-  if(ptrs.size===2){startPinch();return;}
+  if(ptrs.size===2){clearTimeout(lpT);startPinch();return;}
   var t=e.target,i=!panOnly&&t.getAttribute&&t.getAttribute('data-id'),h=t.getAttribute&&t.getAttribute('data-h');
+  var issId=t.getAttribute&&t.getAttribute('data-iss'),cmId=t.getAttribute&&t.getAttribute('data-cm');
+  if(CM.placing){CM.placing=false;startComment(toWorld(e),t.getAttribute&&t.getAttribute('data-id'));drag=null;return;}
+  if(issId){drag=null;openIssues(issId);return;}
+  if(cmId){drag=null;openThread(+cmId);return;}
   var tapId=panOnly&&t.getAttribute&&t.getAttribute('data-id'),lockId=null;
   if(i&&layLocked(byId(i))){lockId=quietLock(byId(i))?null:i;i=null;}
   var p=toWorld(e);
@@ -1461,13 +1540,24 @@ svg.addEventListener('pointerdown',function(e){
     if(sel)select(null);
     lastTap={id:null,t:0};
     drag={mode:'pan',cx:e.clientX,cy:e.clientY,vx:V.x,vy:V.y,tap:tapId||null,ltap:lockId};
+    /* long press on the plan adds a comment there */
+    var lpObj=(t.getAttribute&&t.getAttribute('data-id'))||null,dref=drag;
+    clearTimeout(lpT);
+    lpT=setTimeout(function(){
+      if(drag!==dref||ptrs.size!==1||dref.moved)return;
+      drag=null;ptrs.clear();startComment(p,lpObj);
+    },550);
   }
 });
+var lpT=null;
 svg.addEventListener('pointermove',function(e){
   if(ptrs.has(e.pointerId))ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(pinch){doPinch();return;}
   if(!drag)return;
-  if(drag.mode==='pan'){V.x=drag.vx+(e.clientX-drag.cx);V.y=drag.vy+(e.clientY-drag.cy);render();return;}
+  if(drag.mode==='pan'){
+    if(Math.hypot(e.clientX-drag.cx,e.clientY-drag.cy)>8){drag.moved=true;clearTimeout(lpT);}
+    V.x=drag.vx+(e.clientX-drag.cx);V.y=drag.vy+(e.clientY-drag.cy);render();return;
+  }
   var o=byId(drag.id),a=drag.orig;if(!o)return;
   var p=toWorld(e),dx=p.x-drag.p.x,dy=p.y-drag.p.y;
   if(drag.mode==='move'){
@@ -1517,6 +1607,7 @@ svg.addEventListener('pointermove',function(e){
   render();syncPanel();
 });
 function endPtr(e){
+  clearTimeout(lpT);
   ptrs.delete(e.pointerId);
   if(ptrs.size<2)pinch=null;
   if(drag&&ptrs.size===0){
@@ -1530,7 +1621,8 @@ function endPtr(e){
       if(dob&&isWallPt(dob)){autoH(dob);renderPanel();}
       drag.preview=null;
       if(drag.before!==snapshot()){pushHist(drag.before);save();}
-      render();syncPanel();
+      drag=null;
+      render();syncPanel(); /* after clearing drag, so the collision markers come back */
     }
     drag=null;
   }
@@ -2614,6 +2706,271 @@ function exportPdf(){
     svgToJpg(src[i],function(pg){out.push(pg);next(i+1);},fail);
   })(0);
 }
+/* ---------- collision checks ---------- */
+/* convex polygons, penetration depth by separating axes (0 = apart or only touching) */
+function pen(A,B){
+  var best=1e9,polys=[A,B];
+  for(var pi=0;pi<2;pi++){
+    var P=polys[pi];
+    for(var i=0;i<P.length;i++){
+      var a=P[i],b=P[(i+1)%P.length],nx=-(b[1]-a[1]),ny=b[0]-a[0],L=Math.hypot(nx,ny);if(L<1e-9)continue;nx/=L;ny/=L;
+      var a0=1e9,a1=-1e9,b0=1e9,b1=-1e9,k;
+      for(k=0;k<A.length;k++){var d=A[k][0]*nx+A[k][1]*ny;if(d<a0)a0=d;if(d>a1)a1=d;}
+      for(k=0;k<B.length;k++){var e=B[k][0]*nx+B[k][1]*ny;if(e<b0)b0=e;if(e>b1)b1=e;}
+      var ov=Math.min(a1,b1)-Math.max(a0,b0);if(ov<=0)return 0;if(ov<best)best=ov;
+    }
+  }
+  return best;
+}
+function rectPoly(x,y,w,h){return [[x,y],[x+w,y],[x+w,y+h],[x,y+h]];}
+function furnPoly(o){
+  if(o.shape==='ellipse'){var a=[],cx=o.x+o.w/2,cy=o.y+o.h/2;for(var i=0;i<16;i++){var t=i/16*Math.PI*2;a.push([cx+Math.cos(t)*o.w/2,cy+Math.sin(t)*o.h/2]);}return a;}
+  return rectPoly(o.x,o.y,o.w,o.h);
+}
+function wallPoly(w){
+  var L=wallLen(w)||1,ux=(w.x2-w.x1)/L,uy=(w.y2-w.y1)/L,h=w.t/2,nx=-uy*h,ny=ux*h,ex=ux*h,ey=uy*h;
+  return [[w.x1-ex+nx,w.y1-ey+ny],[w.x2+ex+nx,w.y2+ey+ny],[w.x2+ex-nx,w.y2+ey-ny],[w.x1-ex-nx,w.y1-ey-ny]];
+}
+/* the quarter circle a door leaf sweeps */
+function doorPoly(d){
+  var w=d.w,r=d.rot*Math.PI/180,c=Math.cos(r),sn2=Math.sin(r),pts=[[-w/2,0]];
+  for(var i=0;i<=8;i++){var a=i/8*Math.PI/2;pts.push([-w/2+w*Math.cos(a),w*Math.sin(a)]);}
+  return pts.map(function(q){var lx=q[0]*d.fx,ly=q[1]*d.fy;return [d.x+lx*c-ly*sn2,d.y+lx*sn2+ly*c];});
+}
+function fname(o){return o.label||'רהיט';}
+function isSeat(o){return furnType(o)==='chair'||/כורסה|כיסא|כסא|שרפרף/.test(o.label||'');}
+function isTable(o){return /שולחן/.test(o.label||'');}
+function onCounterItem(o){return /^(ksink|stove)$/.test(furnType(o))||/כיור|כיריים|תנור|מדיח/.test(o.label||'');}
+function isCounter(o){return /משטח|דלפק/.test(o.label||'');}
+function overlapOk(a,b){
+  return (isSeat(a)&&isTable(b))||(isSeat(b)&&isTable(a))||(onCounterItem(a)&&isCounter(b))||(onCounterItem(b)&&isCounter(a));
+}
+/* free space needed in front of an item (cm) */
+function frontNeed(o){
+  var t=furnType(o);
+  if(t==='toilet'||t==='sink')return 55;
+  if(t==='washer'||t==='fridge')return 60;
+  if(/ארון בגדים/.test(o.label||''))return 60;
+  return 0;
+}
+function frontRect(o,d){
+  var r=furnRot(o),m=3;
+  if(r===90)return rectPoly(o.x-d,o.y+m,d,o.h-2*m);
+  if(r===180)return rectPoly(o.x+m,o.y-d,o.w-2*m,d);
+  if(r===270)return rectPoly(o.x+o.w,o.y+m,d,o.h-2*m);
+  return rectPoly(o.x+m,o.y+o.h,o.w-2*m,d);
+}
+function checksOn(){return state.checks!==false&&!(cur.id&&!canUpdate())&&!layHidden('base');}
+var ISS={key:null,all:[]};
+function issuesAll(){
+  var key=snapshot()+'|'+checksOn();
+  if(ISS.key===key)return ISS.all;
+  var out=[];
+  if(checksOn()){
+    var F=state.objs.filter(function(o){return o.type==='rect'&&o.kind!=='room';}),Wl=state.objs.filter(function(o){return o.type==='wall';}),D=state.objs.filter(function(o){return o.type==='door';});
+    var WP=Wl.map(wallPoly);
+    F.forEach(function(f,fi){
+      var fp=furnPoly(f);
+      D.forEach(function(d){var v=pen(fp,doorPoly(d));if(v>5)out.push({key:'door:'+f.id+':'+d.id,obj:f.id,lvl:'warn',text:'"'+fname(f)+'" חוסם את פתיחת הדלת (חפיפה של '+Math.round(v)+' ס״מ)'});});
+      Wl.forEach(function(w,wi){var v=pen(fp,WP[wi]);if(v>3)out.push({key:'wall:'+f.id+':'+w.id,obj:f.id,lvl:'warn',text:'"'+fname(f)+'" נכנס לתוך קיר ('+Math.round(v)+' ס״מ)'});});
+      for(var gi=fi+1;gi<F.length;gi++){
+        var g=F[gi];if(overlapOk(f,g))continue;
+        var v2=pen(fp,furnPoly(g));
+        if(v2>10)out.push({key:'over:'+f.id+':'+g.id,obj:f.id,lvl:'info',text:'"'+fname(f)+'" ו"'+fname(g)+'" חופפים ('+Math.round(v2)+' ס״מ)'});
+      }
+      var need=frontNeed(f);
+      if(need){
+        var obst=WP.concat(F.filter(function(q){return q!==f;}).map(furnPoly)),free=null;
+        for(var dd=2;dd<=need;dd+=2){
+          var rp=frontRect(f,dd);
+          if(obst.some(function(op){return pen(rp,op)>.5;})){free=dd-2;break;}
+        }
+        if(free!==null&&free<need)out.push({key:'front:'+f.id,obj:f.id,lvl:'info',text:'מול "'+fname(f)+'" יש רק '+free+' ס״מ פנויים (מומלץ '+need+' לפחות)'});
+      }
+    });
+  }
+  var ign={};state.objs.forEach(function(o){(o.ok||[]).forEach(function(k){ign[k]=1;});});
+  out.forEach(function(it){it.ignored=!!ign[it.key];});
+  ISS.key=key;ISS.all=out;return out;
+}
+function issues(){return issuesAll().filter(function(it){return !it.ignored;});}
+function updIssBtn(){
+  var L=issues(),b=$('issBtn');b.hidden=!L.length;
+  b.textContent='⚠️ '+L.length;b.setAttribute('aria-label',L.length+' בעיות אפשריות בתוכנית');
+}
+var issFor=null;
+function openIssues(objId){issFor=objId||null;renderIssues();$('dlgIss').hidden=false;}
+function renderIssues(){
+  var all=issuesAll(),L=all.filter(function(it){return !it.ignored&&(!issFor||it.obj===issFor);}),nIgn=all.filter(function(it){return it.ignored;}).length;
+  $('issOn').checked=state.checks!==false;
+  $('issSub').textContent=state.checks===false?'הבדיקות כבויות.':!L.length?'לא נמצאו בעיות.':'נבדק אחרי כל הזזה. אם משהו בכוונה, אפשר להשתיק אותו.';
+  $('issList').innerHTML=L.map(function(it){
+    return '<div class="issrow'+(it.lvl==='warn'?' warn':'')+'"><span>'+(it.lvl==='warn'?'⚠️ ':'ℹ️ ')+esc(it.text)+'</span><div class="row"><button type="button" data-show="'+esc(it.obj)+'">🎯 הצג</button><button type="button" data-ok="'+esc(it.key)+'" data-obj="'+esc(it.obj)+'">זה בכוונה</button></div></div>';
+  }).join('');
+  $('issAll').hidden=!issFor;
+  $('issReset').hidden=!nIgn;$('issReset').textContent='החזר '+nIgn+' שסומנו "בכוונה"';
+}
+$('issBtn').addEventListener('click',function(){openIssues(null);});
+$('issClose').addEventListener('click',function(){$('dlgIss').hidden=true;});
+$('dlgIss').addEventListener('click',function(e){if(e.target===$('dlgIss'))$('dlgIss').hidden=true;});
+$('issAll').addEventListener('click',function(){issFor=null;renderIssues();});
+$('issOn').addEventListener('change',function(e){state.checks=e.target.checked;save();draw();renderIssues();});
+$('issReset').addEventListener('click',function(){mutate(function(){state.objs.forEach(function(o){delete o.ok;});});renderIssues();});
+$('issList').addEventListener('click',function(e){
+  var b=e.target.closest&&e.target.closest('button');if(!b)return;
+  var okk=b.getAttribute('data-ok'),sh=b.getAttribute('data-show');
+  if(okk){var o=byId(b.getAttribute('data-obj'));if(o)mutate(function(){o.ok=(o.ok||[]).concat([okk]);});renderIssues();if(!issues().length)$('dlgIss').hidden=true;return;}
+  if(sh){
+    var t=byId(sh);if(!t)return;$('dlgIss').hidden=true;if(view!=='plan')setView('plan');
+    fitRect(t.x-120,t.y-120,t.w+240,t.h+240);
+    if(!panOnly&&!layLocked(t))select(t.id);
+  }
+});
+
+/* ---------- comments ---------- */
+var CM={list:[],plan:null,filt:'open',show:true,placing:false,draft:null,unread:0,off:false,thread:null};
+function cmRoots(){return CM.list.filter(function(c){return !c.parent_id;});}
+function cmAnchor(o){return !o?null:(o.type==='wall'||o.type==='measure')?{x:o.x1,y:o.y1}:{x:o.x,y:o.y};}
+function cmPos(c){
+  var o=c.obj_id?byId(c.obj_id):null,a=cmAnchor(o);
+  if(a&&isFinite(c.ox)&&isFinite(c.oy))return {x:a.x+(c.x-c.ox),y:a.y+(c.y-c.oy),gone:false};
+  return {x:c.x,y:c.y,gone:!!c.obj_id&&!o};
+}
+function pinsSvg(inv){
+  var s='',roots=cmRoots(),r=(coarse?14:12)*inv;
+  if(CM.show)roots.forEach(function(c,i){
+    if(c.resolved&&CM.filt!=='res')return;
+    var q=cmPos(c);
+    s+='<g transform="translate('+q.x+' '+q.y+')"><path d="M 0 0 L '+(-r*.5)+' '+(-r*1.1)+' A '+r+' '+r+' 0 1 1 '+(r*.5)+' '+(-r*1.1)+' Z" style="fill:'+(c.resolved?'#9AA3AE':'#7C3AED')+';stroke:#fff;stroke-width:'+(1.5*inv)+'"/>';
+    s+='<text x="0" y="'+(-r*1.9)+'" font-size="'+(r*1.05)+'" style="fill:#fff;font-weight:700;text-anchor:middle;dominant-baseline:central;font-family:var(--font-ui);pointer-events:none">'+(i+1)+'</text>';
+    s+='<circle class="cmhit" data-cm="'+c.id+'" cx="0" cy="'+(-r*1.9)+'" r="'+Math.max(r*1.2,(coarse?22:12)*inv)+'"/></g>';
+  });
+  if(CM.draft){var d=CM.draft;s+='<g transform="translate('+d.x+' '+d.y+')"><path d="M 0 0 L '+(-r*.5)+' '+(-r*1.1)+' A '+r+' '+r+' 0 1 1 '+(r*.5)+' '+(-r*1.1)+' Z" style="fill:#7C3AED;opacity:.55;stroke:#fff;stroke-width:'+(1.5*inv)+'"/></g>';}
+  return s;
+}
+function updCmBtn(){
+  var b=$('cmBtn'),open=cmRoots().filter(function(c){return !c.resolved;}).length;
+  b.textContent='💬'+(open?' '+open:'');b.classList.toggle('new',CM.unread>0);
+  b.title=CM.unread?CM.unread+' הערות חדשות':'הערות על התוכנית';
+}
+function loadComments(){
+  var pid=cur.id;
+  if(!pid||legacyCloud||!cloudOn){CM.list=[];CM.plan=null;CM.unread=0;updCmBtn();if(view==='plan')render();return Promise.resolve();}
+  return rpc('app_comments',{p_name:me?me.name:null,p_pass:me?me.pass:null,p_id:pid}).then(function(r){
+    if(cur.id!==pid)return;
+    if(!r||!r.ok){CM.list=[];updCmBtn();return;}
+    CM.off=false;CM.plan=pid;CM.list=r.comments||[];
+    var seen=r.last_seen?new Date(r.last_seen).getTime():0;
+    CM.unread=me?CM.list.filter(function(c){return c.author!==me.name&&new Date(c.created_at).getTime()>seen;}).length:0;
+    updCmBtn();if(view==='plan')render();
+    if(!$('dlgCms').hidden)renderCms();
+    if(!$('dlgTh').hidden&&CM.thread)renderThread();
+  },function(err){if(String(err&&err.message)==='http 404'){CM.off=true;}CM.list=[];updCmBtn();});
+}
+function cmNeedCloud(){
+  if(!cur.id){flashAct('הערות נשמרות יחד עם תוכנית בענן. שמרו קודם את התוכנית בענן','שמירה',function(){openPlans('save');});return true;}
+  if(CM.off){flash('הערות יעבדו אחרי עדכון מסד הנתונים');return true;}
+  return false;
+}
+function startComment(p,objId){
+  if(cmNeedCloud())return;
+  if(!me){askLogin(function(){startComment(p,objId);});return;}
+  var o=objId?byId(objId):null;
+  if(o&&o.type==='rect'&&o.kind==='room')o=null; /* the floor of a room is background, not an item */
+  CM.draft={x:p.x,y:p.y,obj:o?o.id:null};
+  $('cmText').value='';$('cmMsg').textContent='';
+  $('cmAttachL').hidden=!o;$('cmAttach').checked=true;
+  $('cmAttachT').textContent=o?'הצמד ל"'+(o.label||o.text||(isPt(o)?ptName(o):NAMES[kindOf(o)]||'פריט'))+'" (ההערה תזוז איתו)':'';
+  $('dlgCm').hidden=false;if(view==='plan')render();
+  setTimeout(function(){$('cmText').focus();},50);
+}
+function endDraft(){CM.draft=null;$('dlgCm').hidden=true;if(view==='plan')render();}
+$('cmCancel').addEventListener('click',endDraft);
+$('cmSend').addEventListener('click',function(){
+  var d=CM.draft,txt=$('cmText').value.trim();if(!d)return;
+  if(!txt){$('cmMsg').textContent='כתבו משהו';return;}
+  var o=(d.obj&&$('cmAttach').checked)?byId(d.obj):null,a=cmAnchor(o);
+  $('cmMsg').textContent='שולח...';
+  rpc('app_comment_add',{p_name:me.name,p_pass:me.pass,p_id:cur.id,p_parent:null,p_x:d.x,p_y:d.y,p_obj:o?o.id:null,p_ox:a?a.x:null,p_oy:a?a.y:null,p_body:txt}).then(function(r){
+    if(!r||!r.ok){$('cmMsg').textContent=errText(r&&r.error);return;}
+    endDraft();flash('ההערה נוספה');CM.filt='open';loadComments();
+  },function(){$('cmMsg').textContent='אין חיבור לשרת. לא נשלח';});
+});
+function openComments(){
+  if(cmNeedCloud())return;
+  renderCms();$('dlgCms').hidden=false;
+  loadComments().then(function(){
+    if(me&&cur.id&&!CM.off)rpc('app_comments_seen',{p_name:me.name,p_pass:me.pass,p_id:cur.id}).then(function(){CM.unread=0;updCmBtn();},function(){});
+  });
+}
+function renderCms(){
+  var roots=cmRoots(),h='';
+  var chips=$('cmsChips').querySelectorAll('button');for(var i=0;i<chips.length;i++)chips[i].classList.toggle('on',chips[i].getAttribute('data-cf')===CM.filt);
+  roots.forEach(function(c,i){
+    if(CM.filt==='open'&&c.resolved)return;if(CM.filt==='res'&&!c.resolved)return;if(CM.filt==='mine'&&!(me&&c.author===me.name))return;
+    var n=CM.list.filter(function(x){return x.parent_id===c.id;}).length;
+    h+='<button type="button" class="cmrow'+(c.resolved?' res':'')+'" data-th="'+c.id+'"><span class="pinno">'+(i+1)+'</span><span class="tx"><span>'+esc(c.body.length>90?c.body.slice(0,90)+'…':c.body)+'</span><small>'+esc(c.author)+' · '+fmtWhen(c.created_at)+(n?' · '+n+' תגובות':'')+(c.resolved?' · ✓ נפתרה':'')+'</small></span></button>';
+  });
+  $('cmsList').innerHTML=h||'<p>'+({open:'אין הערות פתוחות.',res:'אין הערות שנפתרו.',mine:'עוד לא כתבתם הערות.'}[CM.filt])+'</p>';
+  $('cmsShow').checked=CM.show;
+}
+$('cmBtn').addEventListener('click',openComments);
+$('cmsClose').addEventListener('click',function(){$('dlgCms').hidden=true;});
+$('dlgCms').addEventListener('click',function(e){if(e.target===$('dlgCms'))$('dlgCms').hidden=true;});
+$('cmsChips').addEventListener('click',function(e){var f=e.target.getAttribute&&e.target.getAttribute('data-cf');if(f){CM.filt=f;renderCms();if(view==='plan')render();}});
+$('cmsShow').addEventListener('change',function(e){CM.show=e.target.checked;if(view==='plan')render();});
+$('cmsAdd').addEventListener('click',function(){
+  if(!me){askLogin(function(){openComments();});return;}
+  $('dlgCms').hidden=true;if(view!=='plan')setView('plan');
+  CM.placing=true;flash('לחצו על המקום בתוכנית שאליו ההערה מתייחסת');
+});
+$('cmsList').addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-th]');if(b){$('dlgCms').hidden=true;openThread(+b.getAttribute('data-th'),true);}});
+function openThread(id,center){
+  CM.thread=id;$('thText').value='';$('thMsg').textContent='';renderThread();$('dlgTh').hidden=false;
+  if(center){var c=CM.list.filter(function(x){return x.id===id;})[0];if(c){if(view!=='plan')setView('plan');var q=cmPos(c);centerOn(q.x,q.y);}}
+}
+function centerOn(x,y){var r=svg.getBoundingClientRect();V.x=r.width/2-x*V.k;V.y=r.height*.35-y*V.k;render();save();}
+function renderThread(){
+  var roots=cmRoots(),c=CM.list.filter(function(x){return x.id===CM.thread;})[0];
+  if(!c){$('dlgTh').hidden=true;return;}
+  var no=roots.indexOf(c)+1,o=c.obj_id?byId(c.obj_id):null,q=cmPos(c);
+  $('thTitle').textContent='💬 הערה '+no+(c.resolved?' · ✓ נפתרה':'');
+  $('thSub').textContent=(o?'על "'+(o.label||o.text||(isPt(o)?ptName(o):NAMES[kindOf(o)]||'פריט'))+'"':q.gone?'(הפריט שההערה הוצמדה אליו נמחק)':'על מקום בתוכנית')+(c.resolved&&c.resolved_by?' · נפתרה ע״י '+c.resolved_by:'');
+  var msgs=[c].concat(CM.list.filter(function(x){return x.parent_id===c.id;}));
+  $('thList').innerHTML=msgs.map(function(m){
+    return '<div class="msg"><span class="who"><b>'+esc(m.author)+'</b> · '+fmtWhen(m.created_at)+(me&&m.author===me.name?'<button type="button" data-del="'+m.id+'" title="מחק">🗑 מחק</button>':'')+'</span><span class="body">'+esc(m.body)+'</span></div>';
+  }).join('');
+  var canRes=!!me&&(cur.role==='owner'||cur.role==='edit'||(me&&cur.owner===me.name)||c.author===me.name);
+  $('thRes').hidden=!canRes;$('thRes').textContent=c.resolved?'↺ פתח מחדש':'✓ סמן כנפתרה';
+  $('thSend').hidden=$('thText').hidden=!me;
+}
+$('thClose').addEventListener('click',function(){$('dlgTh').hidden=true;CM.thread=null;});
+$('dlgTh').addEventListener('click',function(e){if(e.target===$('dlgTh')){$('dlgTh').hidden=true;CM.thread=null;}});
+$('thGo').addEventListener('click',function(){var c=CM.list.filter(function(x){return x.id===CM.thread;})[0];if(!c)return;$('dlgTh').hidden=true;if(view!=='plan')setView('plan');var q=cmPos(c);centerOn(q.x,q.y);});
+$('thSend').addEventListener('click',function(){
+  var txt=$('thText').value.trim();if(!txt){$('thMsg').textContent='כתבו תגובה';return;}
+  $('thMsg').textContent='שולח...';
+  rpc('app_comment_add',{p_name:me.name,p_pass:me.pass,p_id:cur.id,p_parent:CM.thread,p_x:null,p_y:null,p_obj:null,p_ox:null,p_oy:null,p_body:txt}).then(function(r){
+    if(!r||!r.ok){$('thMsg').textContent=errText(r&&r.error);return;}
+    $('thText').value='';$('thMsg').textContent='';loadComments();
+  },function(){$('thMsg').textContent='אין חיבור לשרת. לא נשלח';});
+});
+$('thRes').addEventListener('click',function(){
+  var c=CM.list.filter(function(x){return x.id===CM.thread;})[0];if(!c)return;
+  rpc('app_comment_resolve',{p_name:me.name,p_pass:me.pass,p_cid:c.id,p_resolved:!c.resolved}).then(function(r){
+    if(!r||!r.ok){$('thMsg').textContent=errText(r&&r.error);return;}
+    flash(c.resolved?'ההערה נפתחה מחדש':'ההערה סומנה כנפתרה');if(!c.resolved){$('dlgTh').hidden=true;CM.thread=null;}loadComments();
+  },function(){$('thMsg').textContent='אין חיבור לשרת';});
+});
+$('thList').addEventListener('click',function(e){
+  var b=e.target.closest&&e.target.closest('[data-del]');if(!b)return;
+  if(b.getAttribute('data-arm')!=='1'){b.setAttribute('data-arm','1');b.textContent='בטוח? מחק';return;}
+  rpc('app_comment_delete',{p_name:me.name,p_pass:me.pass,p_cid:+b.getAttribute('data-del')}).then(function(r){
+    if(!r||!r.ok){$('thMsg').textContent=errText(r&&r.error);return;}
+    flash('נמחק');loadComments();
+  },function(){$('thMsg').textContent='אין חיבור לשרת';});
+});
+
 /* ---------- per-room summary of electrical and plumbing points ---------- */
 var CAT=[
   {id:'so',n:'שקעים',n1:'שקע',ly:'elec',c:function(k){return k==='outlet'?1:k==='outlet2'?2:0;}},
@@ -2992,7 +3349,7 @@ function api(path,opt){
 function rpc(fn,args){return api('rpc/'+fn,{method:'POST',body:args});}
 function errText(code){
   return {bad_login:'השם או הסיסמה שגויים',no_user:'אין משתמש בשם הזה',wrong_pass:'הסיסמה שגויה',title_exists:'כבר יש לך תוכנית בשם הזה, בחרו שם אחר',not_owner:'אפשר לערוך רק תוכניות שיצרתם. צרו עותק',
-    conflict:'מישהו עדכן את התוכנית בינתיים (אולי ממכשיר אחר). אפשר לדרוס או לשמור כחדשה',bad_title:'כתבו שם לתוכנית',bad_plan:'התוכנית גדולה או לא תקינה',bad_visibility:'בחירה לא תקינה',not_found:'התוכנית לא נמצאה',
+    conflict:'מישהו עדכן את התוכנית בינתיים (אולי ממכשיר אחר). אפשר לדרוס או לשמור כחדשה',bad_title:'כתבו שם לתוכנית',bad_plan:'התוכנית גדולה או לא תקינה',bad_visibility:'בחירה לא תקינה',bad_comment:'ההערה ריקה או ארוכה מדי',not_found:'התוכנית לא נמצאה',
     exists:'השם כבר תפוס, בחרו שם אחר או היכנסו',bad_name:'כתבו שם',bad_pass:'הסיסמה צריכה להיות לפחות 2 תווים'}[code]||'שגיאה לא צפויה';
 }
 function setMe(u){
@@ -3017,6 +3374,7 @@ function applyPlan(objs,name,meta){
   cur=Object.assign({id:null,ts:null,owner:null},meta||{});cur.snap=snapshot();persistCur();
   if(view==='plan')fit();else if(view==='elev'){pickWall();elFit();}
   draw();save();updStatus();
+  CM.list=[];CM.thread=null;loadComments();
 }
 function updStatus(){
   var nm=$('stName'),st=$('stState');if(!nm||!st)return;
@@ -3057,7 +3415,7 @@ function renderPlans(){
   });
   list.forEach(function(r){
     var mine=me&&r.owner===me.name;
-    h+='<div class="pitem'+(r.id===cur.id?' cur':'')+'"><span class="nm">'+esc(r.title)+' '+visBadge(r)+' <small>'+(mine?'':esc(r.owner)+' · ')+fmtDate(r.updated_at)+(r.updated_by&&r.updated_by!==r.owner?' · עודכנה ע״י '+esc(r.updated_by):'')+'</small></span>';
+    h+='<div class="pitem'+(r.id===cur.id?' cur':'')+'"><span class="nm">'+esc(r.title)+' '+visBadge(r)+(r.new_comments?' <span class="badge" style="color:#7C3AED;border-color:#7C3AED">💬 '+r.new_comments+' חדשות</span>':'')+' <small>'+(mine?'':esc(r.owner)+' · ')+fmtDate(r.updated_at)+(r.updated_by&&r.updated_by!==r.owner?' · עודכנה ע״י '+esc(r.updated_by):'')+'</small></span>';
     if(filt==='trash')h+='<button type="button" data-r="'+esc(r.id)+'" class="pri">שחזר</button>';
     else h+='<button type="button" data-p="'+esc(r.id)+'" class="pri">פתח</button><button type="button" data-m="'+esc(r.id)+'" aria-label="פעולות נוספות: '+esc(r.title)+'" title="פעולות נוספות">⋯</button>';
     h+='</div>';
@@ -3474,6 +3832,11 @@ document.addEventListener('keydown',function(e){
   if(e.key==='Escape'&&!$('help').hidden){$('help').hidden=true;return;}
   if(e.key==='Escape'&&!$('dlgAct').hidden){closeActions();return;}
   if(e.key==='Escape'&&!$('dlgSum').hidden){$('dlgSum').hidden=true;return;}
+  if(e.key==='Escape'&&!$('dlgIss').hidden){$('dlgIss').hidden=true;return;}
+  if(e.key==='Escape'&&!$('dlgCm').hidden){endDraft();return;}
+  if(e.key==='Escape'&&!$('dlgTh').hidden){$('dlgTh').hidden=true;CM.thread=null;return;}
+  if(e.key==='Escape'&&!$('dlgCms').hidden){$('dlgCms').hidden=true;return;}
+  if(e.key==='Escape'&&CM.placing){CM.placing=false;flash('בוטל');return;}
   if(e.key==='Escape'&&!$('dlgHist').hidden){closeHistory();return;}
   if(!$('dlgTour').hidden)return;
   if(view==='3d')return;
@@ -3493,6 +3856,7 @@ document.addEventListener('keydown',function(e){
 if(!load()){state.objs=seed();fixNid();}
 syncGrid();
 syncLayers();renderPanel();updateBtns();updStatus();syncTabs();
+if(cur.id)setTimeout(loadComments,0);
 (function(){var done=false;try{done=!!localStorage.getItem(TOUR_KEY);}catch(x){done=true;}if(!done)tourShow(0);})();
 var firstSize=false;
 function onSize(){
