@@ -204,6 +204,16 @@ button.danger{color:var(--sel)}
 .pitem small{color:var(--muted);font-size:11px}
 .pitem.cur{border-color:var(--accent)}
 .dlg-box button.pri{font-weight:500}
+.ptabs{margin-top:4px}
+.ptabs button{flex:1;height:36px;font-size:14px}
+.dlg-box .pane{border-top:none;padding-top:4px}
+.dlg-box .vis{background:var(--paper);border-radius:6px;padding:6px 8px}
+.dlg-box details.adv{border-top:1px solid var(--line);padding-top:6px}
+.dlg-box details.adv>div{display:grid;gap:8px;padding-top:6px}
+.pw{display:flex;gap:6px}
+.pw .txt{flex:1}
+@keyframes hl{0%,100%{box-shadow:none}50%{box-shadow:0 0 0 4px color-mix(in srgb,var(--sel) 45%,transparent)}}
+button.hl{animation:hl .6s ease 3;border-color:var(--sel)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
@@ -302,46 +312,59 @@ button.danger{color:var(--sel)}
   </main>
   <div class="dlg" id="dlgPlans" hidden>
     <div class="dlg-box">
-      <h2>תוכניות: שמירה וטעינה</h2>
+      <h2>שמירה ופתיחה</h2>
       <p id="curName"></p>
       <div class="row"><span id="who" style="flex:1;align-self:center"></span>
-        <button id="loginBtn" type="button" class="pri">כניסה / הרשמה</button>
+        <button id="loginBtn" type="button">כניסה / הרשמה</button>
         <button id="logoutBtn" type="button" hidden>החלפת משתמש</button></div>
-      <section>
-        <h3>שמירה</h3>
-        <div class="row">
-          <button id="saveNow" type="button" class="pri">שמור בענן…</button>
-          <button id="saveFile" type="button">שמור כקובץ</button>
-          <button id="copyJson" type="button">העתק כטקסט</button>
+      <div class="tabs ptabs row" id="pTabs" role="tablist" style="gap:0;flex-wrap:nowrap">
+        <button type="button" role="tab" data-t="save">💾 שמירה</button>
+        <button type="button" role="tab" data-t="open">📂 פתיחה</button>
+      </div>
+      <section class="pane" id="paneSave" role="tabpanel">
+        <h3>שמירה בענן</h3>
+        <div id="pSvLoginBox" class="row" hidden>
+          <span style="flex:1;align-self:center">כדי לשמור בענן צריך להתחבר. בלי חשבון אפשר לשמור כקובץ (למטה).</span>
+          <button id="pSvLogin" type="button" class="pri">כניסה / הרשמה</button>
         </div>
+        <div id="pSvBox" style="display:grid;gap:6px">
+          <div class="row"><button id="pSvUpdate" type="button" class="pri"></button></div>
+          <div class="row">
+            <input id="pSvName" type="text" class="txt" placeholder="שם לתוכנית חדשה" aria-label="שם לתוכנית חדשה">
+            <button id="pSvNew" type="button">שמור כחדשה</button>
+          </div>
+          <p id="pSvInfo"></p>
+          <p class="vis">התוכנית נשמרת בשם המשתמש שלכם וגלויה לכל המשתמשים באפליקציה (לצפייה ולהעתקה). רק אתם יכולים לעדכן או למחוק אותה.</p>
+        </div>
+        <h3>שמירה במחשב</h3>
+        <div class="row"><button id="saveFile" type="button">שמור כקובץ</button></div>
       </section>
-      <section>
-        <h3>פתיחה</h3>
-        <div class="row"><button id="newPlan" type="button" title="מתחיל לוח ריק. אפשר לחזור עם ↶">+ תוכנית חדשה</button></div>
+      <section class="pane" id="paneOpen" role="tabpanel" hidden>
+        <div class="row">
+          <button id="newPlan" type="button" title="מתחיל לוח ריק. אפשר לחזור עם ↶">+ תוכנית חדשה</button>
+          <button id="pickFile" type="button">טען מקובץ…</button>
+          <input id="fileIn" type="file" accept=".json,.txt,application/json,text/plain" hidden>
+        </div>
+        <h3>תוכניות בענן</h3>
         <div class="row" id="chips">
-          <button type="button" data-f="all">הכול</button>
+          <button type="button" data-f="all">כל המשתמשים</button>
           <button type="button" data-f="mine" id="mineChip">שלי</button>
           <button type="button" data-f="trash" id="trashChip">נמחקו</button>
         </div>
         <div id="planList" class="plist"></div>
         <div class="row"><button id="migrate" type="button" hidden></button></div>
-        <div class="row">
-          <button id="pickFile" type="button">טען מקובץ…</button>
-          <input id="fileIn" type="file" accept=".json,.txt,application/json,text/plain" hidden>
-        </div>
-        <details class="tx">
-          <summary>טעינה או העתקה כטקסט</summary>
+      </section>
+      <details class="tx adv">
+        <summary>מתקדם: העתקה וטעינה כטקסט, ניקוי הלוח</summary>
+        <div>
+          <div class="row"><button id="copyJson" type="button">העתק כטקסט</button><button id="loadJson" type="button">טען מהטקסט</button></div>
           <textarea id="json" spellcheck="false" aria-label="טקסט התוכנית"></textarea>
-          <div class="row"><button id="loadJson" type="button" class="pri">טען מהטקסט</button></div>
-        </details>
-      </section>
-      <section class="dz">
-        <h3>ניקוי</h3>
-        <div class="row">
-          <button id="clearAsk" type="button" class="danger">נקה את הלוח…</button>
-          <button id="restorePrev" type="button" hidden>שחזר את התוכנית שנמחקה בניקוי האחרון</button>
+          <div class="row">
+            <button id="clearAsk" type="button" class="danger">נקה את הלוח…</button>
+            <button id="restorePrev" type="button" hidden>שחזר את התוכנית שנמחקה בניקוי האחרון</button>
+          </div>
         </div>
-      </section>
+      </details>
       <p id="plansMsg"></p>
       <div class="row"><button id="closePlans" type="button">סגור</button></div>
     </div>
@@ -349,9 +372,10 @@ button.danger{color:var(--sel)}
   <div class="dlg" id="dlgLogin" hidden>
     <div class="dlg-box">
       <h2>כניסה לשמירה בענן</h2>
-      <p>כדי לשמור תוכניות בענן בוחרים שם וסיסמה קצרה (לפחות 2 תווים). הם יישמרו בדפדפן הזה ולא תצטרכו להקליד שוב. אם שכחתם, פנו למנהל האתר.</p>
-      <input id="lgName" type="text" class="txt" placeholder="שם" autocomplete="off" aria-label="שם">
-      <input id="lgPass" type="text" class="txt" placeholder="סיסמה" autocomplete="off" aria-label="סיסמה">
+      <p><b>פעם ראשונה?</b> בחרו שם וסיסמה קצרה (לפחות 2 תווים) ולחצו <b>משתמש חדש</b>. <b>כבר נרשמתם?</b> הקלידו אותם ולחצו <b>כניסה</b>. הפרטים יישמרו בדפדפן הזה ולא תצטרכו להקליד שוב. אם שכחתם, פנו למנהל האתר.</p>
+      <input id="lgName" type="text" class="txt" placeholder="שם" autocomplete="username" aria-label="שם">
+      <div class="pw"><input id="lgPass" type="password" class="txt" placeholder="סיסמה" autocomplete="current-password" aria-label="סיסמה">
+        <button id="lgShow" type="button" aria-label="הצג סיסמה" title="הצג סיסמה" aria-pressed="false">👁</button></div>
       <p id="lgMsg"></p>
       <div class="row">
         <button id="lgIn" type="button" class="pri">כניסה</button>
@@ -369,6 +393,7 @@ button.danger{color:var(--sel)}
         <input id="svName" type="text" class="txt" placeholder="שם לתוכנית חדשה" aria-label="שם לשמירה">
         <button id="svNew" type="button" class="pri">שמור כחדשה</button>
       </div>
+      <p class="vis">התוכנית נשמרת בשם המשתמש שלכם וגלויה לכל המשתמשים באפליקציה (לצפייה ולהעתקה). רק אתם יכולים לעדכן או למחוק אותה.</p>
       <div class="row">
         <button id="svSkip" type="button" class="danger"></button>
         <button id="svCancel" type="button">ביטול</button>
@@ -2117,8 +2142,8 @@ function updStatus(){
 }
 function fmtDate(t){try{return new Date(t).toLocaleDateString('he-IL');}catch(x){return '';}}
 function renderWho(){
-  $('who').textContent=me?'מחובר כ: '+me.name:'לא מחוברים. אפשר לשמור כקובץ ולפתוח תוכניות; לשמירה בענן צריך להתחבר';
-  $('logoutBtn').hidden=!me;$('loginBtn').hidden=!!me;
+  $('who').textContent=me?'מחובר כ: '+me.name:'לא מחוברים. לשמירה בענן צריך להתחבר';
+  $('logoutBtn').hidden=!me;$('loginBtn').hidden=!!me||pTab==='save';
 }
 function localLib(){try{var a=JSON.parse(localStorage.getItem(LIB)||'[]');return Array.isArray(a)?a.filter(function(p){return p&&typeof p.name==='string'&&valid(p.objs);}):[];}catch(x){return [];}}
 function renderPlans(){
@@ -2146,7 +2171,7 @@ function renderPlans(){
     }
     h+='</div>';
   });
-  if(!list.length)h+='<p>'+(filt==='all'?'עדיין אין תוכניות משותפות.':filt==='mine'?'עדיין לא שמרתם תוכניות.':'אין תוכניות שנמחקו.')+'</p>';
+  if(!list.length)h+='<p>'+(filt==='all'?'עדיין אין תוכניות שמורות בענן.':filt==='mine'?'עדיין לא שמרתם תוכניות.':'אין תוכניות שנמחקו.')+'</p>';
   $('planList').innerHTML=h;
   var n=localLib().length;
   $('migrate').hidden=!(me&&n);$('migrate').textContent='העלה את השמורות שבדפדפן ('+n+')';
@@ -2157,13 +2182,38 @@ function loadList(){
     rows=Array.isArray(a)?a:[];if(!$('dlgPlans').hidden){renderPlans();}
   },function(){plansMsg('אין חיבור לשרת. הרשימה לא מעודכנת.');});
 }
-function openPlans(){
-  plansMsg('');renderPlans();$('json').value=exportText();refreshPrev();$('dlgPlans').hidden=false;
+var pTab='save';
+function setPTab(t){
+  pTab=t;
+  var b=$('pTabs').querySelectorAll('button');
+  for(var i=0;i<b.length;i++){var on=b[i].getAttribute('data-t')===t;b[i].classList.toggle('on',on);b[i].setAttribute('aria-selected',on?'true':'false');}
+  $('paneSave').hidden=t!=='save';$('paneOpen').hidden=t!=='open';
+  renderWho();
+}
+$('pTabs').addEventListener('click',function(e){var t=e.target.getAttribute&&e.target.getAttribute('data-t');if(t)setPTab(t);});
+function defaultSaveName(){
+  var nm=suggestName();
+  if(me&&(canUpdate()||(cur.id&&cur.owner!==me.name)))nm=state.name+(cur.owner&&cur.owner!==me.name?' - עותק':' (2)');
+  return nm;
+}
+function renderSaveTab(){
+  forceUpd=false;
+  $('pSvLoginBox').hidden=!!me;$('pSvBox').style.display=me?'grid':'none';
+  if(!me)return;
+  var upd=canUpdate();
+  $('pSvUpdate').hidden=!upd;
+  if(upd)$('pSvUpdate').textContent='עדכן את "'+state.name+'"';
+  $('pSvNew').classList.toggle('pri',!upd);
+  $('pSvName').value=defaultSaveName();
+  $('pSvInfo').textContent=upd?'מעדכנים את התוכנית שפתוחה עכשיו, או שומרים עותק בשם אחר.':(cur.id?'זו תוכנית של '+cur.owner+'. כדי לערוך אותה שומרים עותק בשם שלכם.':'בחרו שם לתוכנית ולחצו שמור.');
+}
+function openPlans(tab){
+  plansMsg('');renderPlans();renderSaveTab();setPTab(typeof tab==='string'?tab:(curDirty()?'save':'open'));$('json').value=exportText();refreshPrev();$('dlgPlans').hidden=false;
   loadList();clearInterval(listT);listT=setInterval(function(){if($('dlgPlans').hidden)clearInterval(listT);else loadList();},20000);
 }
 /* login */
 var loginAfter=null;
-function askLogin(after){loginAfter=after||null;$('lgMsg').textContent='';$('dlgPlans').hidden=true;$('dlgSw').hidden=true;$('dlgLogin').hidden=false;}
+function askLogin(after){loginAfter=after||null;$('lgMsg').textContent='';$('lgNew').classList.remove('hl');$('dlgPlans').hidden=true;$('dlgSw').hidden=true;$('dlgLogin').hidden=false;}
 function lgDone(u){
   setMe(u);$('dlgLogin').hidden=true;var f=loginAfter;loginAfter=null;(f||openPlans)();
 }
@@ -2176,13 +2226,24 @@ function lgGo(fn){
   busy=true;$('lgMsg').textContent='רגע...';
   rpc(fn,{p_name:n,p_pass:p}).then(function(r){
     busy=false;
-    if(r&&r.ok)lgDone({name:r.name||n,pass:p});else $('lgMsg').textContent=errText(r&&r.error);
+    if(r&&r.ok){lgDone({name:r.name||n,pass:p});return;}
+    var er=r&&r.error;
+    if(fn==='app_login'&&er==='bad_login'){
+      $('lgMsg').textContent='השם או הסיסמה שגויים. אם עדיין לא נרשמתם, לחצו "משתמש חדש".';
+      var nb=$('lgNew');nb.classList.remove('hl');void nb.offsetWidth;nb.classList.add('hl');
+    }else $('lgMsg').textContent=errText(er);
   },function(){busy=false;$('lgMsg').textContent='אין חיבור לשרת';});
 }
 $('lgIn').addEventListener('click',function(){lgGo('app_login');});
 $('lgNew').addEventListener('click',function(){lgGo('app_register');});
 $('lgView').addEventListener('click',function(){skipLogin=true;$('dlgLogin').hidden=true;loginAfter=null;openPlans();});
 $('lgPass').addEventListener('keydown',function(e){if(e.key==='Enter')lgGo('app_login');});
+$('lgName').addEventListener('keydown',function(e){if(e.key==='Enter')$('lgPass').focus();});
+$('lgShow').addEventListener('click',function(){
+  var show=$('lgPass').type==='password';$('lgPass').type=show?'text':'password';
+  this.setAttribute('aria-pressed',show?'true':'false');this.classList.toggle('on',show);
+  var t=show?'הסתר סיסמה':'הצג סיסמה';this.title=t;this.setAttribute('aria-label',t);
+});
 $('loginBtn').addEventListener('click',function(){skipLogin=false;askLogin(openPlans);});
 $('logoutBtn').addEventListener('click',function(){setMe(null);skipLogin=false;$('lgName').value='';$('lgPass').value='';askLogin(openPlans);});
 /* saving */
@@ -2196,36 +2257,39 @@ function askSave(o){
   var upd=canUpdate();
   $('svUpdate').hidden=!upd;
   if(upd)$('svUpdate').textContent='עדכן את "'+state.name+'"';
-  var nm=suggestName();
-  if(upd||(cur.id&&cur.owner!==me.name)){nm=state.name+(cur.owner&&cur.owner!==me.name?' - עותק':' (2)');}
-  $('svName').value=nm;
+  $('svName').value=defaultSaveName();
+  $('svNew').classList.toggle('pri',!upd);
   $('svSkip').hidden=!o.skipLabel;$('svSkip').textContent=o.skipLabel||'';
   $('dlgPlans').hidden=true;$('dlgSw').hidden=false;
 }
 function svDone(){var f=svAfter;svAfter=null;$('dlgSw').hidden=true;if(f)f();}
-function doSave(id,title,force){
+var SV_DLG={info:'svInfo',upd:'svUpdate',done:function(){svDone();}};
+var SV_TAB={info:'pSvInfo',upd:'pSvUpdate',done:function(){renderPlans();renderSaveTab();$('pSvInfo').textContent='✓ נשמר: '+state.name;flash('נשמר בענן: '+state.name);}};
+function doSave(id,title,force,ui){
+  ui=ui||SV_DLG;
   if(busy)return;
   title=String(title||'').trim();
-  if(!title){$('svInfo').textContent=errText('bad_title');return;}
-  if(title===BUILTIN){$('svInfo').textContent='השם הזה שמור לתוכנית המקורית, בחרו שם אחר';return;}
-  busy=true;$('svInfo').textContent='שומר...';
+  if(!title){$(ui.info).textContent=errText('bad_title');return;}
+  if(title===BUILTIN){$(ui.info).textContent='השם הזה שמור לתוכנית המקורית, בחרו שם אחר';return;}
+  busy=true;$(ui.info).textContent='שומר...';
   rpc('app_save',{p_name:me.name,p_pass:me.pass,p_id:id,p_title:title,p_objs:JSON.parse(snapshot()),p_expected:(id&&!force)?cur.ts:null}).then(function(r){
     busy=false;
     if(r&&r.ok){
       state.name=title;cur={id:r.id,ts:r.updated_at,owner:me.name,snap:snapshot()};persistCur();save();updStatus();
-      loadList();svDone();return;
+      loadList();ui.done();return;
     }
-    if(r&&r.error==='conflict'){forceUpd=true;$('svUpdate').textContent='דרוס את העדכון של האחר';}
-    $('svInfo').textContent=errText(r&&r.error);
-  },function(){busy=false;$('svInfo').textContent='אין חיבור לשרת. לא נשמר';});
+    if(r&&r.error==='conflict'){forceUpd=true;$(ui.upd).hidden=false;$(ui.upd).textContent='דרוס את העדכון של האחר';}
+    $(ui.info).textContent=errText(r&&r.error);
+  },function(){busy=false;$(ui.info).textContent='אין חיבור לשרת. לא נשמר';});
 }
 $('svCancel').addEventListener('click',function(){svAfter=null;$('dlgSw').hidden=true;});
 $('svSkip').addEventListener('click',svDone);
 $('svUpdate').addEventListener('click',function(){doSave(cur.id,state.name,forceUpd);});
 $('svNew').addEventListener('click',function(){doSave(null,$('svName').value,false);});
-$('saveNow').addEventListener('click',function(){
-  askSave({title:'שמירה בענן',info:'מעדכנים את התוכנית שלכם, או שומרים עותק חדש בשם אחר.',after:function(){openPlans();plansMsg('נשמר: '+state.name);}});
-});
+$('pSvUpdate').addEventListener('click',function(){doSave(cur.id,state.name,forceUpd,SV_TAB);});
+$('pSvNew').addEventListener('click',function(){doSave(null,$('pSvName').value,false,SV_TAB);});
+$('pSvName').addEventListener('keydown',function(e){if(e.key==='Enter')doSave(null,$('pSvName').value,false,SV_TAB);});
+$('pSvLogin').addEventListener('click',function(){skipLogin=false;askLogin(function(){openPlans('save');});});
 /* open / copy / previous version / delete */
 function switchTo(objs,name,meta,post){
   function go(){applyPlan(objs,name,meta);$('dlgPlans').hidden=true;flash('נפתחה: '+name+' (↶ מחזיר את הקודמת)');if(post)post();}
