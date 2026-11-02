@@ -47,12 +47,16 @@ begin
   return jsonb_build_object('ok', true, 'name', p_name);
 end $$;
 
+-- Errors: 'no_user' when no account has this name, 'wrong_pass' when the name exists
+-- but the password does not match. Revealing that a name exists adds nothing new:
+-- app_register already answers 'exists', and plan owners are publicly readable.
 create or replace function app_login(p_name text, p_pass text) returns jsonb
 language plpgsql security definer set search_path = public as $$
-declare n text;
+declare n text; pw text;
 begin
-  select name into n from app_users where lower(name) = lower(btrim(coalesce(p_name, ''))) and pass = p_pass;
-  if n is null then return jsonb_build_object('ok', false, 'error', 'bad_login'); end if;
+  select name, pass into n, pw from app_users where lower(name) = lower(btrim(coalesce(p_name, '')));
+  if n is null then return jsonb_build_object('ok', false, 'error', 'no_user'); end if;
+  if pw is distinct from p_pass then return jsonb_build_object('ok', false, 'error', 'wrong_pass'); end if;
   return jsonb_build_object('ok', true, 'name', n);
 end $$;
 

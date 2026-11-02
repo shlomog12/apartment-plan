@@ -2182,7 +2182,7 @@ function api(path,opt){
 }
 function rpc(fn,args){return api('rpc/'+fn,{method:'POST',body:args});}
 function errText(code){
-  return {bad_login:'השם או הסיסמה שגויים',title_exists:'כבר יש לך תוכנית בשם הזה, בחרו שם אחר',not_owner:'אפשר לערוך רק תוכניות שיצרתם. צרו עותק',
+  return {bad_login:'השם או הסיסמה שגויים',no_user:'אין משתמש בשם הזה',wrong_pass:'הסיסמה שגויה',title_exists:'כבר יש לך תוכנית בשם הזה, בחרו שם אחר',not_owner:'אפשר לערוך רק תוכניות שיצרתם. צרו עותק',
     conflict:'מישהו עדכן את התוכנית בינתיים (אולי ממכשיר אחר). אפשר לדרוס או לשמור כחדשה',bad_title:'כתבו שם לתוכנית',bad_plan:'התוכנית גדולה או לא תקינה',not_found:'התוכנית לא נמצאה',
     exists:'השם כבר תפוס, בחרו שם אחר או היכנסו',bad_name:'כתבו שם',bad_pass:'הסיסמה צריכה להיות לפחות 2 תווים'}[code]||'שגיאה לא צפויה';
 }
@@ -2307,9 +2307,14 @@ function lgGo(fn){
     busy=false;
     if(r&&r.ok){lgDone({name:r.name||n,pass:p});return;}
     var er=r&&r.error;
-    if(fn==='app_login'&&er==='bad_login'){
-      $('lgMsg').textContent='השם או הסיסמה שגויים. אם עדיין לא נרשמתם, לחצו "משתמש חדש".';
+    /* no_user / wrong_pass come from the current app_login; bad_login from a server not yet updated */
+    if(fn==='app_login'&&(er==='no_user'||er==='bad_login')){
+      $('lgMsg').textContent=er==='no_user'?'אין משתמש בשם "'+n+'". כדי ליצור אותו עם הסיסמה שהקלדתם, לחצו "משתמש חדש".'
+        :'השם או הסיסמה שגויים. אם עדיין לא נרשמתם, לחצו "משתמש חדש".';
       var nb=$('lgNew');nb.classList.remove('hl');void nb.offsetWidth;nb.classList.add('hl');
+    }else if(fn==='app_login'&&er==='wrong_pass'){
+      $('lgMsg').textContent='הסיסמה שגויה. אפשר ללחוץ 👁 כדי לראות מה הקלדתם. אם שכחתם אותה, פנו למנהל האתר.';
+      $('lgPass').focus();$('lgPass').select();
     }else $('lgMsg').textContent=errText(er);
   },function(){busy=false;$('lgMsg').textContent='אין חיבור לשרת';});
 }
