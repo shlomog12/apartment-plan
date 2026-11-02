@@ -21,6 +21,7 @@
   --ink:#1A222D; --muted:#566272; --accent:#2347A6; --sel:#D9480F; --meas:#0B8A5F;
   --panel:#FFFFFF; --line:#D3DAE4; --room:#DCE5F3; --furn:#FFFFFF; --btn:#F5F7FA; --glass:#B8CCEA;
   --wallface:#EFEBE4; --basebd:#DAD4C9; --floorE:#CDBFA9; --wood:#A9774A; --frame:#FBFAF7;
+  --elec:#C2410C; --lamp:#FCE7A8;
   --font-ui:'Heebo',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;
   --font-hand:'Gveret Levin','Heebo',cursive;
 }
@@ -30,6 +31,7 @@
     --ink:#E6EBF2; --muted:#9AA7B8; --accent:#8FB0FF; --sel:#FF8B5A; --meas:#3DD598;
     --panel:#1C2430; --line:#2E3A4B; --room:#23324D; --furn:#1C2430; --btn:#243042; --glass:#35507A;
     --wallface:#2A3342; --basebd:#222B38; --floorE:#3A3430; --wood:#8A5E3A; --frame:#3C475A;
+    --elec:#FB923C; --lamp:#8A6A1F;
     color-scheme:dark;
   }
 }
@@ -38,6 +40,7 @@
   --ink:#E6EBF2; --muted:#9AA7B8; --accent:#8FB0FF; --sel:#FF8B5A; --meas:#3DD598;
   --panel:#1C2430; --line:#2E3A4B; --room:#23324D; --furn:#1C2430; --btn:#243042; --glass:#35507A;
   --wallface:#2A3342; --basebd:#222B38; --floorE:#3A3430; --wood:#8A5E3A; --frame:#3C475A;
+  --elec:#FB923C; --lamp:#8A6A1F;
   color-scheme:dark;
 }
 html,body{height:100%}
@@ -136,6 +139,15 @@ button.danger{color:var(--sel)}
 .eglass{fill:var(--glass);stroke:var(--ink);stroke-width:1;vector-effect:non-scaling-stroke;pointer-events:none}
 .esill{fill:var(--frame);stroke:var(--ink);stroke-width:1.5;vector-effect:non-scaling-stroke;pointer-events:none}
 .ehit{fill:transparent;pointer-events:all;cursor:move}
+/* electrical points */
+.esym{fill:var(--paper);stroke:var(--elec);stroke-width:1.6;vector-effect:non-scaling-stroke;pointer-events:none}
+.esym *{vector-effect:non-scaling-stroke}
+.esym .solid{fill:var(--elec)}
+.esym .lamp{fill:var(--lamp)}
+.esym text{fill:var(--elec);stroke:none;font-family:var(--font-ui);font-weight:700;text-anchor:middle;dominant-baseline:central}
+.eplate{fill:var(--frame);stroke:var(--elec);stroke-width:1.4;vector-effect:non-scaling-stroke;cursor:move}
+.ptx2{fill:var(--elec);font-family:var(--font-ui);font-weight:700;text-anchor:middle;dominant-baseline:central;direction:ltr;pointer-events:none}
+.f select{width:100%;height:28px;padding:0 4px;font-size:13px}
 /* dialog */
 .dlg{position:fixed;inset:0;background:rgba(10,14,20,.55);display:grid;place-items:center;padding:16px;z-index:20}
 .dlg-box{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;width:min(560px,100%);display:grid;gap:8px}
@@ -289,6 +301,7 @@ button.hl{animation:hl .6s ease 3;border-color:var(--sel)}
       <button id="addText" type="button">+ טקסט</button>
       <button id="addDoor" type="button">+ דלת</button>
       <button id="addWin" type="button">+ חלון</button>
+      <select id="elecSel" aria-label="הוספת נקודת חשמל" title="שקעים, מתגים ותאורה. בחרו סוג והוא יתווסף על הקיר"></select>
       <label class="chk" for="gridChk"><input id="gridChk" type="checkbox">הצג רשת</label>
       <label class="chk" for="dimsChk"><input id="dimsChk" type="checkbox">מידות חדרים</label>
       <label class="chk" for="snapSel" title="פריטים שנגררים קופצים לכפולות של המרווח שנבחר">הצמדה לרשת
@@ -325,6 +338,7 @@ button.hl{animation:hl .6s ease 3;border-color:var(--sel)}
       <span class="sep"></span>
       <button id="elWin" type="button" class="add">+ חלון</button>
       <button id="elDoor" type="button" class="add">+ דלת</button>
+      <select id="elElecSel" aria-label="הוספת נקודת חשמל לקיר הזה" title="מוסיף נקודת חשמל על הקיר הזה, בגובה המקובל לסוג"></select>
       <span class="sep"></span>
       <button id="elUndo" type="button" aria-label="בטל" title="בטל את הפעולה האחרונה (Ctrl+Z)">↶</button>
       <button id="elRedo" type="button" aria-label="שחזר" title="החזר את מה שבוטל (Ctrl+Y)">↷</button>
@@ -361,6 +375,7 @@ button.hl{animation:hl .6s ease 3;border-color:var(--sel)}
         <li>דלת או חלון ליד קיר נצמדים אליו. גרירת הרקע וגלגלת/צביטה לתצוגה.</li>
         <li><b>חזית קיר</b>: מבט ישר על קיר אחד. מוסיפים דלתות וחלונות וקובעים רוחב, גובה ומיקום. קיצור: לחיצה כפולה על קיר או על דלת במצב עריכה.</li>
         <li>ריהוט: בוחרים פריט מהרשימה "+ ריהוט…" והוא מתווסף מיד.</li>
+        <li>חשמל: "+ חשמל…" מוסיף שקע, מתג או תאורה על הקיר. גוררים לאורך הקיר (גם לצד השני שלו), ואת הגובה קובעים בחזית הקיר או בשדה "גובה מהרצפה".</li>
         <li>הדמיה 3D: גרירה מסובבת, גלגלת מקרבת. במבט פנימי: חיצים או WASD.</li>
         <li>מקלדת: Delete מוחק, חיצים מזיזים (עם Shift בצעדים גדולים), Ctrl+Z מבטל, Ctrl+D משכפל, Esc מבטל בחירה.</li>
         <li>העבודה נשמרת אוטומטית בדפדפן הזה בלבד. כדי לשמור לצמיתות או לפתוח ממכשיר אחר: <b>💾 שמירה ופתיחה</b>.</li>
@@ -537,6 +552,9 @@ function mkD(type,x,y,w,rot,fx,fy){
   return {id:nxt(),type:type,x:x,y:y,w:w,rot:rot,fx:fx,fy:fy,h:type==='door'?210:120,sl:type==='door'?0:100};
 }
 function seed(){
+  /* the built-in plan always gets ids o1..oN; the running counter must not move backwards,
+     since seed() is also called just to compare against the current board */
+  var keep=nid;
   nid=1;
   var a=[];
   /* transcribed from the hand sketch (perspective-corrected, centimeters) */
@@ -575,6 +593,7 @@ function seed(){
   a.push(mkD('door',525,269,66,90,-1,-1));
   a.push(mkD('door',525,454,61,90,1,-1));
   a.push(mkD('door',392,460,64,90,-1,1));
+  nid=Math.max(keep,nid);
   return a;
 }
 var FURN=[
@@ -669,6 +688,21 @@ function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp
 function stp(){return state.step||1;}
 function sn(v){return Math.round(v/stp())*stp();}
 function isOpen(o){return o.type==='door'||o.type==='window';}
+/* electrical points: type 'pt'. Wall kinds sit on a wall line (x,y), 'na' = angle of the wall face they are on,
+   'h' = height of the centre above the floor, 'ha' false once the user set the height by hand. */
+var EK={
+  outlet:{n:'שקע',h:30,auto:1},
+  outlet2:{n:'שקע כפול',h:30,auto:1},
+  power:{n:'שקע כוח 16 אמפר',h:30,auto:1},
+  switch:{n:'מתג',h:110},
+  ceil:{n:'תאורה בתקרה',ceil:1},
+  wlight:{n:'מנורת קיר',h:180},
+  ac:{n:'מזגן',h:220},
+  data:{n:'נקודת תקשורת',h:30,auto:1}
+};
+var EK_ORDER=['outlet','outlet2','power','switch','ceil','wlight','ac','data'];
+function isPt(o){return !!o&&o.type==='pt';}
+function isWallPt(o){return isPt(o)&&!(EK[o.kind]||{}).ceil;}
 
 function valid(a){
   if(!Array.isArray(a))return false;
@@ -679,11 +713,17 @@ function valid(a){
     else if(o.type==='rect'){if(![o.x,o.y,o.w,o.h].every(isFinite))return false;}
     else if(o.type==='text'){if(![o.x,o.y,o.fs].every(isFinite)||typeof o.text!=='string')return false;}
     else if(isOpen(o)){if(![o.x,o.y,o.w,o.rot,o.fx,o.fy].every(isFinite))return false;}
+    else if(o.type==='pt'){if(![o.x,o.y].every(isFinite)||!EK[o.kind])return false;}
     else return false;}
   return true;
 }
 function normalize(){
+  /* repair duplicate ids (plans saved while ids could repeat): later copies get fresh ids */
+  var seen={},mx=0;
+  state.objs.forEach(function(o){var n=parseInt(String(o.id).replace(/\D/g,''),10);if(n>mx)mx=n;});
+  state.objs.forEach(function(o){if(seen[o.id])o.id='o'+(++mx);seen[o.id]=1;});
   state.objs.forEach(function(o){
+    if(isPt(o)){if(!isFinite(o.h))o.h=EK[o.kind].h||0;if(!isFinite(o.na))o.na=90;if(typeof o.note!=='string')o.note='';}
     if(isOpen(o)){
       if(!isFinite(o.h))o.h=o.type==='door'?210:120;
       if(!isFinite(o.sl))o.sl=o.type==='door'?0:100;
@@ -843,6 +883,12 @@ function render(){
     s+='</g>';
   });
   objs.forEach(function(o){
+    if(!isPt(o))return;
+    var R=ptR(inv),g=ptFrame(o);
+    s+='<g class="esym" transform="translate('+g.x+' '+g.y+') rotate('+g.r+')">'+ptSym(o.kind,R)+'</g>';
+    s+='<circle class="hitr" data-id="'+o.id+'" cx="'+g.cx+'" cy="'+g.cy+'" r="'+Math.max(R*1.3,(coarse?20:13)*inv)+'"/>';
+  });
+  objs.forEach(function(o){
     if(o.type!=='rect'||!o.label)return;
     var cx=o.x+o.w/2,cy=o.y+o.h/2,fs,cls,rot='';
     if(o.kind==='room'){fs=clamp(Math.min(o.w,o.h)/6,15,30);cls='lr';}
@@ -927,6 +973,10 @@ function render(){
     }else if(so.type==='text'){
       var tb=txtBox(so);
       s+='<rect class="sel" x="'+tb.x+'" y="'+tb.y+'" width="'+tb.w+'" height="'+tb.h+'"/>';
+    }else if(isPt(so)){
+      var gR=ptR(inv),gg=ptFrame(so);
+      s+='<circle class="sel" cx="'+gg.cx+'" cy="'+gg.cy+'" r="'+(gR*1.9)+'"/>';
+      if(isWallPt(so))s+='<text class="dt dts" x="'+(gg.cx+gg.nx*gR*3.1)+'" y="'+(gg.cy+gg.ny*gR*3.1)+'" font-size="'+fs3+'">גובה '+fmt(so.h)+'</text>';
     }else{
       if(drag&&drag.preview&&drag.id===so.id){
         var pw=drag.preview;
@@ -956,7 +1006,7 @@ function draw(){
 }
 
 /* ---------- inspector (floating) ---------- */
-var NAMES={measure:'מדידה',text:'טקסט',wall:'קיר',room:'חדר',furn:'ריהוט',door:'דלת',window:'חלון'};
+var NAMES={measure:'מדידה',text:'טקסט',wall:'קיר',room:'חדר',furn:'ריהוט',door:'דלת',window:'חלון',pt:'חשמל'};
 function txtBox(o){var w=Math.max(o.fs*1.5,String(o.text).length*o.fs*.6+o.fs*.6),h=o.fs*1.5;return {x:o.x-w/2,y:o.y-h/2,w:w,h:h};}
 function kindOf(o){return o.type==='rect'?(o.kind==='room'?'room':'furn'):o.type;}
 function fld(lab,k,v,isText,unit){
@@ -967,7 +1017,7 @@ function renderPanel(){
   var o=sel?byId(sel):null,p=$('panel'),h='';
   if(!o||view==='3d'){p.hidden=true;p.innerHTML='';return;}
   var kd=kindOf(o);
-  h+='<h2><span>'+NAMES[kd]+'</span><span><button type="button" data-a="fold" aria-label="'+(panelFold?'הרחב':'צמצם')+'" title="'+(panelFold?'הרחב':'צמצם')+'">'+(panelFold?'▴':'▾')+'</button> <button type="button" data-a="close" aria-label="סגור" title="סגור (Esc)">×</button></span></h2><div class="fg">';
+  h+='<h2><span>'+(isPt(o)?'⚡ '+ptName(o):NAMES[kd])+'</span><span><button type="button" data-a="fold" aria-label="'+(panelFold?'הרחב':'צמצם')+'" title="'+(panelFold?'הרחב':'צמצם')+'">'+(panelFold?'▴':'▾')+'</button> <button type="button" data-a="close" aria-label="סגור" title="סגור (Esc)">×</button></span></h2><div class="fg">';
   if(o.type==='measure'){
     h+=fld('מרחק','len',fmt(Math.hypot(o.x2-o.x1,o.y2-o.y1)));
   }else if(o.type==='wall'){
@@ -981,20 +1031,32 @@ function renderPanel(){
     if(o.kind==='room')h+='<div class="meta" id="area">שטח: '+(o.w*o.h/10000).toFixed(1)+' מ״ר</div>';
     else h+=fld('גובה','fh',fmt(furnH(o)));
     if(view==='plan')h+=fld('מיקום אופקי','x',fmt(o.x))+fld('מיקום אנכי','y',fmt(o.y));
+  }else if(isPt(o)){
+    h+='<label class="f"><span>סוג</span><select data-k="kind" aria-label="סוג הנקודה">'+EK_ORDER.filter(function(k){return view==='plan'||!EK[k].ceil;}).map(function(k){return '<option value="'+k+'"'+(k===o.kind?' selected':'')+'>'+EK[k].n+'</option>';}).join('')+'</select><i></i></label>';
+    if(isWallPt(o)){
+      h+=fld('גובה מהרצפה','h',fmt(o.h));
+      if(view==='elev')h+=fld('מרחק מתחילת הקיר','pos',fmt(openPos(o)));
+    }
+    h+=fld('הערה','note',o.note||'',true);
+    if(isWallPt(o))h+='<div class="meta" id="ptMeta" style="grid-column:1/-1">'+ptMeta(o)+'</div>';
   }else{
     h+=fld('רוחב','w',fmt(o.w))+fld('גובה','h',fmt(o.h));
     if(o.type==='window')h+=fld('גובה מהרצפה','sl',fmt(o.sl));
     if(view==='elev')h+=fld('מרחק מתחילת הקיר','pos',fmt(openPos(o)));
   }
   h+='</div><div class="btns"><button type="button" data-a="ok" class="pri" title="השינויים כבר עודכנו בתוכנית. סוגר את החלון">✓ סיום</button>';
-  if(o.type!=='text'&&o.type!=='measure'&&(view==='plan'||o.type==='wall'||o.type==='rect'))h+='<button type="button" data-a="rot">סובב</button>';
-  if(view==='plan'&&(o.type==='wall'||isOpen(o)))h+='<button type="button" data-a="elev" class="pri">חזית הקיר ←</button>';
+  if(o.type!=='text'&&o.type!=='measure'&&!isPt(o)&&(view==='plan'||o.type==='wall'||o.type==='rect'))h+='<button type="button" data-a="rot">סובב</button>';
+  if(view==='plan'&&(o.type==='wall'||isOpen(o)||isWallPt(o)))h+='<button type="button" data-a="elev" class="pri">חזית הקיר ←</button>';
   if(o.type==='door'&&view==='plan'){
     h+='<button type="button" data-a="fx" title="מעביר את הצירים לצד השני של הפתח">⇆ צד הציר</button>';
     h+='<button type="button" data-a="fy" title="הדלת תיפתח לחדר שמעבר לקיר">⇅ פתיחה לצד השני</button>';
   }
-  h+='<button type="button" data-a="dup">'+((view==='elev'&&isOpen(o))?'שכפל לידו':'שכפל')+'</button><button type="button" data-a="del" class="danger">מחק</button></div>';
+  h+='<button type="button" data-a="dup"'+(isWallPt(o)?' title="מוסיף עוד אחד 30 ס״מ הלאה על אותו קיר"':'')+'>'+(((view==='elev'&&isOpen(o))||isWallPt(o))?'שכפל לידו':'שכפל')+'</button><button type="button" data-a="del" class="danger">מחק</button></div>';
   p.innerHTML=h;p.hidden=false;p.classList.toggle('fold',panelFold);
+}
+function ptMeta(o){
+  if(o.ha===false)return 'הגובה נקבע ידנית';
+  return 'גובה מקובל ל'+ptName(o)+(nearCounter(o)?': מעל משטח עבודה':'')+'. אפשר לשנות כאן או בחזית הקיר';
 }
 function syncPanel(){
   var o=sel?byId(sel):null; if(!o||$('panel').hidden)return;
@@ -1008,10 +1070,12 @@ function syncPanel(){
     else if(k==='pos')v=fmt(openPos(o));
     else if(k==='wh')v=fmt(wallH(o));
     else if(k==='fh')v=fmt(furnH(o));
+    else if(k==='note')v=o.note||'';
     else v=fmt(o[k]);
     inp.value=v;
   }
   var a=$('area'); if(a&&o.type==='rect')a.textContent='שטח: '+(o.w*o.h/10000).toFixed(1)+' מ״ר';
+  var pm=$('ptMeta'); if(pm&&isPt(o))pm.textContent=ptMeta(o);
 }
 function select(i){sel=i;renderPanel();draw();}
 
@@ -1040,6 +1104,19 @@ function doRedo(){
 /* ---------- editing actions ---------- */
 function applyField(o,k,v){
   if(k==='label'){o.label=v;return;}
+  if(isPt(o)){
+    if(k==='note'){o.note=String(v);return;}
+    if(k==='kind'&&EK[v]&&v!==o.kind){
+      var wasCeil=!isWallPt(o);o.kind=v;
+      if(EK[v].ceil){var a=o.na*Math.PI/180;o.x=Math.round(o.x+Math.cos(a)*60);o.y=Math.round(o.y+Math.sin(a)*60);}
+      else if(wasCeil)snapPt(o,{x:o.x,y:o.y},{x:o.x,y:o.y});
+      o.h=EK[v].h||0;delete o.ha;autoH(o);return;
+    }
+    var pn=parseFloat(v);if(!isFinite(pn))return;
+    if(k==='h'){o.h=clamp(pn,5,400);o.ha=false;}
+    else if(k==='pos')setOpenPos(o,pn);
+    return;
+  }
   if(k==='text'){if(String(v).trim())o.text=v;return;}
   var n=parseFloat(v); if(!isFinite(n))return;
   if(o.type==='measure'){
@@ -1071,6 +1148,7 @@ function rotateSel(o){
   }else o.rot=(o.rot+90)%360;
 }
 function dupSel(o){
+  if(isPt(o))return dupPoint(o)||o.id;
   var c=JSON.parse(JSON.stringify(o));c.id=nxt();
   if(c.type==='wall'||c.type==='measure'){c.x1+=20;c.x2+=20;c.y1+=20;c.y2+=20;}else{c.x+=20;c.y+=20;}
   state.objs.push(c);return c.id;
@@ -1092,6 +1170,98 @@ function addObj(make,c){
 }
 function nudge(o,dx,dy){
   if(o.type==='wall'||o.type==='measure'){o.x1+=dx;o.x2+=dx;o.y1+=dy;o.y2+=dy;}else{o.x+=dx;o.y+=dy;}
+  if(isWallPt(o)){snapPt(o,{x:o.x,y:o.y});autoH(o);}
+}
+
+/* ---------- electrical points: geometry ---------- */
+function ptR(inv){return Math.max(9,9*inv);}
+/* screen frame of a point: translate/rotate so local +y points away from the wall face */
+function ptFrame(o){
+  if(!isWallPt(o))return {x:o.x,y:o.y,r:0,cx:o.x,cy:o.y,nx:0,ny:-1};
+  var w=wallOf(o),t=w?w.t:10,a=o.na*Math.PI/180,nx=Math.cos(a),ny=Math.sin(a),R=ptR(1/V.k);
+  var fx=o.x+nx*t/2,fy=o.y+ny*t/2;
+  return {x:fx,y:fy,r:o.na-90,cx:fx+nx*R*.6,cy:fy+ny*R*.6,nx:nx,ny:ny};
+}
+/* plan symbol in local units: x along the wall, +y away from it */
+function ptSym(k,R){
+  var f=function(n){return Math.round(n*100)/100;},half='M '+f(-R)+' 0 A '+f(R)+' '+f(R)+' 0 0 0 '+f(R)+' 0 Z';
+  if(k==='outlet')return '<path d="'+half+'"/><path d="M 0 '+f(R)+' V '+f(R*1.5)+'"/>';
+  if(k==='outlet2')return '<path d="'+half+'"/><path d="M '+f(-R*.35)+' '+f(R*.15)+' V '+f(R*.65)+' M '+f(R*.35)+' '+f(R*.15)+' V '+f(R*.65)+'"/>';
+  if(k==='power')return '<path class="solid" d="'+half+'"/><path d="M 0 '+f(R)+' V '+f(R*1.5)+'"/>';
+  if(k==='data')return '<path d="M '+f(-R)+' 0 L 0 '+f(R*1.3)+' L '+f(R)+' 0 Z"/>';
+  if(k==='switch')return '<path d="M 0 0 V '+f(R*.5)+'"/><circle cx="0" cy="'+f(R*.9)+'" r="'+f(R*.4)+'"/><path d="M '+f(R*.28)+' '+f(R*1.18)+' L '+f(R*.8)+' '+f(R*1.7)+'"/>';
+  if(k==='wlight')return '<path d="M 0 0 V '+f(R*.4)+'"/><circle class="lamp" cx="0" cy="'+f(R)+'" r="'+f(R*.6)+'"/><path d="M '+f(-R*.42)+' '+f(R*.58)+' L '+f(R*.42)+' '+f(R*1.42)+' M '+f(R*.42)+' '+f(R*.58)+' L '+f(-R*.42)+' '+f(R*1.42)+'"/>';
+  if(k==='ac')return '<rect x="'+f(-R*1.7)+'" y="0" width="'+f(R*3.4)+'" height="'+f(R*1.2)+'" rx="'+f(R*.2)+'"/><text x="0" y="'+f(R*.62)+'" font-size="'+f(R*.85)+'">AC</text>';
+  return '<circle class="lamp" cx="0" cy="0" r="'+f(R)+'"/><path d="M '+f(-R*.7)+' '+f(-R*.7)+' L '+f(R*.7)+' '+f(R*.7)+' M '+f(R*.7)+' '+f(-R*.7)+' L '+f(-R*.7)+' '+f(R*.7)+'"/>';
+}
+/* put a wall point on the wall nearest to q; 'side' (a point in the room) chooses the face */
+function snapPt(o,q,side,only){
+  var best=null,bd=1e9;
+  state.objs.forEach(function(w){
+    if(w.type!=='wall'||(only&&w!==only))return;
+    var L=wallLen(w);if(L<1)return;
+    var ux=(w.x2-w.x1)/L,uy=(w.y2-w.y1)/L,t=clamp((q.x-w.x1)*ux+(q.y-w.y1)*uy,4,Math.max(4,L-4));
+    var px=w.x1+ux*t,py=w.y1+uy*t,d=Math.hypot(q.x-px,q.y-py);
+    if(d<bd){bd=d;best={w:w,t:t,ux:ux,uy:uy,px:px,py:py};}
+  });
+  if(!best)return false;
+  var w=best.w,nx=-best.uy,ny=best.ux,sp=side||null,dot;
+  if(sp)dot=(sp.x-best.px)*nx+(sp.y-best.py)*ny;
+  if(!sp||Math.abs(dot)<.5){var a=(o.na||90)*Math.PI/180;dot=Math.cos(a)*nx+Math.sin(a)*ny;}
+  var sg=dot>=0?1:-1,t2=avoidDoors(w,best.t,6);
+  o.x=Math.round((w.x1+best.ux*t2)*10)/10;o.y=Math.round((w.y1+best.uy*t2)*10)/10;
+  o.na=Math.round(Math.atan2(ny*sg,nx*sg)*180/Math.PI);
+  return true;
+}
+function avoidDoors(w,t,pad){
+  state.objs.forEach(function(d){
+    if(d.type!=='door'||wallOf(d)!==w)return;
+    var c=openS(d,w),a=c-d.w/2-pad,b=c+d.w/2+pad;
+    if(t>a&&t<b)t=(t-a<b-t)?a:b;
+  });
+  return clamp(t,4,Math.max(4,wallLen(w)-4));
+}
+function nearCounter(o){
+  if(!isWallPt(o))return false;
+  var w=wallOf(o),t=w?w.t:10,a=o.na*Math.PI/180,nx=Math.cos(a),ny=Math.sin(a);
+  var px=o.x+nx*(t/2+25),py=o.y+ny*(t/2+25);
+  return state.objs.some(function(r){
+    return r.type==='rect'&&r.kind!=='room'&&/משטח|דלפק|כיור מטבח|כיריים/.test(r.label||'')&&px>=r.x-3&&px<=r.x+r.w+3&&py>=r.y-3&&py<=r.y+r.h+3;
+  });
+}
+/* default height by kind; outlets over a kitchen counter go to 110 cm, until the user sets a height */
+function autoH(o){
+  var k=EK[o.kind];if(!k||k.ceil||o.ha===false)return;
+  o.h=(k.auto&&nearCounter(o))?110:k.h;
+}
+function ptName(o){return (EK[o.kind]||{}).n||'חשמל';}
+function addPoint(kind,wall,at,side){
+  var k=EK[kind];if(!k)return;
+  setPanOnly(false,true);
+  var o={id:nxt(),type:'pt',kind:kind,x:0,y:0,na:90,h:k.h||0,note:''};
+  if(k.ceil){var c=viewCenter();o.x=c.x;o.y=c.y;}
+  else{
+    var c2=viewCenter(),so=sel?byId(sel):null,w=wall||null,s=at;
+    if(!w&&so&&so.type==='wall')w=so;
+    if(!w&&isWallPt(so)){w=wallOf(so);s=openS(so,w)+30;if(s>wallLen(w)-4)s=openS(so,w)-30;side=side||{x:so.x+Math.cos(so.na*Math.PI/180)*30,y:so.y+Math.sin(so.na*Math.PI/180)*30};}
+    if(w){var L=wallLen(w);if(!isFinite(s))s=clamp((c2.x-w.x1)*(w.x2-w.x1)/L+(c2.y-w.y1)*(w.y2-w.y1)/L,4,L-4);
+      var q={x:w.x1+(w.x2-w.x1)/L*s,y:w.y1+(w.y2-w.y1)/L*s};
+      snapPt(o,q,side||c2,w);
+    }else if(!snapPt(o,c2,c2)){flash('אין קירות בתוכנית. הוסיפו קיר קודם');return;}
+    autoH(o);
+  }
+  mutate(function(){state.objs.push(o);});
+  select(o.id);
+  flash(k.ceil?'נוספה '+k.n+'. גררו אותה למקום':'נוסף '+k.n+' בגובה '+fmt(o.h)+' ס״מ. גררו לאורך הקיר; את הגובה משנים בחזית הקיר');
+}
+function dupPoint(o){
+  var c=JSON.parse(JSON.stringify(o));c.id=nxt();
+  if(isWallPt(o)){
+    var w=wallOf(o);if(!w)return null;
+    var L=wallLen(w),s0=openS(o,w),s1=s0+30<=L-4?s0+30:s0-30;
+    putOnWall(c,w,clamp(avoidDoors(w,s1,6),4,L-4));
+  }else{c.x+=60;}
+  state.objs.push(c);return c.id;
 }
 
 /* ---------- plan pointer interaction ---------- */
@@ -1164,7 +1334,7 @@ svg.addEventListener('pointerdown',function(e){
     var o=byId(i);if(!o)return;
     if(sel!==i)select(i);
     var now=Date.now();
-    if(!h&&lastTap.id===i&&now-lastTap.t<420&&(o.type==='wall'||isOpen(o))){
+    if(!h&&lastTap.id===i&&now-lastTap.t<420&&(o.type==='wall'||isOpen(o)||isWallPt(o))){
       lastTap={id:null,t:0};drag=null;ptrs.delete(e.pointerId);setView('elev');return;
     }
     lastTap={id:i,t:now};
@@ -1198,6 +1368,10 @@ svg.addEventListener('pointermove',function(e){
       o.x1=a.x1+ax;o.x2=a.x2+ax;o.y1=a.y1+ay;o.y2=a.y2+ay;}
     else if(o.type==='measure'){var mx2=sn(dx),my2=sn(dy);o.x1=a.x1+mx2;o.x2=a.x2+mx2;o.y1=a.y1+my2;o.y2=a.y2+my2;}
     else if(o.type==='rect'||o.type==='text'){o.x=sn(a.x+dx);o.y=sn(a.y+dy);}
+    else if(isPt(o)){
+      if(isWallPt(o))snapPt(o,{x:a.x+dx,y:a.y+dy},p);
+      else{o.x=sn(a.x+dx);o.y=sn(a.y+dy);}
+    }
     else{
       o.x=a.x+dx;o.y=a.y+dy;
       var pv={x:o.x,y:o.y,w:o.w,rot:o.rot,fx:o.fx,fy:o.fy};snapDoor(pv);drag.preview=pv;
@@ -1234,6 +1408,7 @@ function endPtr(e){
     }else{
       var dob=drag.mode==='move'?byId(drag.id):null;
       if(dob&&isOpen(dob)){snapDoor(dob);}
+      if(dob&&isWallPt(dob)){autoH(dob);renderPanel();}
       drag.preview=null;
       if(drag.before!==snapshot()){pushHist(drag.before);save();}
       render();syncPanel();
@@ -1299,7 +1474,7 @@ function wallsList(){return state.objs.filter(function(o){return o.type==='wall'
 function pickWall(){
   var w=sel?byId(sel):null;
   if(w&&w.type==='wall'){elWall=w.id;return;}
-  if(w&&isOpen(w)){var ow=wallOf(w);if(ow){elWall=ow.id;return;}}
+  if(w&&(isOpen(w)||isWallPt(w))){var ow=wallOf(w);if(ow){elWall=ow.id;return;}}
   var cur=elWall?byId(elWall):null;
   if(cur&&cur.type==='wall')return;
   var l=wallsList();
@@ -1310,8 +1485,10 @@ function elFit(){
   var r=ev.getBoundingClientRect(),w=elWall?byId(elWall):null;
   if(!r.width||!r.height||!w)return;
   var L=wallLen(w),H=wallH(w);
-  EV.k=clamp(Math.min(r.width/(L+120),r.height/(H+150)),.05,10);
-  EV.x=(r.width-L*EV.k)/2;
+  /* on phones the zoom / mode controls sit on the right edge: keep the wall clear of them */
+  var zb=$('zoomBox').getBoundingClientRect(),rr=(r.width<=760&&zb.width)?Math.min(r.width*.4,r.right-zb.left+8):0,aw=r.width-rr;
+  EV.k=clamp(Math.min(aw/(L+120),r.height/(H+150)),.05,10);
+  EV.x=(aw-L*EV.k)/2;
   EV.y=(r.height+(H-20)*EV.k)/2;
 }
 function elStep(d){
@@ -1393,9 +1570,17 @@ function renderElev(){
       s+='<path d="M '+vxc+' '+yt+' V '+yb+' M '+x0+' '+((yt+yb)/2)+' H '+x1+'" fill="none" style="stroke:var(--ink);pointer-events:none" stroke-width="2" vector-effect="non-scaling-stroke"/>';
     }
   });
-  if(!ops.length){
-    s+='<text class="lf" x="'+(L/2)+'" y="'+(-H/2-12*inv)+'" font-size="'+(16*inv)+'">אין על הקיר הזה דלת או חלון</text>';
-    s+='<text class="lf" x="'+(L/2)+'" y="'+(-H/2+14*inv)+'" font-size="'+(13*inv)+'">לחצו על + חלון או + דלת בסרגל שלמעלה</text>';
+  var ux0=(w.x2-w.x1)/L,uy0=(w.y2-w.y1)/L,vnx=-uy0*(elFlip?-1:1),vny=ux0*(elFlip?-1:1);
+  var pts=state.objs.filter(function(o){
+    if(!isWallPt(o)||wallOf(o)!==w)return false;
+    var a=o.na*Math.PI/180;return Math.cos(a)*vnx+Math.sin(a)*vny>0;
+  });
+  var hidden=state.objs.filter(function(o){return isWallPt(o)&&wallOf(o)===w&&pts.indexOf(o)<0;}).length;
+  pts.forEach(function(o){s+=elevPt(o,openVx(o,w),inv);});
+  if(hidden)s+='<text class="lf" x="'+(L/2)+'" y="'+(-H-12*inv)+'" font-size="'+(12*inv)+'">'+hidden+' נקודות חשמל בצד השני של הקיר (הצג מהצד השני)</text>';
+  if(!ops.length&&!pts.length){
+    s+='<text class="lf" x="'+(L/2)+'" y="'+(-H/2-12*inv)+'" font-size="'+(16*inv)+'">אין על הקיר הזה דלת, חלון או נקודת חשמל</text>';
+    s+='<text class="lf" x="'+(L/2)+'" y="'+(-H/2+14*inv)+'" font-size="'+(13*inv)+'">לחצו על + חלון, + דלת או + חשמל בסרגל שלמעלה</text>';
   }
   var by=26+22*inv,lx=-24*inv,tk=5*inv;
   s+='<path class="dim" d="M 0 '+by+' H '+L+' M 0 '+(by-tk)+' V '+(by+tk)+' M '+L+' '+(by-tk)+' V '+(by+tk)+'"/>';
@@ -1403,6 +1588,17 @@ function renderElev(){
   s+='<path class="dim" d="M '+lx+' 0 V '+(-H)+' M '+(lx-tk)+' 0 H '+(lx+tk)+' M '+(lx-tk)+' '+(-H)+' H '+(lx+tk)+'"/>';
   s+='<text class="dt" x="'+(lx-12*inv)+'" y="'+(-H/2)+'" font-size="'+fs+'" transform="rotate(-90 '+(lx-12*inv)+' '+(-H/2)+')">'+fmt(H)+'</text>';
   var so=sel?byId(sel):null;
+  if(so&&isWallPt(so)&&pts.indexOf(so)>=0){
+    var pc=openVx(so,w),pd=ptDims(so.kind),pf=Math.max(1,12*inv/Math.max(pd.w,pd.h)),phw=pd.w*pf/2+6,phh=pd.h*pf/2+6;
+    s+='<rect class="sel" x="'+(pc-phw)+'" y="'+(-so.h-phh)+'" width="'+(2*phw)+'" height="'+(2*phh)+'"/>';
+    var dxl=pc-phw-16*inv;
+    s+='<path class="dim" d="M '+dxl+' 0 V '+(-so.h)+' M '+(dxl-5*inv)+' 0 H '+(dxl+5*inv)+' M '+(dxl-5*inv)+' '+(-so.h)+' H '+(dxl+5*inv)+'" style="stroke:var(--sel)"/>';
+    s+='<text class="dt dts" x="'+(dxl-11*inv)+'" y="'+(-so.h/2)+'" font-size="'+fs+'" transform="rotate(-90 '+(dxl-11*inv)+' '+(-so.h/2)+')">'+fmt(so.h)+'</text>';
+    var gy2=-H-20*inv;
+    s+='<path class="dim" d="M 0 '+gy2+' H '+pc+' M '+pc+' '+(gy2-5*inv)+' V '+(gy2+5*inv)+'" style="stroke:var(--sel)"/>';
+    if(pc>26*inv)s+='<text class="dt dts" x="'+(pc/2)+'" y="'+(gy2-10*inv)+'" font-size="'+fs+'">'+fmt(pc)+'</text>';
+    if(L-pc>26*inv)s+='<text class="dt dts" x="'+((pc+L)/2)+'" y="'+(gy2-10*inv)+'" font-size="'+fs+'">'+fmt(L-pc)+'</text>';
+  }
   if(so&&isOpen(so)&&ops.indexOf(so)>=0){
     var c=openVx(so,w),x0=c-so.w/2,x1=c+so.w/2,yb=-so.sl,yt=-(so.sl+so.h);
     s+='<rect class="sel" x="'+(x0-8)+'" y="'+(yt-8)+'" width="'+(so.w+16)+'" height="'+(so.h+16)+'"/>';
@@ -1432,7 +1628,7 @@ ev.addEventListener('pointerdown',function(e){
   if(id){
     var o=byId(id);if(!o||!w)return;
     if(sel!==id)select(id);
-    if(isOpen(o))edrag={mode:h?'handle':'move',id:id,h:h,p:toE(e),orig:JSON.parse(JSON.stringify(o)),vx0:openVx(o,w),before:snapshot()};
+    if(isOpen(o)||isWallPt(o))edrag={mode:h?'handle':'move',id:id,h:h,p:toE(e),orig:JSON.parse(JSON.stringify(o)),vx0:openVx(o,w),before:snapshot()};
     else edrag=null;
   }else{
     if(sel)select(null);
@@ -1446,6 +1642,11 @@ ev.addEventListener('pointermove',function(e){
   if(edrag.mode==='pan'){EV.x=edrag.vx+(e.clientX-edrag.cx);EV.y=edrag.vy+(e.clientY-edrag.cy);renderElev();return;}
   var o=byId(edrag.id),w=byId(elWall),a=edrag.orig;if(!o||!w)return;
   var p=toE(e),L=wallLen(w),H=wallH(w);
+  if(isPt(o)){
+    placeOpen(o,w,clamp(sn(edrag.vx0+(p.x-edrag.p.x)),4,L-4));
+    var nh=clamp(sn(a.h+(p.h-edrag.p.h)),5,H-5);if(nh!==a.h){o.h=nh;o.ha=false;}
+    renderElev();syncPanel();return;
+  }
   if(edrag.mode==='move'){
     var nvx=sn(edrag.vx0+(p.x-edrag.p.x));
     placeOpen(o,w,clamp(nvx,a.w/2,L-a.w/2));
@@ -1494,6 +1695,32 @@ ev.addEventListener('wheel',function(e){
   EV.x=mx-wx*EV.k;EV.y=my-wy*EV.k;
   renderElev();
 },{passive:false});
+/* real-size plate of a point in the wall view (cm) */
+function ptDims(k){return {outlet:{w:8,h:8},outlet2:{w:15,h:8},power:{w:9,h:9},data:{w:8,h:8},switch:{w:8,h:8},wlight:{w:24,h:13},ac:{w:80,h:28}}[k]||{w:8,h:8};}
+function elevPt(o,c,inv){
+  var d=ptDims(o.kind),f=Math.max(1,12*inv/Math.max(d.w,d.h)),W=d.w*f,H=d.h*f,x=c-W/2,y=-o.h-H/2,s='',k=o.kind;
+  function q(n){return Math.round(n*100)/100;}
+  /* finger-sized touch target around small plates */
+  var tw=Math.max(W,(coarse?40:22)*inv),th=Math.max(H,(coarse?40:22)*inv);
+  var hitr='<rect class="ehit" data-id="'+o.id+'" x="'+q(c-tw/2)+'" y="'+q(-o.h-th/2)+'" width="'+q(tw)+'" height="'+q(th)+'"/>';
+  if(k==='wlight'){
+    s+='<path class="eplate" data-id="'+o.id+'" d="M '+q(x)+' '+q(y+H)+' A '+q(W/2)+' '+q(H)+' 0 0 1 '+q(x+W)+' '+q(y+H)+' Z" style="fill:var(--lamp)"/>';
+    return s+hitr;
+  }
+  s+='<rect class="eplate" data-id="'+o.id+'" x="'+q(x)+'" y="'+q(y)+'" width="'+q(W)+'" height="'+q(H)+'" rx="'+q(Math.min(W,H)*.12)+'"/>';
+  var g='<g class="esym" style="stroke-width:1.2">',cy=y+H/2;
+  if(k==='outlet'||k==='power'||k==='data'){
+    if(k==='data')g+='<rect x="'+q(c-W*.2)+'" y="'+q(cy-H*.16)+'" width="'+q(W*.4)+'" height="'+q(H*.32)+'"/>';
+    else g+='<circle'+(k==='power'?' class="solid"':'')+' cx="'+q(c)+'" cy="'+q(cy)+'" r="'+q(H*.32)+'"/>';
+  }else if(k==='outlet2'){
+    g+='<circle cx="'+q(c-W*.24)+'" cy="'+q(cy)+'" r="'+q(H*.3)+'"/><circle cx="'+q(c+W*.24)+'" cy="'+q(cy)+'" r="'+q(H*.3)+'"/>';
+  }else if(k==='switch'){
+    g+='<rect x="'+q(c-W*.2)+'" y="'+q(cy-H*.3)+'" width="'+q(W*.4)+'" height="'+q(H*.6)+'" rx="'+q(W*.05)+'"/>';
+  }else if(k==='ac'){
+    g+='<path d="M '+q(x+W*.08)+' '+q(y+H*.72)+' H '+q(x+W*.92)+' M '+q(x+W*.08)+' '+q(y+H*.86)+' H '+q(x+W*.92)+'"/>';
+  }
+  return s+g+'</g>'+hitr;
+}
 function openS(o,w){
   var L=wallLen(w);return (o.x-w.x1)*(w.x2-w.x1)/L+(o.y-w.y1)*(w.y2-w.y1)/L;
 }
@@ -1926,10 +2153,15 @@ function makePdf(jpg,pw,ph,px,py){
   parts.forEach(function(b){out.set(b,p);p+=b.length;});
   return out;
 }
+function ptFramePrint(o,R){
+  if(!isWallPt(o))return {x:o.x,y:o.y,r:0,cx:o.x,cy:o.y,nx:0,ny:-1};
+  var w=wallOf(o),t=w?w.t:10,a=o.na*Math.PI/180,nx=Math.cos(a),ny=Math.sin(a),fx=o.x+nx*t/2,fy=o.y+ny*t/2;
+  return {x:fx,y:fy,r:o.na-90,cx:fx+nx*R*.6,cy:fy+ny*R*.6,nx:nx,ny:ny};
+}
 function printSvg(){
   var PW=210,PH=297,M=12,HEAD=16,DIM=9;
   var bb=bboxAll(false),bc=bboxAll(true);
-  var availW=PW-2*M-2*DIM,availH=PH-2*M-HEAD-2*DIM;
+  var availW=PW-2*M-2*DIM,availH=PH-2*M-HEAD-2*DIM-(state.objs.some(isPt)?10:0);
   var D=Math.max(20,Math.ceil(Math.max(bb.w*10/availW,bb.h*10/availH)/5)*5);
   var sc=10/D,i;
   var ox=M+DIM+(availW-bb.w*sc)/2-bb.x*sc,oy=M+HEAD+DIM+(availH-bb.h*sc)/2-bb.y*sc;
@@ -1966,6 +2198,12 @@ function printSvg(){
       s+='<rect x="'+(-w/2)+'" y="-6" width="'+w+'" height="12" fill="#cfe0f5" stroke="#111" stroke-width="'+u(.3)+'"/><line x1="'+(-w/2)+'" y1="0" x2="'+(w/2)+'" y2="0" stroke="#111" stroke-width="'+u(.15)+'"/>';
     }
     s+='</g>';
+  });
+  var ptsP=state.objs.filter(isPt),PR=u(1.5);
+  ptsP.forEach(function(o){
+    var g=ptFramePrint(o,PR);
+    s+='<g transform="translate('+g.x+' '+g.y+') rotate('+g.r+')" fill="#fff" stroke="#C2410C" stroke-width="'+u(.25)+'">'+ptSym(o.kind,PR).replace(/class="solid"/g,'fill="#C2410C"').replace(/class="lamp"/g,'fill="#FCE7A8"').replace(/<text /g,'<text fill="#C2410C" stroke="none" text-anchor="middle" dominant-baseline="central" '+F+' ')+'</g>';
+    if(isWallPt(o))s+='<text x="'+(g.cx+g.nx*PR*2.6)+'" y="'+(g.cy+g.ny*PR*2.6)+'" text-anchor="middle" dominant-baseline="central" font-size="'+u(1.7)+'" fill="#C2410C" '+F+'>'+fmt(o.h)+'</text>';
   });
   state.objs.forEach(function(o){
     if(o.type!=='rect')return;
@@ -2007,7 +2245,20 @@ function printSvg(){
       s+='<text x="'+tx3+'" y="'+ty3+'" text-anchor="middle" font-size="'+u(2.2)+'" fill="#2347A6" '+F+' transform="rotate(90 '+tx3+' '+ty3+')">'+fmt(p.b-p.a)+'</text>';
     });
   }
-  s+='</g></svg>';
+  s+='</g>';
+  if(ptsP.length){
+    /* legend of the electrical symbols that appear on the plan */
+    var kinds=EK_ORDER.filter(function(k){return ptsP.some(function(o){return o.kind===k;});}),lx=PW-M,ly=PH-M-6,LR=1.6;
+    s+='<text x="'+lx+'" y="'+(ly-5)+'" text-anchor="end" font-size="2.6" font-weight="700" fill="#C2410C" '+F+'>מקרא חשמל (גובה מהרצפה בס״מ)</text>';
+    kinds.forEach(function(k){
+      var label=EK[k].n+' ('+ptsP.filter(function(o){return o.kind===k;}).length+')',wd=label.length*1.35+6;
+      if(lx-wd<M){lx=PW-M;ly+=5;}
+      s+='<g transform="translate('+(lx-2)+' '+(ly-(EK[k].ceil?1:2.2))+')" fill="#fff" stroke="#C2410C" stroke-width=".22">'+ptSym(k,LR).replace(/class="solid"/g,'fill="#C2410C"').replace(/class="lamp"/g,'fill="#FCE7A8"').replace(/<text /g,'<text fill="#C2410C" stroke="none" text-anchor="middle" dominant-baseline="central" '+F+' ')+'</g>';
+      s+='<text x="'+(lx-5)+'" y="'+(ly-.6)+'" text-anchor="end" font-size="2.3" fill="#333" '+F+'>'+label+'</text>';
+      lx-=wd;
+    });
+  }
+  s+='</svg>';
   return {svg:s,w:PW*8,h:PH*8,D:D};
 }
 function exportPdf(){
@@ -2048,7 +2299,7 @@ function setView(v){
   $('note').textContent='';
   if(v==='plan'){renderPanel();render();}
   else if(v==='elev'){pickWall();elFit();renderPanel();renderElev();
-    if(!elevSeen){elevSeen=true;flash('חזית קיר: מבט ישר על קיר אחד. ▶ ◀ מחליפים קיר, + חלון / + דלת מוסיפים');}}
+    if(!elevSeen){elevSeen=true;flash('חזית קיר: מבט ישר על קיר אחד. ▶ ◀ מחליפים קיר. + חלון, + דלת ו־+ חשמל מוסיפים, וגוררים לקביעת מיקום וגובה');}}
   else{renderPanel();tdStart();}
 }
 $('tabs').addEventListener('click',function(e){
@@ -2078,6 +2329,7 @@ $('panel').addEventListener('change',function(e){
   var t=e.target,k=t.getAttribute&&t.getAttribute('data-k'),o=sel?byId(sel):null;
   if(!k||!o)return;
   mutate(function(){applyField(o,k,t.value);});
+  if(k==='kind')renderPanel();
 });
 $('panel').addEventListener('keydown',function(e){if(e.key==='Enter'&&e.target.tagName==='INPUT'){e.target.blur();}});
 $('panel').addEventListener('click',function(e){
@@ -2091,6 +2343,7 @@ $('panel').addEventListener('click',function(e){
   if(a==='del'){delSel();return;}
   if(a==='dup'){
     if(view==='elev'&&isOpen(o)){dupOpening(o);return;}
+    if(isPt(o)){var pid;mutate(function(){pid=dupPoint(o);});if(pid){select(pid);flash('נוסף עוד '+ptName(o)+(isWallPt(o)?' 30 ס״מ הלאה':''));}return;}
     var nidv;mutate(function(){nidv=dupSel(o);});select(nidv);return;
   }
   mutate(function(){
@@ -2124,6 +2377,21 @@ $('furnSel').addEventListener('change',function(){
   addObj(function(c){return {id:nxt(),type:'rect',kind:'furn',shape:f[3]||'rect',x:sn(c.x-f[1]/2),y:sn(c.y-f[2]/2),w:f[1],h:f[2],label:f[0]};});
 });
 $('addDoor').addEventListener('click',function(){addOpeningInPlan('door');});
+(function(){
+  var opts=function(withCeil){return '<option value="" selected>+ חשמל…</option>'+EK_ORDER.filter(function(k){return withCeil||!EK[k].ceil;}).map(function(k){return '<option value="'+k+'">'+EK[k].n+'</option>';}).join('');};
+  $('elecSel').innerHTML=opts(true);$('elElecSel').innerHTML=opts(false);
+})();
+$('elecSel').addEventListener('change',function(){var v=this.value;this.value='';if(v)addPoint(v);});
+$('elElecSel').addEventListener('change',function(){
+  var v=this.value;this.value='';var w=elWall?byId(elWall):null;if(!v||!w)return;
+  var L=wallLen(w),ux=(w.x2-w.x1)/L,uy=(w.y2-w.y1)/L,sg=elFlip?-1:1;
+  /* a free spot along the wall, away from points already there at the same height */
+  var hh=EK[v].h||30,s0=L/2,best=s0,used=state.objs.filter(function(o){return isWallPt(o)&&wallOf(o)===w&&Math.abs((o.h||0)-hh)<20;}).map(function(o){return openS(o,w);});
+  for(var d=0;d<L/2;d+=20){var ok=[s0+d,s0-d].filter(function(c){return c>4&&c<L-4&&used.every(function(u){return Math.abs(u-c)>=18;});});if(ok.length){best=ok[0];break;}}
+  var mx=w.x1+ux*best,my=w.y1+uy*best;
+  addPoint(v,w,best,{x:mx-uy*sg*40,y:my+ux*sg*40});
+  renderElev();
+});
 $('addWin').addEventListener('click',function(){addOpeningInPlan('window');});
 $('undo').addEventListener('click',doUndo);
 $('redo').addEventListener('click',doRedo);
@@ -2177,7 +2445,7 @@ document.addEventListener('pointerdown',function(e){
 var TOUR_KEY='apt-tour-done',tourI=0;
 var TOUR=[
   {i:'✋ ✎',t:'שני מצבים: הזזה ועריכה',b:'<p>בפינת המסך יש שני כפתורים:</p><ul><li><b>✋ הזזת מסך</b> (ברירת המחדל): גוררים כדי להזיז את התצוגה, וצובטים או גוללים להגדלה. שום פריט לא זז בטעות.</li><li><b>✎ עריכה</b>: לחיצה על פריט בוחרת אותו ופותחת את פרטיו, וגרירה מזיזה אותו.</li></ul>'},
-  {i:'＋',t:'הוספת פריטים',b:'<ul><li>בסרגל העליון: <b>+ קיר</b>, <b>+ חדר</b>, <b>+ דלת</b>, <b>+ חלון</b>, <b>+ טקסט</b>, <b>+ מדידה</b>, ובחירה מהרשימה <b>+ ריהוט…</b>.</li><li>הפריט מופיע במרכז המסך, נבחר, והאפליקציה עוברת למצב עריכה.</li><li><b>חזית קיר</b>: מבט ישר על קיר אחד, לעריכת דלתות וחלונות. קיצור: לחיצה כפולה על קיר.</li></ul>'},
+  {i:'＋',t:'הוספת פריטים',b:'<ul><li>בסרגל העליון: <b>+ קיר</b>, <b>+ חדר</b>, <b>+ דלת</b>, <b>+ חלון</b>, <b>+ טקסט</b>, <b>+ מדידה</b>, ובחירה מהרשימות <b>+ ריהוט…</b> ו־<b>+ חשמל…</b> (שקעים, מתגים ותאורה).</li><li>הפריט מופיע במרכז המסך, נבחר, והאפליקציה עוברת למצב עריכה.</li><li><b>חזית קיר</b>: מבט ישר על קיר אחד, לעריכת דלתות וחלונות. קיצור: לחיצה כפולה על קיר.</li></ul>'},
   {i:'💾',t:'שמירה',b:'<ul><li>העבודה נשמרת אוטומטית <b>בדפדפן הזה בלבד</b>.</li><li>כדי לשמור לצמיתות, לפתוח ממכשיר אחר או לשתף: <b>💾 שמירה ופתיחה</b> בראש המסך. אפשר בענן (עם שם משתמש) או כקובץ.</li><li>ליד הכפתור רואים אם התוכנית שמורה. <b>↶</b> מבטל כל פעולה.</li></ul>'}
 ];
 function tourShow(i){
