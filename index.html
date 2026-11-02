@@ -150,6 +150,7 @@ button.danger{color:var(--sel)}
   .float h2 button{width:34px;height:34px}
   .chk input{width:20px;height:20px}
   .ovl.br button{width:40px;height:40px}
+  .status{height:40px}
   .elbar{height:54px}
   #ev{top:54px;height:calc(100% - 54px)}
 }
@@ -173,10 +174,23 @@ button.danger{color:var(--sel)}
 .dlg-box section.dz{border-top:1px solid var(--sel)}
 .dlg-box textarea{height:110px}
 .dlg-box .row{display:flex;flex-wrap:wrap;gap:6px}
-.ovl.br button.mode{font-weight:500;width:auto;padding:0 10px;font-size:13px}
-.app.panonly .mode{background:var(--accent);color:var(--paper);border-color:var(--accent)}
+.modeSeg{display:flex;flex-direction:column;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.ovl.br .modeSeg button{width:auto;min-width:96px;padding:0 10px;font-size:13px;font-weight:500;box-shadow:none;border-radius:0}
+.ovl.br .modeSeg button:first-child{border-radius:8px 8px 0 0}
+.ovl.br .modeSeg button:last-child{border-radius:0 0 8px 8px;margin-top:-1px}
+.modeSeg button[aria-pressed=true]{background:var(--accent);color:var(--paper);border-color:var(--accent)}
+.modeSeg button[aria-pressed=false]{color:var(--muted)}
 .app.panonly .stage{box-shadow:inset 0 0 0 3px var(--accent)}
 .app.panonly svg{cursor:grab}
+@keyframes nudgeMe{0%,100%{transform:scale(1)}30%{transform:scale(1.12)}60%{transform:scale(.97)}}
+.modeSeg button.pulse{animation:nudgeMe .5s ease 2;outline:3px solid var(--sel);outline-offset:1px}
+#plansBtn{border-color:var(--accent);color:var(--accent);font-weight:700}
+.status{display:flex;align-items:center;gap:6px;max-width:260px;height:30px;padding:0 9px;border:1px dashed var(--line);border-radius:6px;background:transparent;font-size:12px;color:var(--muted)}
+.status .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);font-weight:500}
+.status .st{white-space:nowrap}
+.status .st.ok{color:var(--meas)}
+.status .st.dirty{color:var(--sel);font-weight:500}
+@media (max-width:760px){header h1{display:none}.status{max-width:180px}}
 .tx summary{cursor:pointer;color:var(--muted);font-size:12px;padding:4px 0}
 .txt{flex:1;min-width:0;height:32px;border:1px solid var(--line);border-radius:6px;padding:0 8px;background:var(--paper);color:var(--ink);font:inherit}
 .plist{display:grid;gap:6px;max-height:40vh;overflow:auto}
@@ -193,6 +207,9 @@ button.danger{color:var(--sel)}
 <div class="app" id="app" dir="rtl" lang="he">
   <header>
     <h1>תוכנית הדירה</h1>
+    <button id="plansBtn" type="button" title="שמירה בענן או כקובץ, ופתיחת תוכניות">💾 שמירה ופתיחה</button>
+    <button id="status" type="button" class="status" title="מצב השמירה. לחצו לשמירה ופתיחה"><span class="nm" id="stName"></span><span class="st" id="stState"></span></button>
+    <span class="sep"></span>
     <div class="tabs" id="tabs">
       <button type="button" data-v="plan" class="on">תוכנית</button>
       <button type="button" data-v="elev">חזית קיר</button>
@@ -221,7 +238,6 @@ button.danger{color:var(--sel)}
     <button id="redo" type="button" aria-label="שחזר">↷</button>
     <span class="sep"></span>
     <button id="pdf" type="button">PDF</button>
-    <button id="plansBtn" type="button" class="on">תוכניות</button>
     <button id="helpBtn" type="button" aria-label="עזרה">?</button>
   </header>
   <main class="stage" id="stage">
@@ -229,7 +245,10 @@ button.danger{color:var(--sel)}
     <svg id="ev" xmlns="http://www.w3.org/2000/svg" hidden></svg>
     <div id="td" hidden></div>
     <div class="ovl br" id="zoomBox">
-      <button id="modeBtn" type="button" class="mode" aria-pressed="false">✎ עריכה</button>
+      <div class="modeSeg" id="modeSeg" role="group" aria-label="מצב עבודה">
+        <button id="modePan" type="button" aria-pressed="true" title="גרירה מזיזה את המסך בלבד. שום פריט לא זז">✋ הזזת מסך</button>
+        <button id="modeEdit" type="button" aria-pressed="false" title="לחיצה בוחרת פריט, גרירה מזיזה אותו">✎ עריכה</button>
+      </div>
       <button id="zoomIn" type="button" aria-label="הגדל">+</button>
       <button id="zoomOut" type="button" aria-label="הקטן">−</button>
       <button id="fit" type="button" aria-label="התאם למסך">⤢</button>
@@ -266,11 +285,13 @@ button.danger{color:var(--sel)}
     <div class="pop" id="help" hidden>
       <h2>עזרה קצרה</h2>
       <ul>
-        <li>גרירה מזיזה, ריבועים בפינות משנים גודל, נקודות בקצה קיר מאריכות.</li>
+        <li>שני מצבים בפינת המסך: <b>✋ הזזת מסך</b> (בטוח, שום דבר לא זז) ו־<b>✎ עריכה</b> (בוחרים וגוררים פריטים).</li>
+        <li>במצב עריכה: גרירה מזיזה, ריבועים בפינות משנים גודל, נקודות בקצה קיר מאריכות.</li>
         <li>דלת או חלון ליד קיר נצמדים אליו. גרירת הרקע וגלגלת/צביטה לתצוגה.</li>
         <li>חזית קיר: עורכים גודל וגובה של דלתות וחלונות על הקיר.</li>
         <li>הדמיה 3D: גרירה מסובבת, גלגלת מקרבת. במבט פנימי: חיצים או WASD.</li>
-        <li>Delete מוחק, חיצים מזיזים, Ctrl+Z מבטל. הכול נשמר בדפדפן.</li>
+        <li>Delete מוחק, חיצים מזיזים, Ctrl+Z מבטל.</li>
+        <li>העבודה נשמרת אוטומטית בדפדפן הזה בלבד. כדי לשמור לצמיתות או לפתוח ממכשיר אחר: <b>💾 שמירה ופתיחה</b>.</li>
       </ul>
     </div>
   </main>
@@ -321,15 +342,15 @@ button.danger{color:var(--sel)}
   </div>
   <div class="dlg" id="dlgLogin" hidden>
     <div class="dlg-box">
-      <h2>כניסה</h2>
-      <p>כדי לשמור ולערוך תוכניות בוחרים שם וסיסמה קצרה (לפחות 2 תווים). הם יישמרו בדפדפן הזה ולא תצטרכו להקליד שוב. אם שכחתם, פנו למנהל האתר.</p>
+      <h2>כניסה לשמירה בענן</h2>
+      <p>כדי לשמור תוכניות בענן בוחרים שם וסיסמה קצרה (לפחות 2 תווים). הם יישמרו בדפדפן הזה ולא תצטרכו להקליד שוב. אם שכחתם, פנו למנהל האתר.</p>
       <input id="lgName" type="text" class="txt" placeholder="שם" autocomplete="off" aria-label="שם">
       <input id="lgPass" type="text" class="txt" placeholder="סיסמה" autocomplete="off" aria-label="סיסמה">
       <p id="lgMsg"></p>
       <div class="row">
         <button id="lgIn" type="button" class="on">כניסה</button>
         <button id="lgNew" type="button">משתמש חדש</button>
-        <button id="lgView" type="button">צפייה בלבד</button>
+        <button id="lgView" type="button">המשך בלי חשבון</button>
       </div>
     </div>
   </div>
@@ -547,6 +568,7 @@ function save(){
     var ok=true;
     try{localStorage.setItem(KEY,JSON.stringify({objs:state.objs,name:state.name,step:state.step,grid:state.grid,dims:state.dims,view:V}));}catch(e){ok=false;}
     if(!ok)flash('השמירה בדפדפן לא זמינה, השתמשו בגיבוי');
+    updStatus();
   },150);
 }
 
@@ -813,7 +835,7 @@ function renderPanel(){
     if(o.type==='window')h+=fld('מהרצפה','sl',fmt(o.sl));
     if(view==='elev')h+=fld('מקום','pos',fmt(openPos(o)));
   }
-  h+='</div><div class="btns"><button type="button" data-a="ok" class="on">✓ שמור</button>';
+  h+='</div><div class="btns"><button type="button" data-a="ok" class="on" title="השינויים כבר עודכנו בתוכנית. סוגר את החלון">✓ סיום</button>';
   if(o.type!=='text'&&o.type!=='measure'&&(view==='plan'||o.type==='wall'||o.type==='rect'))h+='<button type="button" data-a="rot">סובב</button>';
   if(view==='plan'&&(o.type==='wall'||isOpen(o)))h+='<button type="button" data-a="elev" class="on">חזית הקיר ←</button>';
   if(isOpen(o)&&view==='plan'){
@@ -912,6 +934,7 @@ function viewCenter(){
   return {x:sn((r.width/2-V.x)/V.k),y:sn((r.height/2-V.y)/V.k)};
 }
 function addObj(make,c){
+  setPanOnly(false,true);
   var o=make(c||viewCenter());
   mutate(function(){state.objs.push(o);});
   select(o.id);
@@ -984,6 +1007,7 @@ svg.addEventListener('pointerdown',function(e){
   ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(ptrs.size===2){startPinch();return;}
   var t=e.target,i=!panOnly&&t.getAttribute&&t.getAttribute('data-id'),h=t.getAttribute&&t.getAttribute('data-h');
+  var tapId=panOnly&&t.getAttribute&&t.getAttribute('data-id');
   var p=toWorld(e);
   if(i){
     var o=byId(i);if(!o)return;
@@ -997,7 +1021,7 @@ svg.addEventListener('pointerdown',function(e){
   }else{
     if(sel)select(null);
     lastTap={id:null,t:0};
-    drag={mode:'pan',cx:e.clientX,cy:e.clientY,vx:V.x,vy:V.y};
+    drag={mode:'pan',cx:e.clientX,cy:e.clientY,vx:V.x,vy:V.y,tap:tapId||null};
   }
 });
 svg.addEventListener('pointermove',function(e){
@@ -1053,8 +1077,10 @@ function endPtr(e){
   ptrs.delete(e.pointerId);
   if(ptrs.size<2)pinch=null;
   if(drag&&ptrs.size===0){
-    if(drag.mode==='pan'){save();}
-    else{
+    if(drag.mode==='pan'){
+      if(drag.tap&&Math.hypot(e.clientX-drag.cx,e.clientY-drag.cy)<8)panTapHint();
+      save();
+    }else{
       var dob=drag.mode==='move'?byId(drag.id):null;
       if(dob&&isOpen(dob)){snapDoor(dob);}
       drag.preview=null;
@@ -1251,6 +1277,7 @@ ev.addEventListener('pointerdown',function(e){
   eptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(eptrs.size===2){startEPinch();return;}
   var t=e.target,id=!panOnly&&t.getAttribute&&t.getAttribute('data-id'),h=t.getAttribute&&t.getAttribute('data-h'),w=byId(elWall);
+  var tapId=panOnly&&t.getAttribute&&t.getAttribute('data-id');
   if(id){
     var o=byId(id);if(!o||!w)return;
     if(sel!==id)select(id);
@@ -1258,7 +1285,7 @@ ev.addEventListener('pointerdown',function(e){
     else edrag=null;
   }else{
     if(sel)select(null);
-    edrag={mode:'pan',cx:e.clientX,cy:e.clientY,vx:EV.x,vy:EV.y};
+    edrag={mode:'pan',cx:e.clientX,cy:e.clientY,vx:EV.x,vy:EV.y,tap:tapId||null};
   }
 });
 ev.addEventListener('pointermove',function(e){
@@ -1288,6 +1315,7 @@ function endE(e){
   eptrs.delete(e.pointerId);
   if(eptrs.size<2)epinch=null;
   if(edrag&&eptrs.size===0){
+    if(edrag.mode==='pan'&&edrag.tap&&Math.hypot(e.clientX-edrag.cx,e.clientY-edrag.cy)<8)panTapHint();
     if(edrag.mode!=='pan'&&edrag.before!==snapshot()){pushHist(edrag.before);save();}
     edrag=null;
   }
@@ -1338,6 +1366,7 @@ function putOnWall(o,w,s){
 }
 function addOpening(type,wall,at){
   var w=wall||(elWall?byId(elWall):null);if(!w)return;
+  setPanOnly(false,true);
   var L=wallLen(w),ux=(w.x2-w.x1)/L,uy=(w.y2-w.y1)/L,width=type==='door'?90:120;
   if(width>L-10)width=Math.max(30,Math.floor(L-10));
   var s=isFinite(at)?at:freeSpot(w,width,L/2),full=false;
@@ -1893,7 +1922,7 @@ $('panel').addEventListener('click',function(e){
   var a=e.target.getAttribute&&e.target.getAttribute('data-a'),o=sel?byId(sel):null;
   if(!a)return;
   if(a==='close'){select(null);return;}
-  if(a==='ok'){var ae=document.activeElement;if(ae&&ae.blur)ae.blur();select(null);flash('נשמר');return;}
+  if(a==='ok'){var ae=document.activeElement;if(ae&&ae.blur)ae.blur();select(null);return;}
   if(a==='fold'){panelFold=!panelFold;renderPanel();return;}
   if(!o)return;
   if(a==='elev'){setView('elev');return;}
@@ -1997,19 +2026,25 @@ $('restorePrev').addEventListener('click',function(){
   if(t)loadText(JSON.stringify({objs:JSON.parse(t)}));
 });
 
-$('modeBtn').addEventListener('click',function(){
-  panOnly=!panOnly;
-  $('app').classList.toggle('panonly',panOnly);
-  $('modeBtn').textContent=panOnly?'✋ תזוזה בלבד':'✎ עריכה';
-  $('modeBtn').setAttribute('aria-pressed',panOnly?'true':'false');
-  if(panOnly&&sel)select(null);
-  flash(panOnly?'מצב תזוזה: גוררים להזזת המסך, שתי אצבעות לזום. שום דבר לא זז':'מצב עריכה: אפשר לגרור פריטים');
-});
-
-panOnly=true;
-$('app').classList.add('panonly');
-$('modeBtn').textContent='✋ תזוזה בלבד';
-$('modeBtn').setAttribute('aria-pressed','true');
+function setPanOnly(v,quiet){
+  v=!!v;
+  var changed=v!==panOnly;
+  panOnly=v;
+  $('app').classList.toggle('panonly',v);
+  $('modePan').setAttribute('aria-pressed',v?'true':'false');
+  $('modeEdit').setAttribute('aria-pressed',v?'false':'true');
+  if(v&&sel)select(null);
+  if(changed&&!quiet)flash(v?'הזזת מסך: גוררים להזזת המסך, שתי אצבעות לזום. שום פריט לא זז':'עריכה: לוחצים על פריט כדי לבחור אותו, וגוררים כדי להזיז');
+}
+var hintT=null;
+function panTapHint(){
+  flash('כדי לערוך פריט, עברו למצב ✎ עריכה (בפינת המסך)');
+  var b=$('modeEdit');b.classList.remove('pulse');void b.offsetWidth;b.classList.add('pulse');
+  clearTimeout(hintT);hintT=setTimeout(function(){b.classList.remove('pulse');},1200);
+}
+$('modePan').addEventListener('click',function(){setPanOnly(true);});
+$('modeEdit').addEventListener('click',function(){setPanOnly(false);});
+setPanOnly(true,true);
 
 /* ---------- shared plans library (Supabase) ---------- */
 var CLOUD={url:'https://lbygdpogkssdxedazwxk.supabase.co',key:'sb_publishable_rjC9mjWTM9aIIMLTg4Nkgw_DB7tfRmF'};
@@ -2055,11 +2090,22 @@ function applyPlan(objs,name,meta){
   normalize();fixNid();pushHist(before);sel=null;elSig='';elWall=null;renderPanel();
   cur=Object.assign({id:null,ts:null,owner:null},meta||{});cur.snap=snapshot();persistCur();
   if(view==='plan')fit();else if(view==='elev'){pickWall();elFit();}
-  draw();save();
+  draw();save();updStatus();
+}
+function updStatus(){
+  var nm=$('stName'),st=$('stState');if(!nm||!st)return;
+  var dirty=curDirty(),txt,cls;
+  if(!state.objs.length&&!cur.id){txt='לוח ריק';cls='';}
+  else if(dirty){txt=cur.id?'• יש שינויים שלא נשמרו בענן':'• לא נשמרה בענן';cls='dirty';}
+  else if(cur.id){txt='✓ שמורה בענן';cls='ok';}
+  else{txt='';cls='';}
+  nm.textContent=state.name||'';
+  st.textContent=txt;st.className='st'+(cls?' '+cls:'');
+  $('status').setAttribute('aria-label','התוכנית הנוכחית: '+(state.name||'')+(txt?'. '+txt.replace(/^[•✓] /,''):''));
 }
 function fmtDate(t){try{return new Date(t).toLocaleDateString('he-IL');}catch(x){return '';}}
 function renderWho(){
-  $('who').textContent=me?'מחובר כ: '+me.name:'לא מחובר (צפייה בלבד)';
+  $('who').textContent=me?'מחובר כ: '+me.name:'לא מחוברים. אפשר לשמור כקובץ ולפתוח תוכניות; לשמירה בענן צריך להתחבר';
   $('logoutBtn').hidden=!me;$('loginBtn').hidden=!!me;
 }
 function localLib(){try{var a=JSON.parse(localStorage.getItem(LIB)||'[]');return Array.isArray(a)?a.filter(function(p){return p&&typeof p.name==='string'&&valid(p.objs);}):[];}catch(x){return [];}}
@@ -2100,7 +2146,6 @@ function loadList(){
   },function(){plansMsg('אין חיבור לשרת. הרשימה לא מעודכנת.');});
 }
 function openPlans(){
-  if(!me&&!skipLogin){askLogin(openPlans);return;}
   plansMsg('');renderPlans();$('json').value=exportText();refreshPrev();$('dlgPlans').hidden=false;
   loadList();clearInterval(listT);listT=setInterval(function(){if($('dlgPlans').hidden)clearInterval(listT);else loadList();},20000);
 }
@@ -2155,7 +2200,7 @@ function doSave(id,title,force){
   rpc('app_save',{p_name:me.name,p_pass:me.pass,p_id:id,p_title:title,p_objs:JSON.parse(snapshot()),p_expected:(id&&!force)?cur.ts:null}).then(function(r){
     busy=false;
     if(r&&r.ok){
-      state.name=title;cur={id:r.id,ts:r.updated_at,owner:me.name,snap:snapshot()};persistCur();save();
+      state.name=title;cur={id:r.id,ts:r.updated_at,owner:me.name,snap:snapshot()};persistCur();save();updStatus();
       loadList();svDone();return;
     }
     if(r&&r.error==='conflict'){forceUpd=true;$('svUpdate').textContent='דרוס את העדכון של האחר';}
@@ -2225,6 +2270,7 @@ $('migrate').addEventListener('click',function(){
   })();
 });
 $('plansBtn').addEventListener('click',function(){openPlans();});
+$('status').addEventListener('click',function(){openPlans();});
 $('closePlans').addEventListener('click',function(){$('dlgPlans').hidden=true;});
 $('dlgPlans').addEventListener('click',function(e){if(e.target===$('dlgPlans'))$('dlgPlans').hidden=true;});
 /* clear */
@@ -2260,7 +2306,7 @@ document.addEventListener('keydown',function(e){
 /* ---------- init ---------- */
 if(!load()){state.objs=seed();fixNid();}
 syncGrid();
-renderPanel();updateBtns();
+renderPanel();updateBtns();updStatus();
 var firstSize=false;
 function onSize(){
   var r=$('stage').getBoundingClientRect();
