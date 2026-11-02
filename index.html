@@ -211,8 +211,20 @@ button.danger{color:var(--sel)}
 .tx summary{cursor:pointer;color:var(--muted);font-size:12px;padding:4px 0}
 .txt{flex:1;min-width:0;height:32px;border:1px solid var(--line);border-radius:6px;padding:0 8px;background:var(--paper);color:var(--ink);font:inherit}
 .plist{display:grid;gap:6px;max-height:40vh;overflow:auto}
-.pitem{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:6px;padding:6px 8px}
-.pitem .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pitem{display:flex;flex-wrap:wrap;align-items:center;gap:6px;border:1px solid var(--line);border-radius:6px;padding:6px 8px}
+.pitem .nm{flex:1 1 180px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badge{display:inline-block;font-size:11px;padding:0 6px;border-radius:9px;background:var(--paper);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.badge.pub{color:var(--meas);border-color:var(--meas)}
+.visopt{display:grid;gap:6px}
+.visopt label{display:flex;gap:8px;align-items:flex-start;border:1px solid var(--line);border-radius:8px;padding:8px 10px;cursor:pointer}
+.visopt label:has(input:checked){border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--panel))}
+.visopt input{margin-top:3px;accent-color:var(--accent)}
+.visopt small{display:block;color:var(--muted);font-size:12px}
+.ulist{display:grid;gap:4px;max-height:34vh;overflow:auto}
+.uitem{display:flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:6px;padding:6px 8px;cursor:pointer}
+.uitem:has(input:checked){border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--panel))}
+.uitem input{width:18px;height:18px;accent-color:var(--accent)}
+#pShareBox{align-items:center}
 .pitem small{color:var(--muted);font-size:11px}
 .pitem.cur{border-color:var(--accent)}
 .dlg-box button.pri{font-weight:500}
@@ -341,13 +353,14 @@ button.hl{animation:hl .6s ease 3;border-color:var(--sel)}
           <button id="pSvLogin" type="button" class="pri">כניסה / הרשמה</button>
         </div>
         <div id="pSvBox" style="display:grid;gap:6px">
+          <div class="row" id="pShareBox" hidden><span id="pShareTxt" style="flex:1"></span><button id="pShare" type="button">שיתוף…</button></div>
           <div class="row"><button id="pSvUpdate" type="button" class="pri"></button></div>
           <div class="row">
             <input id="pSvName" type="text" class="txt" placeholder="שם לתוכנית חדשה" aria-label="שם לתוכנית חדשה">
             <button id="pSvNew" type="button">שמור כחדשה</button>
           </div>
           <p id="pSvInfo"></p>
-          <p class="vis">התוכנית נשמרת בשם המשתמש שלכם וגלויה לכל המשתמשים באפליקציה (לצפייה ולהעתקה). רק אתם יכולים לעדכן או למחוק אותה.</p>
+          <p class="vis">תוכנית חדשה נשמרת כ<b>🔒 פרטית</b>: רק אתם רואים אותה. אחרי השמירה אפשר לשתף אותה עם משתמשים מסוימים או להפוך אותה לציבורית, בכפתור <b>שיתוף…</b>. מי ששיתפתם יכול לצפות ולהעתיק; רק אתם יכולים לעדכן.</p>
         </div>
         <h3>שמירה במחשב</h3>
         <div class="row"><button id="saveFile" type="button">שמור כקובץ</button></div>
@@ -360,8 +373,9 @@ button.hl{animation:hl .6s ease 3;border-color:var(--sel)}
         </div>
         <h3>תוכניות בענן</h3>
         <div class="row" id="chips">
-          <button type="button" data-f="all">כל המשתמשים</button>
+          <button type="button" data-f="shared" id="sharedChip">שותפו איתי</button>
           <button type="button" data-f="mine" id="mineChip">שלי</button>
+          <button type="button" data-f="public">ציבוריות</button>
           <button type="button" data-f="trash" id="trashChip">נמחקו</button>
         </div>
         <div id="planList" class="plist"></div>
@@ -406,11 +420,28 @@ button.hl{animation:hl .6s ease 3;border-color:var(--sel)}
         <input id="svName" type="text" class="txt" placeholder="שם לתוכנית חדשה" aria-label="שם לשמירה">
         <button id="svNew" type="button" class="pri">שמור כחדשה</button>
       </div>
-      <p class="vis">התוכנית נשמרת בשם המשתמש שלכם וגלויה לכל המשתמשים באפליקציה (לצפייה ולהעתקה). רק אתם יכולים לעדכן או למחוק אותה.</p>
+      <p class="vis">תוכנית חדשה נשמרת כ<b>🔒 פרטית</b>: רק אתם רואים אותה. אחרי השמירה אפשר לשתף אותה עם משתמשים מסוימים או להפוך אותה לציבורית, בכפתור <b>שיתוף…</b>. מי ששיתפתם יכול לצפות ולהעתיק; רק אתם יכולים לעדכן.</p>
       <div class="row">
         <button id="svSkip" type="button" class="danger"></button>
         <button id="svCancel" type="button">ביטול</button>
       </div>
+    </div>
+  </div>
+  <div class="dlg" id="dlgShare" hidden>
+    <div class="dlg-box" role="dialog" aria-modal="true" aria-labelledby="shTitle">
+      <h2 id="shTitle">שיתוף</h2>
+      <div class="visopt" role="radiogroup" aria-label="מי רואה את התוכנית">
+        <label><input type="radio" name="shVis" id="shPriv" value="private"><span><b>🔒 פרטית</b><small>רק אתם והמשתמשים שתסמנו למטה</small></span></label>
+        <label><input type="radio" name="shVis" id="shPub" value="public"><span><b>🌐 ציבורית</b><small>כל מי שנכנס לאפליקציה, גם בלי חשבון</small></span></label>
+      </div>
+      <h3>שיתוף עם משתמשים</h3>
+      <p id="shPubNote" hidden>התוכנית ציבורית ולכן כולם רואים אותה. הבחירה כאן תישמר ותחול אם תחזירו אותה לפרטית.</p>
+      <input id="shSearch" type="search" class="txt" placeholder="חיפוש משתמש…" aria-label="חיפוש משתמש">
+      <div class="row"><button id="shAll" type="button">סמן את כולם</button><button id="shNone" type="button">נקה סימון</button><span id="shCount" style="align-self:center;color:var(--muted)"></span></div>
+      <div id="shList" class="ulist"></div>
+      <p>מי ששיתפתם יכול לצפות בתוכנית ולשמור עותק משלו. רק אתם יכולים לעדכן אותה.</p>
+      <p id="shMsg"></p>
+      <div class="row"><button id="shSave" type="button" class="pri">שמור שיתוף</button><button id="shCancel" type="button">ביטול</button></div>
     </div>
   </div>
   <div class="dlg" id="dlgTour" hidden>
@@ -2165,10 +2196,11 @@ setPanOnly(true,true);
 /* ---------- shared plans library (Supabase) ---------- */
 var CLOUD={url:'https://lbygdpogkssdxedazwxk.supabase.co',key:'sb_publishable_rjC9mjWTM9aIIMLTg4Nkgw_DB7tfRmF'};
 var CUR_KEY='apt-cloud-cur',USER_KEY='apt-cloud-user',cloudOn=CLOUD.url.indexOf('http')===0;
-var cur={id:null,ts:null,owner:null,snap:null},me=null,filt='all',rows=[],skipLogin=false,busy=false,forceUpd=false,listT=null;
+var cur={id:null,ts:null,owner:null,snap:null},me=null,filt='public',rows=[],legacyCloud=false,skipLogin=false,busy=false,forceUpd=false,listT=null;
 try{cur=Object.assign(cur,JSON.parse(localStorage.getItem(CUR_KEY)||'{}'));}catch(x){}
 try{me=JSON.parse(localStorage.getItem(USER_KEY)||'null');}catch(x){}
 if(!me||typeof me.name!=='string'||typeof me.pass!=='string')me=null;
+filt=me?'shared':'public';
 function persistCur(){try{localStorage.setItem(CUR_KEY,JSON.stringify(cur));}catch(x){}}
 function plansMsg(t){$('plansMsg').textContent=t||'';}
 function api(path,opt){
@@ -2183,11 +2215,11 @@ function api(path,opt){
 function rpc(fn,args){return api('rpc/'+fn,{method:'POST',body:args});}
 function errText(code){
   return {bad_login:'השם או הסיסמה שגויים',no_user:'אין משתמש בשם הזה',wrong_pass:'הסיסמה שגויה',title_exists:'כבר יש לך תוכנית בשם הזה, בחרו שם אחר',not_owner:'אפשר לערוך רק תוכניות שיצרתם. צרו עותק',
-    conflict:'מישהו עדכן את התוכנית בינתיים (אולי ממכשיר אחר). אפשר לדרוס או לשמור כחדשה',bad_title:'כתבו שם לתוכנית',bad_plan:'התוכנית גדולה או לא תקינה',not_found:'התוכנית לא נמצאה',
+    conflict:'מישהו עדכן את התוכנית בינתיים (אולי ממכשיר אחר). אפשר לדרוס או לשמור כחדשה',bad_title:'כתבו שם לתוכנית',bad_plan:'התוכנית גדולה או לא תקינה',bad_visibility:'בחירה לא תקינה',not_found:'התוכנית לא נמצאה',
     exists:'השם כבר תפוס, בחרו שם אחר או היכנסו',bad_name:'כתבו שם',bad_pass:'הסיסמה צריכה להיות לפחות 2 תווים'}[code]||'שגיאה לא צפויה';
 }
 function setMe(u){
-  me=u;try{if(u)localStorage.setItem(USER_KEY,JSON.stringify(u));else localStorage.removeItem(USER_KEY);}catch(x){}
+  me=u;filt=u?'shared':'public';try{if(u)localStorage.setItem(USER_KEY,JSON.stringify(u));else localStorage.removeItem(USER_KEY);}catch(x){}
 }
 function onImported(){cur.id=null;cur.owner=null;cur.ts=null;cur.snap=null;persistCur();}
 function curDirty(){
@@ -2230,35 +2262,70 @@ function renderPlans(){
   renderWho();
   var chips=$('chips').querySelectorAll('button');
   for(var i=0;i<chips.length;i++)chips[i].classList.toggle('on',chips[i].getAttribute('data-f')===filt);
-  $('trashChip').hidden=!me;$('mineChip').hidden=!me;
+  if(!me&&filt!=='public')filt='public';
+  for(var j=0;j<chips.length;j++)chips[j].classList.toggle('on',chips[j].getAttribute('data-f')===filt);
+  $('trashChip').hidden=!me;$('mineChip').hidden=!me;$('sharedChip').hidden=!me;
   var h='';
-  if(filt==='all'){
+  if(filt==='public'){
     h+='<div class="pitem'+(state.name===BUILTIN&&!cur.id?' cur':'')+'"><span class="nm">'+esc(BUILTIN)+' <small>(המקורית)</small></span><button type="button" data-p="b" class="pri">פתח</button></div>';
   }
   var list=rows.filter(function(r){
-    if(filt==='all')return !r.deleted;
-    if(filt==='mine')return !r.deleted&&me&&r.owner===me.name;
-    return r.deleted&&me&&r.owner===me.name;
+    var mine=!!(me&&r.owner===me.name);
+    if(filt==='shared')return !r.deleted&&!mine&&!!r.shared;
+    if(filt==='mine')return !r.deleted&&mine;
+    if(filt==='public')return !r.deleted&&r.visibility==='public';
+    return r.deleted&&mine;
   });
   list.forEach(function(r){
     var mine=me&&r.owner===me.name;
-    h+='<div class="pitem'+(r.id===cur.id?' cur':'')+'"><span class="nm">'+esc(r.title)+' <small>'+esc(r.owner)+' · '+fmtDate(r.updated_at)+'</small></span>';
+    h+='<div class="pitem'+(r.id===cur.id?' cur':'')+'"><span class="nm">'+esc(r.title)+' '+visBadge(r)+' <small>'+(mine?'':esc(r.owner)+' · ')+fmtDate(r.updated_at)+'</small></span>';
     if(filt==='trash')h+='<button type="button" data-r="'+esc(r.id)+'" class="pri">שחזר</button>';
     else{
       h+='<button type="button" data-p="'+esc(r.id)+'" class="pri">פתח</button><button type="button" data-c="'+esc(r.id)+'">עותק</button>';
+      if(mine&&!legacyCloud)h+='<button type="button" data-s="'+esc(r.id)+'">שיתוף…</button>';
       if(mine)h+='<button type="button" data-v="'+esc(r.id)+'" title="פותח את הגרסה שנשמרה לפני השמירה האחרונה">פתח גרסה קודמת</button><button type="button" data-d="'+esc(r.id)+'"'+(delArm===r.id?' class="danger">בטוח? מחק':'>מחק')+'</button>';
     }
     h+='</div>';
   });
-  if(!list.length)h+='<p>'+(filt==='all'?'עדיין אין תוכניות שמורות בענן.':filt==='mine'?'עדיין לא שמרתם תוכניות.':'אין תוכניות שנמחקו.')+'</p>';
+  if(!list.length)h+='<p>'+({shared:'עדיין אף אחד לא שיתף איתכם תוכנית.',mine:'עדיין לא שמרתם תוכניות.',public:'אין עדיין תוכניות ציבוריות בענן.',trash:'אין תוכניות שנמחקו.'}[filt])+'</p>';
   $('planList').innerHTML=h;
   var n=localLib().length;
   $('migrate').hidden=!(me&&n);$('migrate').textContent='העלה את השמורות שבדפדפן ('+n+')';
+  updShareLine();
+}
+function visBadge(r){
+  if(!r.visibility||legacyCloud)return '';
+  if(r.visibility==='public')return '<span class="badge pub">🌐 ציבורית</span>';
+  if(me&&r.owner===me.name)return '<span class="badge">🔒 '+(r.share_count?'שותפה עם '+r.share_count:'פרטית')+'</span>';
+  return '<span class="badge">🔒 שותפה איתך</span>';
+}
+function rowOf(id){for(var i=0;i<rows.length;i++)if(rows[i].id===id)return rows[i];return null;}
+function updShareLine(){
+  var show=canUpdate()&&!legacyCloud;$('pShareBox').hidden=!show;if(!show)return;
+  var r=rowOf(cur.id),t;
+  if(r&&r.visibility==='public')t='🌐 התוכנית ציבורית: כולם רואים אותה.';
+  else if(r&&r.share_count)t='🔒 פרטית, שותפה עם '+r.share_count+' משתמשים.';
+  else t='🔒 פרטית: רק אתם רואים אותה.';
+  $('pShareTxt').textContent=t;
 }
 function loadList(){
   if(!cloudOn){plansMsg('האפליקציה עדיין לא מחוברת לענן.');renderPlans();return Promise.resolve();}
+  return rpc('app_list',{p_name:me?me.name:null,p_pass:me?me.pass:null}).then(function(r){
+    if(r&&r.ok){legacyCloud=false;rows=Array.isArray(r.plans)?r.plans:[];}
+    else if(r&&r.error==='bad_login'&&me){setMe(null);plansMsg('פרטי הכניסה השמורים כבר לא תקפים. היכנסו שוב.');return loadList();}
+    else{plansMsg(errText(r&&r.error));return;}
+    if(!$('dlgPlans').hidden)renderPlans();
+  },function(err){
+    /* app_list missing = the database was not updated yet: read the table the old way */
+    if(String(err&&err.message)==='http 404')return legacyList();
+    plansMsg('אין חיבור לשרת. הרשימה לא מעודכנת.');
+  });
+}
+function legacyList(){
   return api('plans?select=id,owner,title,updated_at,deleted&order=updated_at.desc&limit=500').then(function(a){
-    rows=Array.isArray(a)?a:[];if(!$('dlgPlans').hidden){renderPlans();}
+    legacyCloud=true;
+    rows=(Array.isArray(a)?a:[]).map(function(r){return Object.assign({visibility:'public',shared:!(me&&r.owner===me.name)},r);});
+    if(!$('dlgPlans').hidden)renderPlans();
   },function(){plansMsg('אין חיבור לשרת. הרשימה לא מעודכנת.');});
 }
 var pTab='save';
@@ -2269,7 +2336,7 @@ function setPTab(t){
   $('paneSave').hidden=t!=='save';$('paneOpen').hidden=t!=='open';
   renderWho();
 }
-$('pTabs').addEventListener('click',function(e){var t=e.target.getAttribute&&e.target.getAttribute('data-t');if(t)setPTab(t);});
+$('pTabs').addEventListener('click',function(e){var t=e.target.getAttribute&&e.target.getAttribute('data-t');if(t){setPTab(t);if(t==='open')loadList();}});
 function defaultSaveName(){
   var nm=suggestName();
   if(me&&(canUpdate()||(cur.id&&cur.owner!==me.name)))nm=state.name+(cur.owner&&cur.owner!==me.name?' - עותק':' (2)');
@@ -2285,6 +2352,7 @@ function renderSaveTab(){
   $('pSvNew').classList.toggle('pri',!upd);
   $('pSvName').value=defaultSaveName();
   $('pSvInfo').textContent=upd?'מעדכנים את התוכנית שפתוחה עכשיו, או שומרים עותק בשם אחר.':(cur.id?'זו תוכנית של '+cur.owner+'. כדי לערוך אותה שומרים עותק בשם שלכם.':'בחרו שם לתוכנית ולחצו שמור.');
+  updShareLine();
 }
 function openPlans(tab){
   plansMsg('');renderPlans();renderSaveTab();setPTab(typeof tab==='string'?tab:(curDirty()?'save':'open'));$('json').value=exportText();refreshPrev();$('dlgPlans').hidden=false;
@@ -2381,9 +2449,10 @@ function switchTo(objs,name,meta,post){
   askSave({title:'לשמור לפני המעבר?',info:'יש שינויים שלא נשמרו ב"'+state.name+'". אפשר לעדכן אותה או לשמור כחדשה, ואז נפתח את "'+name+'".',skipLabel:'עבור בלי לשמור',after:go});
 }
 function fetchPlan(id){
-  return api('plans?id=eq.'+encodeURIComponent(id)+'&select=id,owner,title,objs,versions,updated_at').then(function(a){
-    var r=a&&a[0];if(!r||!valid(r.objs))throw new Error('bad');return r;
-  });
+  var p=legacyCloud
+    ?api('plans?id=eq.'+encodeURIComponent(id)+'&select=id,owner,title,objs,versions,updated_at').then(function(a){return a&&a[0];})
+    :rpc('app_get',{p_name:me?me.name:null,p_pass:me?me.pass:null,p_id:id}).then(function(r){if(!r||!r.ok)throw new Error((r&&r.error)||'bad');return r.plan;});
+  return p.then(function(r){if(!r||!valid(r.objs))throw new Error('bad');return r;});
 }
 function openRow(id,mode){
   plansMsg('טוען...');
@@ -2403,7 +2472,8 @@ function openRow(id,mode){
 var delArm=null,delT=null;
 $('planList').addEventListener('click',function(e){
   var t=e.target,g=function(k){return t.getAttribute&&t.getAttribute(k);};
-  var p=g('data-p'),c=g('data-c'),v=g('data-v'),d=g('data-d'),r=g('data-r');
+  var p=g('data-p'),c=g('data-c'),v=g('data-v'),d=g('data-d'),r=g('data-r'),sh=g('data-s');
+  if(sh){var row=rowOf(sh);openShare(sh,row?row.title:'');return;}
   if(p){if(p==='b')switchTo(seed(),BUILTIN,{id:null,ts:null,owner:null});else openRow(p,'open');return;}
   if(c){openRow(c,'copy');return;}
   if(v){openRow(v,'ver');return;}
@@ -2421,6 +2491,52 @@ $('planList').addEventListener('click',function(e){
     },function(){plansMsg('אין חיבור לשרת');});
   }
 });
+/* sharing */
+var shId=null,shUsers=[],shSel={},shBack='open';
+function shSelected(){return shUsers.filter(function(n){return shSel[n];});}
+function renderShare(){
+  var q=$('shSearch').value.trim().toLowerCase(),h='';
+  var list=shUsers.filter(function(n){return !q||n.toLowerCase().indexOf(q)>=0;});
+  list.forEach(function(n){h+='<label class="uitem"><input type="checkbox" data-u="'+esc(n)+'"'+(shSel[n]?' checked':'')+'><span>'+esc(n)+'</span></label>';});
+  if(!shUsers.length)h='<p>אין עדיין משתמשים אחרים באפליקציה.</p>';
+  else if(!list.length)h='<p>אין משתמש שמתאים לחיפוש.</p>';
+  $('shList').innerHTML=h;
+  var c=shSelected().length;
+  $('shCount').textContent=c?'נבחרו '+c+' מתוך '+shUsers.length:'לא נבחרו משתמשים';
+  $('shPubNote').hidden=!$('shPub').checked;
+}
+function openShare(id,title){
+  if(!me||legacyCloud){plansMsg('שיתוף יעבוד אחרי עדכון מסד הנתונים.');return;}
+  shBack=pTab;plansMsg('טוען...');
+  rpc('app_share_get',{p_name:me.name,p_pass:me.pass,p_id:id}).then(function(r){
+    plansMsg('');
+    if(!r||!r.ok){plansMsg(errText(r&&r.error));return;}
+    shId=id;shUsers=Array.isArray(r.users)?r.users:[];shSel={};
+    (r.shared||[]).forEach(function(n){shSel[n]=true;});
+    $('shTitle').textContent='שיתוף: '+title;
+    $(r.visibility==='public'?'shPub':'shPriv').checked=true;
+    $('shSearch').value='';$('shMsg').textContent='';renderShare();
+    $('dlgPlans').hidden=true;$('dlgShare').hidden=false;
+  },function(){plansMsg('אין חיבור לשרת');});
+}
+function closeShare(){$('dlgShare').hidden=true;openPlans(shBack);}
+$('shList').addEventListener('change',function(e){var u=e.target.getAttribute&&e.target.getAttribute('data-u');if(u!==null){shSel[u]=e.target.checked;renderShare();}});
+$('shSearch').addEventListener('input',renderShare);
+$('shPub').addEventListener('change',renderShare);$('shPriv').addEventListener('change',renderShare);
+$('shAll').addEventListener('click',function(){var q=$('shSearch').value.trim().toLowerCase();shUsers.forEach(function(n){if(!q||n.toLowerCase().indexOf(q)>=0)shSel[n]=true;});renderShare();});
+$('shNone').addEventListener('click',function(){shSel={};renderShare();});
+$('shCancel').addEventListener('click',closeShare);
+$('shSave').addEventListener('click',function(){
+  if(busy)return;busy=true;$('shMsg').textContent='שומר...';
+  var vis=$('shPub').checked?'public':'private',users=shSelected();
+  rpc('app_share_set',{p_name:me.name,p_pass:me.pass,p_id:shId,p_visibility:vis,p_users:users}).then(function(r){
+    busy=false;
+    if(!r||!r.ok){$('shMsg').textContent=errText(r&&r.error);return;}
+    flash(vis==='public'?'התוכנית ציבורית עכשיו: כולם רואים אותה':users.length?'שותפה עם '+users.length+' משתמשים':'התוכנית פרטית: רק אתם רואים אותה');
+    closeShare();
+  },function(){busy=false;$('shMsg').textContent='אין חיבור לשרת. לא נשמר';});
+});
+$('pShare').addEventListener('click',function(){var r=rowOf(cur.id);openShare(cur.id,r?r.title:state.name);});
 $('chips').addEventListener('click',function(e){var f=e.target.getAttribute&&e.target.getAttribute('data-f');if(f){filt=f;renderPlans();}});
 $('migrate').addEventListener('click',function(){
   var a=localLib(),i=0,ok=0,skip=0;
