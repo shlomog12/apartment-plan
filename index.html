@@ -86,7 +86,19 @@ button.danger{color:var(--sel)}
 .meta{color:var(--muted);font-size:12px;margin:0 0 4px}
 .pop{position:absolute;z-index:6;top:8px;right:8px;width:min(340px,calc(100% - 16px));background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px;box-shadow:0 2px 10px rgba(0,0,0,.2)}
 .pop ul{margin:0;padding-inline-start:18px;line-height:1.6;color:var(--muted)}
-.pop h2{margin:0 0 6px;font-size:14px}
+.pop h2{margin:0 0 6px;font-size:14px;display:flex;justify-content:space-between;align-items:center}
+.pop h2 button{width:26px;height:26px;padding:0}
+.pop .row{margin-top:8px}
+.tabs button.dis{opacity:.45}
+.tour{width:min(420px,100%)}
+.tour .tstep{display:flex;gap:6px;justify-content:center;margin:0}
+.tour .tstep i{width:8px;height:8px;border-radius:50%;background:var(--line)}
+.tour .tstep i.cur{background:var(--accent)}
+.tour .ticon{font-size:34px;text-align:center;line-height:1.2}
+.tour h2{text-align:center}
+.tour .tb{color:var(--ink);font-size:13px;line-height:1.6}
+.tour .tb ul{margin:4px 0 0;padding-inline-start:18px}
+.toast{position:absolute;z-index:8;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:7px 14px;border-radius:8px;font-size:13px;max-width:min(90%,520px);text-align:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.25)}
 .note{position:absolute;z-index:3;bottom:8px;left:8px;right:56px;color:var(--muted);font-size:12px;pointer-events:none}
 /* plan svg */
 .paper{fill:var(--paper)}
@@ -226,17 +238,16 @@ button.hl{animation:hl .6s ease 3;border-color:var(--sel)}
     <button id="status" type="button" class="status" title="מצב השמירה. לחצו לשמירה ופתיחה"><span class="nm" id="stName"></span><span class="st" id="stState"></span></button>
     <span class="sep"></span>
     <div class="tabs" id="tabs">
-      <button type="button" data-v="plan" class="on">תוכנית</button>
-      <button type="button" data-v="elev">חזית קיר</button>
-      <button type="button" data-v="3d">הדמיה 3D</button>
+      <button type="button" data-v="plan" class="on" title="תוכנית מבט־על: קירות, חדרים, ריהוט">תוכנית</button>
+      <button type="button" data-v="elev" title="חזית קיר: מבט ישר על קיר אחד. מוסיפים דלתות וחלונות וקובעים רוחב, גובה ומיקום">חזית קיר</button>
+      <button type="button" data-v="3d" title="הדמיה 3D של הדירה: מבחוץ, מלמעלה או הליכה בפנים">הדמיה 3D</button>
     </div>
     <span class="sep"></span>
     <span id="planTools" style="display:contents">
       <button id="addWall" type="button">+ קיר</button>
       <button id="addMeas" type="button" title="קו מדידה בין שתי נקודות">+ מדידה</button>
       <button id="addRoom" type="button">+ חדר</button>
-      <select id="furnSel" aria-label="סוג ריהוט"></select>
-      <button id="addFurn" type="button">+ ריהוט</button>
+      <select id="furnSel" aria-label="הוספת ריהוט" title="בחרו פריט והוא יתווסף מיד"></select>
       <button id="addText" type="button">+ טקסט</button>
       <button id="addDoor" type="button">+ דלת</button>
       <button id="addWin" type="button">+ חלון</button>
@@ -298,16 +309,18 @@ button.hl{animation:hl .6s ease 3;border-color:var(--sel)}
     <div class="note" id="note"></div>
     <div class="float" id="panel" hidden></div>
     <div class="pop" id="help" hidden>
-      <h2>עזרה קצרה</h2>
+      <h2><span>עזרה קצרה</span><button type="button" id="helpClose" aria-label="סגור" title="סגור (Esc)">×</button></h2>
       <ul>
         <li>שני מצבים בפינת המסך: <b>✋ הזזת מסך</b> (בטוח, שום דבר לא זז) ו־<b>✎ עריכה</b> (בוחרים וגוררים פריטים).</li>
         <li>במצב עריכה: גרירה מזיזה, ריבועים בפינות משנים גודל, נקודות בקצה קיר מאריכות.</li>
         <li>דלת או חלון ליד קיר נצמדים אליו. גרירת הרקע וגלגלת/צביטה לתצוגה.</li>
-        <li>חזית קיר: עורכים גודל וגובה של דלתות וחלונות על הקיר.</li>
+        <li><b>חזית קיר</b>: מבט ישר על קיר אחד. מוסיפים דלתות וחלונות וקובעים רוחב, גובה ומיקום. קיצור: לחיצה כפולה על קיר או על דלת במצב עריכה.</li>
+        <li>ריהוט: בוחרים פריט מהרשימה "+ ריהוט…" והוא מתווסף מיד.</li>
         <li>הדמיה 3D: גרירה מסובבת, גלגלת מקרבת. במבט פנימי: חיצים או WASD.</li>
-        <li>Delete מוחק, חיצים מזיזים, Ctrl+Z מבטל.</li>
+        <li>מקלדת: Delete מוחק, חיצים מזיזים (עם Shift בצעדים גדולים), Ctrl+Z מבטל, Ctrl+D משכפל, Esc מבטל בחירה.</li>
         <li>העבודה נשמרת אוטומטית בדפדפן הזה בלבד. כדי לשמור לצמיתות או לפתוח ממכשיר אחר: <b>💾 שמירה ופתיחה</b>.</li>
       </ul>
+      <div class="row"><button type="button" id="tourAgain">📖 הצג את ההדרכה שוב</button></div>
     </div>
   </main>
   <div class="dlg" id="dlgPlans" hidden>
@@ -397,6 +410,20 @@ button.hl{animation:hl .6s ease 3;border-color:var(--sel)}
       <div class="row">
         <button id="svSkip" type="button" class="danger"></button>
         <button id="svCancel" type="button">ביטול</button>
+      </div>
+    </div>
+  </div>
+  <div class="dlg" id="dlgTour" hidden>
+    <div class="dlg-box tour" role="dialog" aria-modal="true" aria-labelledby="tourTitle">
+      <p class="tstep" id="tourDots"></p>
+      <div class="ticon" id="tourIcon"></div>
+      <h2 id="tourTitle"></h2>
+      <div class="tb" id="tourBody"></div>
+      <div class="row">
+        <button id="tourSkip" type="button">דלגו</button>
+        <span style="flex:1"></span>
+        <button id="tourBack" type="button">הקודם</button>
+        <button id="tourNext" type="button" class="pri">הבא</button>
       </div>
     </div>
   </div>
@@ -831,7 +858,17 @@ function render(){
   s+='</g>';
   svg.innerHTML=s;
 }
+function syncTabs(){
+  var has=state.objs.some(function(o){return o.type==='wall';});
+  ['elev','3d'].forEach(function(v){
+    var b=$('tabs').querySelector('[data-v="'+v+'"]');if(!b)return;
+    b.classList.toggle('dis',!has);b.setAttribute('aria-disabled',has?'false':'true');
+    if(!b.getAttribute('data-t0'))b.setAttribute('data-t0',b.title);
+    b.title=has?b.getAttribute('data-t0'):'צריך לפחות קיר אחד. הוסיפו קיר בתוכנית';
+  });
+}
 function draw(){
+  syncTabs();
   if(view==='plan')render();
   else if(view==='elev'){pickWall();renderElev();}
   else if(view==='3d'&&T.r)tdBuild();
@@ -854,6 +891,7 @@ function renderPanel(){
     h+=fld('מרחק','len',fmt(Math.hypot(o.x2-o.x1,o.y2-o.y1)));
   }else if(o.type==='wall'){
     h+=fld('אורך','len',fmt(Math.hypot(o.x2-o.x1,o.y2-o.y1)))+fld('עובי','t',fmt(o.t))+fld('גובה','wh',fmt(wallH(o)));
+    if(view==='plan')h+='<div class="meta" style="grid-column:1/-1">טיפ: לחיצה כפולה על קיר פותחת את החזית שלו</div>';
   }else if(o.type==='text'){
     h+=fld('טקסט','text',o.text,true)+fld('גודל אות','fs',fmt(o.fs),false,'');
     if(view==='plan')h+=fld('מיקום אופקי','x',fmt(o.x))+fld('מיקום אנכי','y',fmt(o.y));
@@ -1748,10 +1786,19 @@ document.addEventListener('keyup',function(e){
 
 /* ---------- saving files (PDF, PNG) ---------- */
 var toastEl=document.createElement('div');
-toastEl.style.cssText='position:absolute;z-index:8;bottom:12px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:7px 14px;border-radius:8px;font-size:13px;max-width:90%;pointer-events:none;display:none';
+toastEl.className='toast';toastEl.setAttribute('role','status');toastEl.title='לחצו לסגירה';toastEl.style.display='none';
+toastEl.addEventListener('click',function(){clearTimeout(toastT);toastEl.style.display='none';});
 $('stage').appendChild(toastEl);
 var toastT=null;
-function flash(t){toastEl.textContent=t;toastEl.style.display='block';clearTimeout(toastT);toastT=setTimeout(function(){toastEl.style.display='none';},3200);}
+function flash(t){
+  var narrow=false;try{narrow=window.matchMedia('(max-width:760px)').matches;}catch(x){}
+  /* on phones the inspector sits at the bottom: show the message at the top instead of covering it */
+  var top=narrow&&!$('panel').hidden;
+  toastEl.style.top=top?((view==='elev'?(coarse?62:54):8)+'px'):'auto';
+  toastEl.style.bottom=top?'auto':'12px';
+  toastEl.textContent=t;toastEl.style.display='block';clearTimeout(toastT);
+  toastT=setTimeout(function(){toastEl.style.display='none';},clamp(1800+t.length*60,2500,7000));
+}
 function saveFile(name,data){
   if(!window.claude||!window.claude.use){
     try{
@@ -1907,6 +1954,7 @@ function save3dPng(){
 }
 
 /* ---------- view switching ---------- */
+var elevSeen=false;
 function setView(v){
   if(v!=='plan'&&!state.objs.some(function(o){return o.type==='wall';})){flash('אין קירות על הלוח. הוסיפו קיר קודם');return;}
   if(view==='3d'&&v!=='3d')tdStop();
@@ -1918,7 +1966,8 @@ function setView(v){
   $('elBar').hidden=v!=='elev';$('tdTools').hidden=v!=='3d';$('mini').hidden=v!=='elev';$('app').classList.toggle('elevmode',v==='elev');if(v!=='3d')$('pad').hidden=true;
   $('note').textContent='';
   if(v==='plan'){renderPanel();render();}
-  else if(v==='elev'){pickWall();elFit();renderPanel();renderElev();}
+  else if(v==='elev'){pickWall();elFit();renderPanel();renderElev();
+    if(!elevSeen){elevSeen=true;flash('חזית קיר: מבט ישר על קיר אחד. ▶ ◀ מחליפים קיר, + חלון / + דלת מוסיפים');}}
   else{renderPanel();tdStart();}
 }
 $('tabs').addEventListener('click',function(e){
@@ -1973,6 +2022,7 @@ $('panel').addEventListener('click',function(e){
 /* ---------- toolbar ---------- */
 (function(){
   var s=$('furnSel'),h='';
+  h+='<option value="" selected>+ ריהוט…</option>';
   FURN.forEach(function(f,i){h+='<option value="'+i+'">'+f[0]+' '+f[1]+'×'+f[2]+'</option>';});
   s.innerHTML=h;
 })();
@@ -1987,8 +2037,9 @@ $('addText').addEventListener('click',function(){
   setTimeout(function(){var f=$('f_text');if(f){f.focus();f.select();}},50);
   flash('כתבו את הטקסט בחלון שנפתח, וגררו אותו למקום');
 });
-$('addFurn').addEventListener('click',function(){
-  var f=FURN[parseInt($('furnSel').value,10)||0];
+$('furnSel').addEventListener('change',function(){
+  var v=this.value;this.value='';if(v==='')return;
+  var f=FURN[parseInt(v,10)||0];
   addObj(function(c){return {id:nxt(),type:'rect',kind:'furn',shape:f[3]||'rect',x:sn(c.x-f[1]/2),y:sn(c.y-f[2]/2),w:f[1],h:f[2],label:f[0]};});
 });
 $('addDoor').addEventListener('click',function(){addOpeningInPlan('door');});
@@ -2035,6 +2086,34 @@ function loadText(txt){
 }
 $('pdf').addEventListener('click',exportPdf);
 $('helpBtn').addEventListener('click',function(){$('help').hidden=!$('help').hidden;});
+$('helpClose').addEventListener('click',function(){$('help').hidden=true;});
+document.addEventListener('pointerdown',function(e){
+  if($('help').hidden)return;
+  if($('help').contains(e.target)||$('helpBtn').contains(e.target))return;
+  $('help').hidden=true;
+},true);
+/* first-run tour */
+var TOUR_KEY='apt-tour-done',tourI=0;
+var TOUR=[
+  {i:'✋ ✎',t:'שני מצבים: הזזה ועריכה',b:'<p>בפינת המסך יש שני כפתורים:</p><ul><li><b>✋ הזזת מסך</b> (ברירת המחדל): גוררים כדי להזיז את התצוגה, וצובטים או גוללים להגדלה. שום פריט לא זז בטעות.</li><li><b>✎ עריכה</b>: לחיצה על פריט בוחרת אותו ופותחת את פרטיו, וגרירה מזיזה אותו.</li></ul>'},
+  {i:'＋',t:'הוספת פריטים',b:'<ul><li>בסרגל העליון: <b>+ קיר</b>, <b>+ חדר</b>, <b>+ דלת</b>, <b>+ חלון</b>, <b>+ טקסט</b>, <b>+ מדידה</b>, ובחירה מהרשימה <b>+ ריהוט…</b>.</li><li>הפריט מופיע במרכז המסך, נבחר, והאפליקציה עוברת למצב עריכה.</li><li><b>חזית קיר</b>: מבט ישר על קיר אחד, לעריכת דלתות וחלונות. קיצור: לחיצה כפולה על קיר.</li></ul>'},
+  {i:'💾',t:'שמירה',b:'<ul><li>העבודה נשמרת אוטומטית <b>בדפדפן הזה בלבד</b>.</li><li>כדי לשמור לצמיתות, לפתוח ממכשיר אחר או לשתף: <b>💾 שמירה ופתיחה</b> בראש המסך. אפשר בענן (עם שם משתמש) או כקובץ.</li><li>ליד הכפתור רואים אם התוכנית שמורה. <b>↶</b> מבטל כל פעולה.</li></ul>'}
+];
+function tourShow(i){
+  tourI=i;var st=TOUR[i],d='';
+  for(var k=0;k<TOUR.length;k++)d+='<i class="'+(k===i?'cur':'')+'"></i>';
+  $('tourDots').innerHTML=d;$('tourDots').setAttribute('aria-label','שלב '+(i+1)+' מתוך '+TOUR.length);
+  $('tourIcon').textContent=st.i;$('tourTitle').textContent=st.t;$('tourBody').innerHTML=st.b;
+  $('tourBack').hidden=i===0;$('tourNext').textContent=i===TOUR.length-1?'הבנתי, בואו נתחיל':'הבא';
+  $('tourSkip').hidden=i===TOUR.length-1;
+  $('dlgTour').hidden=false;$('tourNext').focus();
+}
+function tourEnd(){$('dlgTour').hidden=true;try{localStorage.setItem(TOUR_KEY,'1');}catch(x){}}
+$('tourNext').addEventListener('click',function(){if(tourI<TOUR.length-1)tourShow(tourI+1);else tourEnd();});
+$('tourBack').addEventListener('click',function(){if(tourI>0)tourShow(tourI-1);});
+$('tourSkip').addEventListener('click',tourEnd);
+$('dlgTour').addEventListener('keydown',function(e){if(e.key==='Escape')tourEnd();});
+$('tourAgain').addEventListener('click',function(){$('help').hidden=true;tourShow(0);});
 $('saveFile').addEventListener('click',function(){saveFile('apartment-plan.json',exportText());});
 $('copyJson').addEventListener('click',function(){
   var ta=$('json');ta.value=exportText();
@@ -2167,7 +2246,7 @@ function renderPlans(){
     if(filt==='trash')h+='<button type="button" data-r="'+esc(r.id)+'" class="pri">שחזר</button>';
     else{
       h+='<button type="button" data-p="'+esc(r.id)+'" class="pri">פתח</button><button type="button" data-c="'+esc(r.id)+'">עותק</button>';
-      if(mine)h+='<button type="button" data-v="'+esc(r.id)+'" title="פותח את הגרסה שנשמרה לפני השמירה האחרונה">פתח גרסה קודמת</button><button type="button" data-d="'+esc(r.id)+'">מחק</button>';
+      if(mine)h+='<button type="button" data-v="'+esc(r.id)+'" title="פותח את הגרסה שנשמרה לפני השמירה האחרונה">פתח גרסה קודמת</button><button type="button" data-d="'+esc(r.id)+'"'+(delArm===r.id?' class="danger">בטוח? מחק':'>מחק')+'</button>';
     }
     h+='</div>';
   });
@@ -2316,7 +2395,7 @@ function openRow(id,mode){
     }else switchTo(r.objs,r.title,{id:r.id,ts:r.updated_at,owner:r.owner});
   },function(){plansMsg('לא ניתן לטעון את התוכנית');});
 }
-var delArm=null;
+var delArm=null,delT=null;
 $('planList').addEventListener('click',function(e){
   var t=e.target,g=function(k){return t.getAttribute&&t.getAttribute(k);};
   var p=g('data-p'),c=g('data-c'),v=g('data-v'),d=g('data-d'),r=g('data-r');
@@ -2325,7 +2404,12 @@ $('planList').addEventListener('click',function(e){
   if(v){openRow(v,'ver');return;}
   if(d||r){
     var id=d||r;
-    if(d&&delArm!==d){delArm=d;t.textContent='בטוח? מחק';t.classList.add('danger');return;}
+    if(d&&delArm!==d){
+      delArm=d;renderPlans();
+      clearTimeout(delT);delT=setTimeout(function(){if(delArm===d){delArm=null;renderPlans();}},4000);
+      return;
+    }
+    clearTimeout(delT);
     delArm=null;
     rpc('app_delete',{p_name:me.name,p_pass:me.pass,p_id:id,p_deleted:!!d}).then(function(x){
       if(x&&x.ok){plansMsg(d?'הועברה ל"נמחקו"':'שוחזרה');loadList();}else plansMsg(errText(x&&x.error));
@@ -2374,12 +2458,14 @@ $('clearAsk').addEventListener('click',startClear);
 document.addEventListener('keydown',function(e){
   var tg=e.target&&e.target.tagName;
   if(tg==='INPUT'||tg==='TEXTAREA'||tg==='SELECT')return;
+  if(e.key==='Escape'&&!$('help').hidden){$('help').hidden=true;return;}
+  if(!$('dlgTour').hidden)return;
   if(view==='3d')return;
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();if(e.shiftKey)doRedo();else doUndo();return;}
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='y'){e.preventDefault();doRedo();return;}
   var o=sel?byId(sel):null;if(!o)return;
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='d'){e.preventDefault();var n2;mutate(function(){n2=dupSel(o);});select(n2);return;}
-  if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();delSel();return;}
+  if(e.key==='Delete'){e.preventDefault();delSel();return;}
   if(e.key==='Escape'){select(null);return;}
   if(view!=='plan')return;
   var st=e.shiftKey?25:5,dx=0,dy=0;
@@ -2390,7 +2476,8 @@ document.addEventListener('keydown',function(e){
 /* ---------- init ---------- */
 if(!load()){state.objs=seed();fixNid();}
 syncGrid();
-renderPanel();updateBtns();updStatus();
+renderPanel();updateBtns();updStatus();syncTabs();
+(function(){var done=false;try{done=!!localStorage.getItem(TOUR_KEY);}catch(x){done=true;}if(!done)tourShow(0);})();
 var firstSize=false;
 function onSize(){
   var r=$('stage').getBoundingClientRect();
