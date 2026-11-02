@@ -2022,8 +2022,12 @@ function tdBuild(){
 }
 /* real-size fittings for 'inside', plus fixed-size pins that stay readable from outside and above */
 function td3Points(root,list){
-  var white=m3(0xffffff,{roughness:.35}),dark=m3(0x34383d,{roughness:.6}),orange=m3(0xd9480f,{roughness:.5});
-  var lamp=m3(0xfff1c4,{emissive:0xffd77a,emissiveIntensity:.9,roughness:.4});
+  var M={
+    white:m3(0xffffff,{roughness:.35}),inner:m3(0xf3f2ee,{roughness:.3}),seam:m3(0xc9c8c2,{roughness:.6}),
+    hole:m3(0x26292d,{roughness:.8}),red:m3(0xc62828,{roughness:.4}),port:m3(0x1f2226,{roughness:.7}),
+    lamp:m3(0xfff3cf,{emissive:0xffd77a,emissiveIntensity:.9,roughness:.4,side:THREE.DoubleSide}),
+    metal:m3(0xb9bcc0,{metalness:.6,roughness:.35}),led:m3(0x2a9df4,{emissive:0x2a9df4,emissiveIntensity:1})
+  };
   var pins=new THREE.Group();pins.renderOrder=10;T.pins=pins;root.add(pins);
   var tex={};
   function pinTex(light){
@@ -2034,7 +2038,6 @@ function td3Points(root,list){
     x.fillStyle='#fff';x.font='bold 30px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(light?'✦':'⚡',32,34);
     tex[key]=new THREE.CanvasTexture(c);return tex[key];
   }
-  function mesh(geo,mat,x,y,z,parent){var m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=false;(parent||root).add(m);return m;}
   list.forEach(function(o){
     var k=o.kind,g=new THREE.Group(),py;
     if(isWallPt(o)){
@@ -2042,31 +2045,61 @@ function td3Points(root,list){
       g.position.set((o.x+nx*t/2)/100,o.h/100,(o.y+ny*t/2)/100);
       g.rotation.y=Math.atan2(nx,ny); /* local +z points out of the wall face */
       py=o.h/100;
-      var d=ptDims(k),pw=d.w/100,ph=d.h/100,pd=.012;
-      if(k==='ac'){
-        mesh(new THREE.BoxGeometry(pw,ph,.2),white,0,0,.1,g);
-        mesh(new THREE.BoxGeometry(pw*.86,.012,.01),dark,0,-ph*.28,.201,g);
-      }else if(k==='wlight'){
-        mesh(new THREE.BoxGeometry(.08,.08,.015),white,0,0,.0075,g);
-        var sh=mesh(new THREE.SphereGeometry(.09,20,12,0,Math.PI*2,0,Math.PI/2),lamp,0,0,.07,g);sh.rotation.x=Math.PI;
-      }else{
-        mesh(new THREE.BoxGeometry(pw,ph,pd),white,0,0,pd/2,g);
-        var cyl=function(r,mat,x){var c=mesh(new THREE.CylinderGeometry(r,r,.004,18),mat,x,0,pd+.001,g);c.rotation.x=Math.PI/2;};
-        if(k==='outlet')cyl(ph*.32,dark,0);
-        else if(k==='outlet2'){cyl(ph*.3,dark,-pw*.24);cyl(ph*.3,dark,pw*.24);}
-        else if(k==='power')cyl(ph*.34,orange,0);
-        else if(k==='data')mesh(new THREE.BoxGeometry(pw*.4,ph*.32,.004),dark,0,0,pd+.001,g);
-        else if(k==='switch')mesh(new THREE.BoxGeometry(pw*.42,ph*.6,.008),m3(0xe2e1dc,{roughness:.5}),0,0,pd+.004,g);
-      }
+      fit3d(g,k,M);
     }else{
       var ww=wallOf(o),H=(ww?wallH(ww):wallH({}))/100;
       g.position.set(o.x/100,H,o.y/100);py=H;
-      mesh(new THREE.CylinderGeometry(.16,.16,.03,28),lamp,0,-.015,0,g);
+      fit3d(g,k,M);
     }
     root.add(g);
     var sp=new THREE.Sprite(new THREE.SpriteMaterial({map:pinTex(k==='ceil'||k==='wlight'),depthTest:false,sizeAttenuation:false,transparent:true}));
     sp.scale.set(.045,.045,1);sp.position.set(g.position.x,py+.12,g.position.z);sp.renderOrder=10;sp.userData.id=o.id;pins.add(sp);
   });
+}
+/* one electrical fitting, built in a local frame: x along the wall, y up, +z out of the wall (metres) */
+function fit3d(g,k,M){
+  function add(geo,mat,x,y,z,rx){var m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);if(rx)m.rotation.x=rx;g.add(m);return m;}
+  function bx(w,h,d,mat,x,y,z,rx){return add(new THREE.BoxGeometry(w,h,d),mat,x||0,y||0,z,rx);}
+  function cyl(r,d,mat,x,y,z,seg){return add(new THREE.CylinderGeometry(r,r,d,seg||28),mat,x||0,y||0,z,Math.PI/2);}
+  /* wall plate: outer frame plus a slightly raised inner face, so the edge reads as a frame */
+  function plate(w,h){bx(w,h,.009,M.white,0,0,.0045);bx(w*.84,h*.84,.003,M.inner,0,0,.0105);}
+  /* Israeli socket (type H): recessed round well, raised round face, three pin holes in a triangle */
+  function socket(x,mat){
+    cyl(.0255,.004,M.seam,x,0,.0125);
+    cyl(.022,.006,mat||M.inner,x,0,.0145);
+    [[-.0072,.0045],[.0072,.0045],[0,-.0085]].forEach(function(p){cyl(.0028,.002,M.hole,x+p[0],p[1],.0178,12);});
+  }
+  if(k==='outlet'){plate(.086,.086);socket(0);}
+  else if(k==='outlet2'){plate(.156,.086);socket(-.036);socket(.036);}
+  else if(k==='power'){plate(.086,.086);socket(0,M.red);}
+  else if(k==='switch'){
+    plate(.086,.086);
+    var r=bx(.056,.058,.009,M.white,0,0,.016,-.07);  /* rocker, tilted a little like a real switch */
+    bx(.04,.0016,.001,M.seam,0,.012,.0215);           /* the small ridge on the rocker */
+  }
+  else if(k==='data'){
+    plate(.086,.086);
+    bx(.024,.02,.004,M.inner,0,-.004,.014);
+    bx(.016,.013,.003,M.port,0,-.004,.0165);           /* RJ45 opening */
+    bx(.03,.007,.001,M.seam,0,.022,.0125);             /* label strip */
+  }
+  else if(k==='wlight'){
+    cyl(.05,.012,M.white,0,0,.006);                    /* wall base */
+    var arm=add(new THREE.CylinderGeometry(.007,.007,.09,10),M.metal,0,0,.055,Math.PI/2);
+    add(new THREE.CylinderGeometry(.055,.09,.13,28,1,true),M.lamp,0,.02,.11);   /* shade, open at the top */
+    add(new THREE.SphereGeometry(.025,12,8),M.lamp,0,.0,.11);                  /* bulb */
+  }
+  else if(k==='ac'){
+    bx(.8,.28,.2,M.white,0,0,.1);
+    bx(.78,.012,.004,M.seam,0,.06,.2);                 /* panel seam */
+    bx(.7,.03,.012,M.port,0,-.1,.194);                 /* air outlet */
+    bx(.7,.03,.006,M.inner,0,-.085,.205,-.5);          /* louver flap */
+    bx(.012,.012,.002,M.led,.33,.09,.201);             /* display light */
+  }
+  else{ /* ceiling light: a round base and a glowing lens hanging just below the ceiling */
+    add(new THREE.CylinderGeometry(.17,.17,.02,36),M.white,0,-.01,0);
+    add(new THREE.CylinderGeometry(.15,.13,.035,36),M.lamp,0,-.035,0);
+  }
 }
 function furn3d(o,t){
   var r=furnRot(o),sw=(r===90||r===270),W=sw?o.h:o.w,D=sw?o.w:o.h,g=new THREE.Group(),m=Math.min(W,D);
