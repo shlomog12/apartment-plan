@@ -295,12 +295,13 @@ button.danger{color:var(--sel)}
 @keyframes nudgeMe{0%,100%{transform:scale(1)}30%{transform:scale(1.12)}60%{transform:scale(.97)}}
 .modeSeg button.pulse{animation:nudgeMe .5s ease 2;outline:3px solid var(--sel);outline-offset:1px}
 #plansBtn{border-color:var(--accent);color:var(--accent);font-weight:700}
-.status{display:flex;align-items:center;gap:6px;max-width:260px;height:30px;padding:0 9px;border:1px dashed var(--line);border-radius:6px;background:transparent;font-size:12px;color:var(--muted)}
+.status{display:flex;align-items:center;gap:6px;max-width:260px;height:30px;padding:0 9px;border:1px dashed var(--line);border-radius:6px;background:transparent;font-size:12px;color:var(--muted);overflow:hidden}
+.status .st .s{display:none}
 .status .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);font-weight:500}
 .status .st{white-space:nowrap}
 .status .st.ok{color:var(--meas)}
 .status .st.dirty{color:var(--sel);font-weight:500}
-@media (max-width:760px){header h1{display:none}.status{max-width:180px}}
+@media (max-width:760px){header h1{display:none}.status{max-width:180px}.status .st .l{display:none}.status .st .s{display:inline;font-weight:700;font-size:15px}.status .st:empty{display:none}}
 .tx summary{cursor:pointer;color:var(--muted);font-size:12px;padding:4px 0}
 .txt{flex:1;min-width:0;height:32px;border:1px solid var(--line);border-radius:6px;padding:0 8px;background:var(--paper);color:var(--ink);font:inherit}
 .plist{display:grid;gap:6px;max-height:40vh;overflow:auto}
@@ -443,6 +444,7 @@ button.hl{animation:hl .6s ease 3;border-color:var(--sel)}
       <button id="vIn" type="button">מבפנים</button>
       <button id="vPts" type="button" class="on" hidden title="הצג או הסתר את נקודות החשמל">⚡ חשמל</button>
       <button id="vPlumb" type="button" class="on" hidden title="הצג או הסתר את נקודות האינסטלציה">💧 אינסטלציה</button>
+      <button id="vDoors" type="button" class="on" title="פתיחה או סגירה של כל הדלתות. אפשר גם ללחוץ על דלת אחת">🚪 דלתות פתוחות</button>
       <button id="vPng" type="button">שמור תמונה</button>
     </div>
     <div class="pad" id="pad" hidden>
@@ -476,7 +478,7 @@ button.hl{animation:hl .6s ease 3;border-color:var(--sel)}
         <li>💬 הערות: על תוכנית שמורה בענן. לחיצה ארוכה על התוכנית (במצב הזזת מסך) או "+ הערה חדשה" מוסיפים הערה; כל מי שרואה את התוכנית יכול לענות.</li>
         <li>📋 סיכום: כמה נקודות חשמל ואינסטלציה יש בכל חדר, לשליחה לחשמלאי או לאינסטלטור.</li>
         <li>חשמל: "+ חשמל…" מוסיף שקע, מתג או תאורה על הקיר. גוררים לאורך הקיר (גם לצד השני שלו), ואת הגובה קובעים בחזית הקיר או בשדה "גובה מהרצפה".</li>
-        <li>הדמיה 3D: גרירה מסובבת, גלגלת מקרבת. במבט "מבפנים": לחיצה על הרצפה מוליכה לשם, גרירה מסובבת את המבט, והמפה הקטנה בפינה מראה איפה אתם (לחיצה עליה מעבירה לשם). קירות עוצרים, דלתות לא.</li>
+        <li>הדמיה 3D: גרירה מסובבת, גלגלת מקרבת. הדלתות פתוחות; לחיצה על דלת סוגרת או פותחת אותה, והכפתור 🚪 עושה זאת לכולן. במבט "מבפנים": לחיצה על הרצפה מוליכה לשם, גרירה מסובבת את המבט, והמפה הקטנה בפינה מראה איפה אתם (לחיצה עליה מעבירה לשם). קירות עוצרים, דלתות לא.</li>
         <li>מקלדת: Delete מוחק, חיצים מזיזים (עם Shift בצעדים גדולים), Ctrl+Z מבטל, Ctrl+D משכפל, Esc מבטל בחירה.</li>
         <li>העבודה נשמרת אוטומטית בדפדפן הזה בלבד. כדי לשמור לצמיתות או לפתוח ממכשיר אחר: <b>💾 שמירה ופתיחה</b>.</li>
       </ul>
@@ -932,7 +934,7 @@ function load(){
   try{
     var s=localStorage.getItem(KEY);
     if(s){var d=JSON.parse(s);
-      if(valid(d.objs)){state.objs=d.objs;state.step=(d.step!==undefined)?(+d.step||0):(d.snap===false?0:5);state.grid=d.grid!==false;state.dims=d.dims!==false;state.checks=d.checks!==false;state.name=(typeof d.name==='string'&&d.name)?d.name:BUILTIN;
+      if(valid(d.objs)){state.objs=d.objs;state.step=(d.step!==undefined)?(+d.step||0):(d.snap===false?0:5);state.grid=d.grid!==false;state.dims=d.dims!==false;state.checks=d.checks!==false;state.doorsOpen=d.doorsOpen!==false;state.name=(typeof d.name==='string'&&d.name)?d.name:BUILTIN;
         if(d.view&&isFinite(d.view.k)&&isFinite(d.view.x)&&isFinite(d.view.y)){V.x=d.view.x;V.y=d.view.y;V.k=clamp(d.view.k,.1,4);hasView=true;}
         if(d.lay&&/^(base|elec|plumb)$/.test(d.lay.act)){var dh=d.lay.hide||{};state.lay={act:d.lay.act,hide:{base:!!dh.base,elec:!!dh.elec,plumb:!!dh.plumb}};}
         state.lay.hide[state.lay.act]=false;
@@ -944,7 +946,7 @@ function save(){
   clearTimeout(saveT);
   saveT=setTimeout(function(){
     var ok=true;
-    try{localStorage.setItem(KEY,JSON.stringify({objs:state.objs,name:state.name,step:state.step,grid:state.grid,dims:state.dims,view:V,lay:state.lay,checks:state.checks!==false}));}catch(e){ok=false;}
+    try{localStorage.setItem(KEY,JSON.stringify({objs:state.objs,name:state.name,step:state.step,grid:state.grid,dims:state.dims,view:V,lay:state.lay,checks:state.checks!==false,doorsOpen:state.doorsOpen!==false}));}catch(e){ok=false;}
     if(!ok)flash('השמירה בדפדפן לא זמינה, השתמשו בגיבוי');
     updStatus();
   },150);
@@ -2153,7 +2155,9 @@ function tdEnsure(){
   });
   function up(e){
     var tp=T.tap;T.tap=null;
-    if(e.type==='pointerup'&&tp&&T.mode==='inside'&&T.ptrs.size===1&&Date.now()-tp.t<400)tdWalkTo(e);
+    if(e.type==='pointerup'&&tp&&T.ptrs.size===1&&Date.now()-tp.t<400){
+      if(!tdTapDoor(e)&&T.mode==='inside')tdWalkTo(e);
+    }
     T.ptrs.delete(e.pointerId);T.dr=null;T.pd=0;
   }
   el.addEventListener('pointerup',up);el.addEventListener('pointercancel',up);
@@ -2177,7 +2181,7 @@ function tdCanStand(x,z){
     if(d>=w.t/2+22)return false;
     var raw=(px-w.x1)*ux+(pz-w.y1)*uy;
     return !state.objs.some(function(o){
-      if(o.type!=='door'||wallOf(o)!==w)return false;
+      if(o.type!=='door'||wallOf(o)!==w||!doorIsOpen(o))return false;
       var c=openS(o,w);return raw>c-o.w/2+8&&raw<c+o.w/2-8;
     });
   });
@@ -2189,6 +2193,9 @@ function tdTryMove(dx,dz){
   if(Math.abs(dx)>1e-4&&tdCanStand(x+dx,z)){T.pos.x+=dx;return true;}
   if(Math.abs(dz)>1e-4&&tdCanStand(x,z+dz)){T.pos.z+=dz;return true;}
   return false;
+}
+function tdClosedDoorNear(){
+  return state.objs.some(function(d){return d.type==='door'&&!doorIsOpen(d)&&Math.hypot(d.x/100-T.pos.x,d.y/100-T.pos.z)<1.3;});
 }
 /* tap on the floor: walk there */
 function tdWalkTo(e){
@@ -2301,9 +2308,7 @@ function tdBuild(){
       if(o.sl>0)box(g,a,b,0,o.sl,t,wmat);
       var w2=b-a;
       if(o.type==='door'){
-        box(g,a+1,b-1,o.sl,top,4,doorMat);
-        var hd=new THREE.Mesh(new THREE.BoxGeometry(.03,.03,.09),m3(0xc9c9c9,{metalness:.6,roughness:.4}));
-        hd.position.set((b-9)/100,(o.sl+top)/200,0);g.add(hd);
+        /* the leaf is built separately (td3Doors) so it can be open or closed */
       }else{
         var fw=4;
         box(g,a,b,o.sl,o.sl+fw,t+2,frameMat);box(g,a,b,top-fw,top,t+2,frameMat);
@@ -2316,6 +2321,7 @@ function tdBuild(){
     });
     box(g,cur,L+t/2,0,H,t,wmat);
   });
+  td3Doors(root,doorMat);
   /* electrical points */
   T.pins=null;
   var P3=state.objs.filter(isPt);
@@ -2343,6 +2349,35 @@ function tdBuild(){
     m.position.set((o.x+o.w/2)/100,h/200,(o.y+o.h/2)/100);
     m.castShadow=true;m.receiveShadow=true;root.add(m);
   });
+}
+/* doors: open (swung the way the plan shows) or closed; T.doorOv holds doors tapped open/closed one by one */
+function doorIsOpen(d){var v=T.doorOv&&T.doorOv[d.id];return v===undefined?state.doorsOpen!==false:v;}
+function td3Doors(root,mat){
+  T.doorMeshes=[];
+  var metal=m3(0xc9c9c9,{metalness:.3,roughness:.35});
+  state.objs.forEach(function(d){
+    if(d.type!=='door')return;
+    var r=d.rot*Math.PI/180,c=Math.cos(r),sn=Math.sin(r);
+    var P=function(lx,ly){lx*=d.fx;ly*=d.fy;return {x:d.x+lx*c-ly*sn,y:d.y+lx*sn+ly*c};};
+    var H=P(-d.w/2,0),E=doorIsOpen(d)?P(-d.w/2,d.w*.97):P(d.w/2,0);  /* hinge, and the far edge closed or open */
+    var len=Math.hypot(E.x-H.x,E.y-H.y)-2,ang=Math.atan2(E.y-H.y,E.x-H.x),top=(d.sl||0)+d.h;
+    var g=new THREE.Group();g.position.set(H.x/100,0,H.y/100);g.rotation.y=-ang;root.add(g);
+    var leaf=new THREE.Mesh(new THREE.BoxGeometry(len/100,(top-(d.sl||0)-1)/100,.04),mat);
+    leaf.position.set((len/2+1)/100,((d.sl||0)+top)/200,0);leaf.castShadow=true;leaf.receiveShadow=true;leaf.userData.doorId=d.id;g.add(leaf);
+    [-1,1].forEach(function(sd){var hd=new THREE.Mesh(new THREE.BoxGeometry(.1,.025,.03),metal);hd.position.set((len-8)/100,1,sd*.035);g.add(hd);});
+    T.doorMeshes.push(leaf);
+  });
+}
+/* a tap on a door leaf opens or closes that door; true if a door was hit */
+function tdTapDoor(e){
+  if(!T.doorMeshes||!T.doorMeshes.length)return false;
+  var r=T.r.domElement.getBoundingClientRect(),rc=new THREE.Raycaster();
+  rc.setFromCamera(new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height*2-1)),T.cam);
+  var hit=rc.intersectObjects(T.doorMeshes,false)[0];if(!hit)return false;
+  var id=hit.object.userData.doorId,d=byId(id);if(!d)return false;
+  T.doorOv=T.doorOv||{};T.doorOv[id]=!doorIsOpen(d);
+  tdBuild();flash(doorIsOpen(d)?'הדלת נפתחה':'הדלת נסגרה');
+  return true;
 }
 /* real-size fittings for 'inside', plus fixed-size pins that stay readable from outside and above */
 function td3Points(root,list){
@@ -2625,7 +2660,7 @@ function tdFrame(t){
     }else if(T.walk){
       var wx=T.walk.x-T.pos.x,wz=T.walk.z-T.pos.z,wd=Math.hypot(wx,wz),st=Math.min(wd,2.6*dt);
       if(wd<.04||!tdTryMove(wx/wd*st,wz/wd*st)){
-        if(wd>=.3)flash('קיר בדרך. עוברים בין חדרים דרך הדלתות');
+        if(wd>=.3)flash(tdClosedDoorNear()?'הדלת סגורה. לחצו עליה כדי לפתוח':'קיר בדרך. עוברים בין חדרים דרך הדלתות');
         T.walk=null;if(T.ring)T.ring.visible=false;
       }
     }
@@ -3385,6 +3420,11 @@ $('vOrbit').addEventListener('click',function(){tdMode('orbit');});
 $('vTop').addEventListener('click',function(){tdMode('top');});
 $('vIn').addEventListener('click',function(){tdMode('inside');});
 $('vPng').addEventListener('click',save3dPng);
+function syncDoorsBtn(){var o=state.doorsOpen!==false;$('vDoors').textContent=o?'🚪 דלתות פתוחות':'🚪 דלתות סגורות';$('vDoors').classList.toggle('on',o);}
+$('vDoors').addEventListener('click',function(){
+  state.doorsOpen=state.doorsOpen===false;T.doorOv={};syncDoorsBtn();save();if(T.r)tdBuild();
+  flash(state.doorsOpen?'כל הדלתות נפתחו':'כל הדלתות נסגרו. לחיצה על דלת פותחת אותה');
+});
 
 /* ---------- panel events ---------- */
 $('panel').addEventListener('change',function(e){
@@ -3652,7 +3692,10 @@ function updStatus(){
   else if(cur.id){txt='✓ שמורה בענן';cls='ok';}
   else{txt='';cls='';}
   nm.textContent=state.name||'';
-  st.textContent=txt;st.className='st'+(cls?' '+cls:'');
+  /* full text on wide screens; on phones only a symbol, the full text stays in the tooltip */
+  var sym=cls==='ok'?'✓':cls==='dirty'?(txt.charAt(0)==='🕘'?'🕘':'●'):'';
+  st.innerHTML=txt?'<span class="l">'+esc(txt)+'</span><span class="s">'+sym+'</span>':'';st.className='st'+(cls?' '+cls:'');
+  $('status').title=(state.name||'')+(txt?' · '+txt.replace(/^[•✓] /,''):'')+'. לחצו לשמירה ופתיחה';
   $('status').setAttribute('aria-label','התוכנית הנוכחית: '+(state.name||'')+(txt?'. '+txt.replace(/^[•✓] /,''):''));
 }
 function fmtDate(t){try{return new Date(t).toLocaleDateString('he-IL');}catch(x){return '';}}
@@ -4125,7 +4168,7 @@ document.addEventListener('keydown',function(e){
 /* ---------- init ---------- */
 if(!load()){state.objs=seed();fixNid();}
 syncGrid();
-syncLayers();renderPanel();updateBtns();updStatus();syncTabs();
+syncLayers();renderPanel();updateBtns();updStatus();syncTabs();syncDoorsBtn();
 if(cur.id)setTimeout(loadComments,0);
 (function(){
   var done=false,seen=true;try{done=!!localStorage.getItem(TOUR_KEY);seen=!!localStorage.getItem(NEW_KEY);}catch(x){done=true;}
