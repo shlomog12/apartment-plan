@@ -404,7 +404,7 @@ button.hl{animation:hl .6s ease 3;border-color:var(--sel)}
     <span class="sep"></span>
  <button id="sumBtn" type="button" title="כמה שקעים, מתגים, נקודות מים וכו׳ יש בכל חדר">📋 סיכום</button>
     <button id="pdf" type="button" title="שמירת התוכנית כקובץ PDF להדפסה">⬇ ייצוא PDF</button>
-    <button id="pdfDims" type="button" title="PDF עם כל המידות, מחושבות לבד מהתוכנית: עמוד לקירות, פתחים וריהוט קבוע, עמוד לחשמל ועמוד למים, ביוב וגז">📐 PDF עם מידות</button>
+    <button id="pdfDims" type="button" title="PDF עם כל המידות, מחושבות לבד מהתוכנית: עמוד לקירות, פתחים וריהוט קבוע, עמוד לחשמל, עמוד למים, ביוב וגז, וחזית לכל קיר עם חלון או נקודות">📐 PDF עם מידות</button>
     <button id="helpBtn" type="button" aria-label="עזרה" title="עזרה">?</button>
     <button id="moreBtn" type="button" class="mob" aria-label="עוד אפשרויות" title="עוד אפשרויות">⋯</button>
   </header>
@@ -2809,16 +2809,16 @@ function wallRuns(){
   state.objs.forEach(function(w){
     if(w.type!=='wall')return;
     var t=w.t||10;
-    if(Math.abs(w.y1-w.y2)<.01)H.push({o:'h',c:w.y1,a:Math.min(w.x1,w.x2),b:Math.max(w.x1,w.x2),t:t});
-    else if(Math.abs(w.x1-w.x2)<.01)Vt.push({o:'v',c:w.x1,a:Math.min(w.y1,w.y2),b:Math.max(w.y1,w.y2),t:t});
+    if(Math.abs(w.y1-w.y2)<.01)H.push({o:'h',c:w.y1,a:Math.min(w.x1,w.x2),b:Math.max(w.x1,w.x2),t:t,wh:wallH(w)});
+    else if(Math.abs(w.x1-w.x2)<.01)Vt.push({o:'v',c:w.x1,a:Math.min(w.y1,w.y2),b:Math.max(w.y1,w.y2),t:t,wh:wallH(w)});
   });
   function merge(L){
     L.sort(function(p,q){return p.c-q.c||p.t-q.t||p.a-q.a;});
     var out=[];
     L.forEach(function(r){
       var z=out[out.length-1];
-      if(z&&Math.abs(z.c-r.c)<.5&&z.t===r.t&&r.a<=z.b+1)z.b=Math.max(z.b,r.b);
-      else out.push({o:r.o,c:r.c,a:r.a,b:r.b,t:r.t});
+      if(z&&Math.abs(z.c-r.c)<.5&&z.t===r.t&&r.a<=z.b+1){z.b=Math.max(z.b,r.b);z.wh=Math.max(z.wh,r.wh);}
+      else out.push({o:r.o,c:r.c,a:r.a,b:r.b,t:r.t,wh:r.wh});
     });
     return out;
   }
@@ -2847,7 +2847,7 @@ function wallFaces(){
       segs.forEach(function(g){
         var m=(g.a+g.b)/2,q=fc+n*20;
         if(!(w.o==='h'?inside(m,q):inside(q,m)))return;
-        faces.push({o:w.o,c:fc,n:n,a:g.a,b:g.b,wc:w.c,t:w.t});
+        faces.push({o:w.o,c:fc,n:n,a:g.a,b:g.b,wc:w.c,t:w.t,wh:w.wh});
       });
     });
   });
@@ -2858,6 +2858,24 @@ function onFace(f,x,y,half){
   var al=f.o==='h'?x:y,ac=f.o==='h'?y:x;
   if(Math.abs(ac-f.wc)>f.t/2+3||al<f.a-half-1||al>f.b+half+1)return null;
   return al;
+}
+/* the doors, windows and wall points on one face, with their position along it */
+function faceItems(f){
+  var ops=[],pts=[];
+  state.objs.forEach(function(o){
+    var al;
+    if(isOpen(o)){
+      if(((o.rot||0)%180===0)!==(f.o==='h'))return;
+      al=onFace(f,o.x,o.y,0);if(al===null||al<f.a||al>f.b)return;
+      ops.push({o:o,al:al});
+    }else if(isWallPt(o)){
+      var a=o.na*Math.PI/180,nn=f.o==='h'?Math.sin(a):Math.cos(a);
+      if(Math.abs(nn)<.5||(nn>0?1:-1)!==f.n)return;
+      al=onFace(f,o.x,o.y,0);if(al===null||al<f.a-1||al>f.b+1)return;
+      pts.push({o:o,al:clamp(al,f.a,f.b)});
+    }
+  });
+  return {ops:ops,pts:pts};
 }
 function autoDims(pg,u,F){
   var faces=wallFaces(),s='<g>',FS=u(1.8),TK=u(.7),SW=u(.15);
@@ -2887,22 +2905,12 @@ function autoDims(pg,u,F){
     }
     return o;
   }
-  var opens=state.objs.filter(isOpen),pts=state.objs.filter(function(o){return isWallPt(o)&&ptLay(o.kind)===pg;});
   faces.forEach(function(f){
-    var cuts=[f.a,f.b],has=false;
+    var cuts=[f.a,f.b],has=false,it=faceItems(f);
     if(pg==='base'){
-      opens.forEach(function(d){
-        if(((d.rot||0)%180===0)!==(f.o==='h'))return;
-        var al=onFace(f,d.x,d.y,0);if(al===null||al<f.a||al>f.b)return;
-        cuts.push(Math.max(f.a,al-d.w/2),Math.min(f.b,al+d.w/2));has=true;
-      });
+      it.ops.forEach(function(d){cuts.push(Math.max(f.a,d.al-d.o.w/2),Math.min(f.b,d.al+d.o.w/2));has=true;});
     }else{
-      pts.forEach(function(o){
-        var a=o.na*Math.PI/180,nn=f.o==='h'?Math.sin(a):Math.cos(a);
-        if(Math.abs(nn)<.5||(nn>0?1:-1)!==f.n)return;
-        var al=onFace(f,o.x,o.y,0);if(al===null||al<f.a-1||al>f.b+1)return;
-        cuts.push(clamp(al,f.a,f.b));has=true;
-      });
+      it.pts.forEach(function(p){if(ptLay(p.o.kind)===pg){cuts.push(p.al);has=true;}});
       if(!has)return;
     }
     if(has)s+=chain(f,cuts,2.6,col);
@@ -2943,6 +2951,122 @@ function autoDims(pg,u,F){
     state.objs.forEach(function(o){if(isPt(o)&&isFreeK(o.kind)&&ptLay(o.kind)===pg)s+=toWalls(o.x,o.y,o.x,o.y,col);});
   }
   return s+'</g>';
+}
+/* ---------- wall elevations for the dimensioned PDF ----------
+   One drawing per wall face that has a window or points on it, seen from inside the room, three to a page.
+   Everything here is in millimetres on the A4 page. */
+function elevFaces(){
+  var rooms=state.objs.filter(function(o){return o.type==='rect'&&o.kind==='room';}),out=[],seen={};
+  var SIDE={h:{'1':'הקיר העליון','-1':'הקיר התחתון'},v:{'1':'הקיר השמאלי','-1':'הקיר הימני'}};
+  wallFaces().forEach(function(f){
+    var it=faceItems(f);
+    if(!it.pts.length&&!it.ops.some(function(d){return d.o.type==='window';}))return;
+    /* looking at the wall from the room: which end of it is on the viewer's left */
+    var flip=(f.o==='h'&&f.n<0)||(f.o==='v'&&f.n>0),L=f.b-f.a;
+    function E(al){return flip?f.b-al:al-f.a;}
+    var m=(f.a+f.b)/2,q=f.c+f.n*30,px=f.o==='h'?m:q,py=f.o==='h'?q:m,room=null;
+    rooms.forEach(function(r){if(px>r.x&&px<r.x+r.w&&py>r.y&&py<r.y+r.h&&(!room||r.w*r.h<room.w*room.h))room=r;});
+    var name=((room&&room.label)||'חדר')+' · '+SIDE[f.o][String(f.n)];
+    seen[name]=(seen[name]||0)+1;if(seen[name]>1)name+=' ('+seen[name]+')';
+    out.push({f:f,L:L,H:f.wh||250,name:name,
+      ops:it.ops.map(function(d){return {o:d.o,x:E(d.al)};}),
+      pts:it.pts.map(function(p){return {o:p.o,x:E(p.al)};})});
+  });
+  return out;
+}
+function elevSheets(){
+  var faces=elevFaces();if(!faces.length)return [];
+  var PW=210,PH=297,M=12,HEAD=16,TW=34,DX=M+TW+6,DW=PW-M-DX,F='font-family="Arial, Helvetica, sans-serif"';
+  var maxL=0,maxH=0;faces.forEach(function(e){maxL=Math.max(maxL,e.L);maxH=Math.max(maxH,e.H);});
+  var D=Math.max(50,Math.ceil(Math.max(maxL*10/(DW-8),maxH*10/60)/5)*5),sc=10/D;
+  function T(x,y,txt,o){o=o||{};
+    var rot=o.rot?' transform="rotate(-90 '+x+' '+y+')"':'';
+    return '<text x="'+x+'" y="'+y+'" text-anchor="'+(o.a||'middle')+'"'+(o.c?' dominant-baseline="central"':'')+' font-size="'+(o.fs||2)+'"'+(o.b?' font-weight="700"':'')+' fill="'+(o.col||'#111')+'" stroke="#fff" stroke-width=".45" paint-order="stroke" '+F+rot+'>'+txt+'</text>';}
+  function Ln(x1,y1,x2,y2,col,w){return '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="'+col+'" stroke-width="'+(w||.15)+'"/>';}
+  function tick(x,y,col){return Ln(x-.6,y+.6,x+.6,y-.6,col,.22);}
+  /* horizontal chain of dimensions at height y through the positions cuts (cm along the wall) */
+  function hchain(x0,cuts,y,col,yb){
+    cuts=cuts.slice().sort(function(p,q){return p-q;}).filter(function(v,i,a){return i===0||v-a[i-1]>.5;});
+    if(cuts.length<2)return '';
+    var s=Ln(x0+cuts[0]*sc,y,x0+cuts[cuts.length-1]*sc,y,col),small=0,i;
+    cuts.forEach(function(v){var x=x0+v*sc;s+=Ln(x,yb,x,y+.5,col,.07)+tick(x,y,col);});
+    for(i=0;i+1<cuts.length;i++){
+      var d=cuts[i+1]-cuts[i],txt=fmt(d),fit=d*sc>=txt.length*1.05+.8,below=!fit&&(small++)%2;
+      s+=T(x0+(cuts[i]+cuts[i+1])/2*sc,below?y+2.3:y-.8,txt,{col:col,fs:1.8});
+    }
+    return s;
+  }
+  /* vertical dimension from the floor (yb) up to h cm, at x */
+  function vdim(x,yb,h0,h1,col){
+    var y0=yb-h0*sc,y1=yb-h1*sc;
+    return Ln(x,y0,x,y1,col)+tick(x,y0,col)+tick(x,y1,col)+T(x+1.2,(y0+y1)/2,fmt(h1-h0),{col:col,fs:1.7,rot:1,c:1});
+  }
+  /* small key plan with the wall marked and an arrow from the room */
+  function keyPlan(f,x,y,w,h){
+    var bb=bboxAll(true),k=Math.min(w/bb.w,h/bb.h),ox=x+(w-bb.w*k)/2-bb.x*k,oy=y+(h-bb.h*k)/2-bb.y*k,s='';
+    state.objs.forEach(function(o){if(o.type==='wall')s+=Ln(ox+o.x1*k,oy+o.y1*k,ox+o.x2*k,oy+o.y2*k,'#aaa',Math.max(.3,o.t*k));});
+    var a=f.o==='h'?[f.a,f.c,f.b,f.c]:[f.c,f.a,f.c,f.b];
+    s+='<line x1="'+(ox+a[0]*k)+'" y1="'+(oy+a[1]*k)+'" x2="'+(ox+a[2]*k)+'" y2="'+(oy+a[3]*k)+'" stroke="#D9480F" stroke-width="1.1" stroke-linecap="round"/>';
+    var m=(f.a+f.b)/2,nx=f.o==='h'?0:f.n,ny=f.o==='h'?f.n:0,cx=ox+(f.o==='h'?m:f.c)*k,cy=oy+(f.o==='h'?f.c:m)*k;
+    var tx=cx+nx*6,ty=cy+ny*6,hx=cx+nx*1.4,hy=cy+ny*1.4;
+    s+=Ln(tx,ty,hx,hy,'#D9480F',.4)+'<path d="M '+hx+' '+hy+' l '+(nx*1.6+ny*1)+' '+(ny*1.6-nx*1)+' l '+(-ny*2)+' '+(nx*2)+' z" fill="#D9480F"/>';
+    return s;
+  }
+  var R=1.3,blockH=function(e){return 7+e.H*sc+3.5+4.3*(1+(e.pts.length?1:0)+(e.ops.length?1:0))+5;};
+  function block(e,y){
+    var s='',yb=y+7+e.H*sc,x0=DX+(DW-e.L*sc)/2,f=e.f;
+    s+=T(PW-M,y+3.5,esc(e.name),{a:'end',fs:3,b:1});
+    s+=T(DX,y+3.5,'אורך '+fmt(e.L)+' · גובה '+fmt(e.H),{a:'start',fs:2.2,col:'#555'});
+    s+=keyPlan(f,M,y+5,TW,Math.max(20,blockH(e)-10));
+    s+='<rect x="'+x0+'" y="'+(yb-e.H*sc)+'" width="'+(e.L*sc)+'" height="'+(e.H*sc)+'" fill="#F5F2EC" stroke="#111" stroke-width=".3"/>';
+    s+=Ln(x0-3,yb,x0+e.L*sc+3,yb,'#111',.6);
+    e.ops.forEach(function(d){
+      var o=d.o,xa=x0+(d.x-o.w/2)*sc,yt=yb-((o.sl||0)+o.h)*sc;
+      s+='<rect x="'+xa+'" y="'+yt+'" width="'+(o.w*sc)+'" height="'+(o.h*sc)+'" fill="'+(o.type==='door'?'#fff':'#cfe0f5')+'" stroke="#111" stroke-width=".25"/>';
+      if(o.type==='window'){
+        var xr=xa+o.w*sc+1.6;
+        if(o.sl>0)s+=vdim(xr,yb,0,o.sl,'#2347A6');
+        s+=vdim(xr,yb,o.sl||0,(o.sl||0)+o.h,'#2347A6');
+      }else s+=T(xa+o.w*sc/2,yt+2.6,fmt(o.h),{col:'#2347A6',fs:1.8});
+    });
+    e.pts.forEach(function(p){
+      var o=p.o,x=x0+p.x*sc,y1=yb-o.h*sc,col=LCOL[ptLay(o.kind)];
+      s+='<g transform="translate('+x+' '+(y1-R*.85)+')" fill="#fff" stroke="'+col+'" stroke-width=".22">'+printSym(o.kind,R,col,F)+'</g>';
+      s+=vdim(x+R+.9,yb,0,o.h,col);
+    });
+    var ry=yb+3.5;
+    if(e.pts.length){s+=hchain(x0,[0,e.L].concat(e.pts.map(function(p){return p.x;})),ry,'#333',yb);ry+=4.3;}
+    if(e.ops.length){var c=[0,e.L];e.ops.forEach(function(d){c.push(Math.max(0,d.x-d.o.w/2),Math.min(e.L,d.x+d.o.w/2));});s+=hchain(x0,c,ry,'#2347A6',yb);ry+=4.3;}
+    s+=hchain(x0,[0,e.L],ry,'#555',yb);
+    return s;
+  }
+  var pages=[],cur=null,y=0,LEG=12,np=0;
+  function head(){
+    np++;
+    var s='<svg xmlns="http://www.w3.org/2000/svg" width="'+(PW*8)+'" height="'+(PH*8)+'" viewBox="0 0 '+PW+' '+PH+'"><rect width="'+PW+'" height="'+PH+'" fill="#fff"/>';
+    s+=T(PW-M,M+6,'חזיתות קירות · מבט מתוך החדר',{a:'end',fs:6,b:1});
+    s+=T(M,M+6,'1:'+D+'  ·  מידות בס״מ  ·  גבהים מהרצפה',{a:'start',fs:3.2,col:'#444'});
+    s+=Ln(M,M+9,PW-M,M+9,'#111',.3);
+    return {s:s,kinds:{}};
+  }
+  function close(){
+    var ks=EK_ORDER.filter(function(k){return cur.kinds[k];}),lx=PW-M,ly=PH-M-2;
+    ks.forEach(function(k){
+      var col=LCOL[ptLay(k)],wd=EK[k].n.length*1.25+7;
+      if(lx-wd<M){lx=PW-M;ly-=5;}
+      cur.s+='<g transform="translate('+(lx-2)+' '+(ly-2.2)+')" fill="#fff" stroke="'+col+'" stroke-width=".22">'+printSym(k,1.4,col,F)+'</g>'+T(lx-5,ly-.6,EK[k].n,{a:'end',fs:2.2,col:'#333'});
+      lx-=wd;
+    });
+    pages.push({svg:cur.s+'</svg>',w:PW*8,h:PH*8});
+  }
+  faces.forEach(function(e){
+    var h=blockH(e);
+    if(!cur||y+h>PH-M-LEG){if(cur)close();cur=head();y=M+HEAD;}
+    cur.s+=block(e,y);e.pts.forEach(function(p){cur.kinds[p.o.kind]=1;});
+    y+=h;
+  });
+  close();
+  return pages;
 }
 /* pg: one page of the dimensioned PDF ('base', 'elec' or 'plumb'); none = the regular export, following the layer settings */
 function printSvg(pg){
@@ -3092,6 +3216,7 @@ function exportPdf(){
 function exportDimsPdf(){
   var src=[printSvg('base')];
   ['elec','plumb'].forEach(function(ly){if(state.objs.some(function(o){return isPt(o)&&ptLay(o.kind)===ly;}))src.push(printSvg(ly));});
+  src=src.concat(elevSheets());
   pagesToPdf(src,'apartment-plan-dimensions.pdf');
 }
 function pagesToPdf(src,name){
@@ -3156,7 +3281,7 @@ $('mSnap').addEventListener('change',function(e){$('snapSel').value=e.target.val
 /* ---------- what's new (once, for people who already know the app) ---------- */
 var NEW_KEY='apt-new-2';
 var NEWS=[
-  {i:'📐',t:'PDF עם מידות',d:'כל המידות מחושבות לבד מהתוכנית: מהפינה לחלון ולדלת, אורך כל קיר, ריהוט קבוע, ומיקום וגובה של כל שקע ונקודת מים או גז. משנים חלון, והמידות מתעדכנות בייצוא הבא.',a:'הורד',f:function(){exportDimsPdf();}},
+  {i:'📐',t:'PDF עם מידות',d:'כל המידות מחושבות לבד מהתוכנית: מהפינה לחלון ולדלת, אורך כל קיר, ריהוט קבוע, ומיקום וגובה של כל שקע ונקודת מים או גז, ועמודי חזית לכל קיר עם חלון או נקודות. משנים חלון, והמידות מתעדכנות בייצוא הבא.',a:'הורד',f:function(){exportDimsPdf();}},
   {i:'⚡',t:'חשמל ואינסטלציה',d:'שקעים, מתגים, תאורה, נקודות מים, ניקוז וגז על הקירות, עם גובה מהרצפה. נראים אמיתיים בתלת־ממד.',a:'נסו',f:function(){if(view!=='plan')setView('plan');openAdd();}},
   {i:'🗂',t:'שכבות',d:'עובדים על שכבה אחת (קירות וריהוט, חשמל או אינסטלציה), והשאר חיוורות ונעולות כדי שלא יזוזו בטעות.',a:'פתח',f:function(){openLayers();}},
   {i:'📋',t:'סיכום לפי חדר',d:'כמה שקעים, מתגים ונקודות מים יש בכל חדר, לשליחה לחשמלאי או לאינסטלטור.',a:'פתח',f:function(){openSummary();}},
