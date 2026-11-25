@@ -263,6 +263,45 @@ button.danger{color:var(--sel)}
 .dlg.side .dlg-box{pointer-events:auto;width:min(360px,100%);max-height:calc(100vh - 32px);overflow:auto;box-shadow:0 8px 30px rgba(0,0,0,.25)}
 .dlg.side .dlg-box{max-height:calc(100vh - 130px)}
 @media (max-width:760px){.dlg.side{place-items:end center;padding:8px}.dlg.side .dlg-box{max-height:48vh}}
+/* colours panel: a head that stays in view, with ⓘ and × */
+#dlgMat .dlg-box{padding-top:0}
+#dlgMat .mhead{position:sticky;top:0;z-index:2;background:var(--panel);padding-top:12px;margin:0 -14px;padding-inline:14px}
+#dlgMat h2{display:flex;align-items:center;gap:6px;margin:0}
+#dlgMat h2 span{flex:1}
+#dlgMat .ib{width:30px;height:30px;padding:0;border-radius:50%;font-size:15px;line-height:1}
+#dlgMat .grip{display:none}
+.mpick{display:none;align-items:center;gap:8px;font-size:14px;font-weight:600;padding:2px 0 6px}
+.mpick select{flex:1;min-width:0}
+#matInfo{display:none}
+.mnum{display:inline-flex;align-items:center;gap:6px}
+.stp{display:inline-flex;align-items:center;direction:rtl}
+.stp button{width:26px;height:26px;padding:0;font-size:15px;line-height:1}
+.stp button:first-child{border-radius:0 6px 6px 0}
+.stp button:last-child{border-radius:6px 0 0 6px}
+.stp input{width:52px;height:26px;text-align:center;border-radius:0;border-inline:0;-moz-appearance:textfield}
+.stp input::-webkit-outer-spin-button,.stp input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+@media (max-width:760px){
+  /* ט1: the panel open: the 3D toolbars step aside and the panel starts lower; drag the grip to resize */
+  .app.matopen #tdTools,.app.v3d.matopen #zoomBox,.app.matopen #pad,.app.matopen .tdmap{display:none!important}
+  #dlgMat.dlg.side .dlg-box{max-height:var(--mh,42vh);transition:max-height .12s}
+  #dlgMat .grip{display:flex;justify-content:center;align-items:center;height:22px;margin-top:-6px;touch-action:none;cursor:ns-resize}
+  #dlgMat .grip i{width:44px;height:5px;border-radius:3px;background:var(--line)}
+  #dlgMat .mhead{padding-top:8px}
+  /* ט2: one picker instead of three rows of room tabs; the explanation after the first time behind ⓘ */
+  #dlgMat .mtabs{display:none}
+  .mpick{display:flex}
+  .mpick select{height:44px;font-size:16px}
+  #matInfo{display:inline-block}
+  #dlgMat.seen:not(.hint) .mathint{display:none}
+  #dlgMat .ib{width:40px;height:40px;font-size:18px}
+  /* ט3: finger-sized controls, and 16px text so iOS does not zoom when a field is tapped */
+  #dlgMat .matrow select,#dlgMat .mopts select{font-size:16px;height:40px}
+  #dlgMat .matrow input[type=color]{width:52px;height:40px}
+  #dlgMat .stp button{width:40px;height:40px;font-size:20px}
+  #dlgMat .stp input{width:56px;height:40px;font-size:16px}
+  #dlgMat .mguide summary{min-height:44px;font-size:14px}
+  .mline{gap:8px 10px}
+}
 .mathint{margin:0;font-size:12px;color:var(--muted)}
 .matrow{display:grid;gap:5px;padding:7px 0;border-top:1px solid var(--line)}
 .matrow .mh{display:flex;align-items:center;gap:8px;font-weight:600;font-size:13px}
@@ -293,8 +332,7 @@ button.danger{color:var(--sel)}
 .mguide .gh{margin:0 0 6px;color:var(--muted)}
 .mguide .mstart{margin-bottom:6px}
 .mline{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;width:100%}
-.mstart input{width:56px}
-@media (pointer:coarse){.mguide summary{min-height:44px}.mstart input{width:64px;height:36px;font-size:16px}}
+@media (pointer:coarse){.mguide summary{min-height:44px}}
 .mcuts.warn{color:var(--sel)}
 .lnk{border:none;background:none;padding:0;color:var(--accent);font:inherit;font-size:12px;cursor:pointer;text-decoration:underline}
 .mitem{display:flex;align-items:center;gap:10px;padding:6px 0}
@@ -792,7 +830,10 @@ button.hl{animation:hl .6s ease 3;border-color:var(--sel)}
   </div>
   <div class="dlg side" id="dlgMat" hidden>
     <div class="dlg-box" role="dialog" aria-labelledby="matTitle">
-      <h2 id="matTitle">🎨 צבעים וחומרים</h2>
+      <div class="mhead">
+        <div class="grip" id="matGrip" role="button" tabindex="0" aria-label="הגדלה או הקטנה של החלונית" title="גררו או לחצו כדי להגדיל או להקטין"><i></i></div>
+        <h2 id="matTitle"><span>🎨 צבעים וחומרים</span><button type="button" id="matInfo" class="ib" aria-label="הסבר" title="הסבר" aria-expanded="false">ⓘ</button><button type="button" id="matX" class="ib" aria-label="סגור" title="סגור (Esc)">×</button></h2>
+      </div>
       <p class="mathint">בוחרים לכל הבית, ואפשר לשנות חדר אחד. השליכט החיצוני נמצא בלשונית כל הבית. כשהחלונית פתוחה, לחיצה בהדמיה על רצפה, קיר, דלת או חלון בוחרת אותם.</p>
       <div id="matRows"></div>
       <div class="row"><button id="matReset" type="button">חזרה לברירת המחדל</button><span style="flex:1"></span><button id="matClose" type="button" class="pri">סגור</button></div>
@@ -2326,6 +2367,7 @@ function tdResize(){
   var w=$('td').clientWidth,h=$('td').clientHeight;
   if(!w||!h)return;
   T.r.setSize(w,h,false);T.cam.aspect=w/h;T.cam.updateProjectionMatrix();
+  if(typeof tdFit==='function')tdFit();
 }
 function m3(color,extra){
   var o={color:color,roughness:.9,metalness:0};
@@ -4200,13 +4242,20 @@ function floorOpts(F,keys,cur,inh){
   var h='<div class="mopts">'+sel(keys[0],'גודל (ס״מ)',FLOOR_SZ[F.type],cur[0],inh&&inh.sz)+sel(keys[1],'פריסה',FLOOR_LAY[F.type],cur[1],inh&&nm(FLOOR_LAY[F.type],inh.lay));
   if(F.type==='tile')h+=sel(keys[2],'רובה',FLOOR_GR,cur[2],inh&&nm(FLOOR_GR,inh.gr));
   h+='</div>';
-  function numIn(k,label,v,iv){return '<label>'+label+' <input type="number" inputmode="numeric" step="1" data-fn="'+k+'" value="'+(v===''||v===undefined?'':v)+'" placeholder="'+(inh?iv:'0')+'"> ס״מ</label>';}
+  function numIn(k,label,v,iv){
+    var val=v===''||v===undefined||v===null?'':v;
+    return '<span class="mnum"><span>'+label+'</span><span class="stp"><button type="button" data-st="'+k+'" data-d="5" aria-label="'+label+' 5 ס״מ יותר">+</button>'+
+      '<input type="number" inputmode="numeric" step="1" data-fn="'+k+'" value="'+val+'" placeholder="'+(inh?iv:'0')+'" aria-label="'+label+' בס״מ">'+
+      '<button type="button" data-st="'+k+'" data-d="-5" aria-label="'+label+' 5 ס״מ פחות">−</button></span> ס״מ</span>';
+  }
   var g='<div class="mopts mstart"><b>אריחים שלמים מתחילים מ:</b>'+
     '<div class="mline">'+sel(keys[3],'ימין־שמאל',FLOOR_AX,cur[3],inh&&nm(FLOOR_AX,inh.ax).replace(/ \(.*\)/,''))+numIn(keys[5],'הזזה ימינה',cur[5],inh&&inh.dx)+'</div>'+
     '<div class="mline">'+sel(keys[4],'למעלה־למטה',FLOOR_AY,cur[4],inh&&nm(FLOOR_AY,inh.ay).replace(/ \(.*\)/,''))+numIn(keys[6],'הזזה למטה',cur[6],inh&&inh.dy)+'</div></div>';
   /* the summary line tells where whole tiles start, so the folded section still says something */
   var ax=cur[3]||(inh?inh.ax:'')||'c',ay=cur[4]||(inh?inh.ay:'')||'c';
   var at=(ax==='c'&&ay==='c')?'ממרכז החדר':(nm(FLOOR_AX,ax).replace(/ \(.*\)/,'')+' · '+nm(FLOOR_AY,ay).replace(/ \(.*\)/,''));
+  var sx=+(cur[5]!==''&&cur[5]!=null?cur[5]:(inh?inh.dx:0))||0,sy=+(cur[6]!==''&&cur[6]!=null?cur[6]:(inh?inh.dy:0))||0;
+  if(sx||sy)at+=' · הוזז '+[sx?sx+' ימינה':'',sy?sy+' למטה':''].filter(Boolean).join(', ');
   return {look:h,guide:g,at:at};
 }
 /* the folded "for the tiler" section: start point, shifts, and (for a room) the cuts at each wall */
@@ -4227,6 +4276,9 @@ function renderMat(){
     h+='<button type="button" data-scope="'+r.id+'"'+(on?' class="on"':'')+'><i style="background:'+F.show+'"></i>'+esc(roomName(r.id))+(roomCustom(r.id)?' <b>●</b>':'')+'</button>';
   });
   h+='</div>';
+  h+='<label class="mpick"><span>עורכים:</span><select data-scope-sel aria-label="מה עורכים"><option value=""'+(!MS.room?' selected':'')+'>🏠 כל הבית</option>'+rooms.map(function(r){
+    return '<option value="'+r.id+'"'+(MS.room===r.id?' selected':'')+'>'+esc(roomName(r.id))+(roomCustom(r.id)?' ●':'')+'</option>';
+  }).join('')+'</select></label>';
   if(MS.item){
     var it=matItems()[MS.item],kind=MS.item[0],up=kind==='a'?'כל הבית':(MS.room?roomName(MS.room):'כל הבית');
     var cur=kind==='w'?wallColOf(MS.room,MS.item.split('|')[1],+MS.item.split('|')[2],MT,MS.ext):kind==='d'?doorColOf(byId(MS.item.slice(2))||{},MT):aluColOf({id:MS.item.slice(2)},MT);
@@ -4266,6 +4318,40 @@ function renderMat(){
   var scopeTxt=MS.item?'':MS.room?'איפוס החדר':'איפוס הכל';
   $('matReset').textContent=scopeTxt;$('matReset').hidden=!scopeTxt;
 }
+var MAT_HINT='apt-mat-hint';
+function narrowScr(){try{return window.matchMedia('(max-width:760px)').matches;}catch(x){return false;}}
+/* on a phone the panel covers the lower part of the 3D view: shift and shrink the picture so the model sits in the part still visible */
+function tdFit(){
+  if(!T.cam||!T.r)return;
+  var w=$('td').clientWidth,h=$('td').clientHeight,cover=0;
+  if(w&&h&&!$('dlgMat').hidden&&narrowScr()){
+    var tb=$('td').getBoundingClientRect(),bx=$('dlgMat').querySelector('.dlg-box').getBoundingClientRect();
+    cover=Math.max(0,Math.min(h*.9,tb.bottom-bx.top+8));
+  }
+  if(cover>0){T.cam.setViewOffset(w,h,0,cover/2,w,h);T.cam.zoom=Math.max(.45,Math.min(1,(h-cover)/h*1.15));}
+  else{T.cam.clearViewOffset();T.cam.zoom=1;}
+  T.cam.updateProjectionMatrix();
+}
+(function(){
+  var g=$('matGrip'),box=$('dlgMat').querySelector('.dlg-box'),y0=0,h0=0,moved=false,down=false;
+  function vh(){return window.innerHeight/100;}
+  function setH(px){box.style.setProperty('--mh',Math.round(px)+'px');tdFit();}
+  g.addEventListener('pointerdown',function(e){down=true;moved=false;y0=e.clientY;h0=box.getBoundingClientRect().height;try{g.setPointerCapture(e.pointerId);}catch(x){}e.preventDefault();});
+  g.addEventListener('pointermove',function(e){
+    if(!down)return;var d=y0-e.clientY;if(Math.abs(d)>4)moved=true;
+    if(moved)setH(Math.max(vh()*25,Math.min(vh()*88,h0+d)));
+  });
+  function end(){
+    if(!down)return;down=false;
+    var hNow=box.getBoundingClientRect().height,tall=moved?hNow>vh()*58:hNow<vh()*58;
+    setH(vh()*(tall?85:42));
+  }
+  g.addEventListener('pointerup',end);g.addEventListener('pointercancel',end);
+  g.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();var t=box.getBoundingClientRect().height<vh()*58;setH(vh()*(t?85:42));}});
+})();
+$('matInfo').addEventListener('click',function(){var on=!$('dlgMat').classList.contains('hint');$('dlgMat').classList.toggle('hint',on);this.setAttribute('aria-expanded',on?'true':'false');});
+$('matX').addEventListener('click',closeMat);
+$('dlgMat').addEventListener('keydown',function(e){if(e.key==='Escape')closeMat();});
 /* while a room's tab is open in the colours panel, its floor is outlined in 3D so it is clear which room is being edited */
 function tdHi(){
   if(!T.sc||typeof THREE==='undefined')return;
@@ -4283,9 +4369,14 @@ function tdHi(){
   g.position.set((o.x+o.w/2)/100,0,(o.y+o.h/2)/100);
   T.sc.add(g);T.hi=g;
 }
-function openMat(){matBefore=snapshot();matApply=false;renderMat();$('dlgMat').hidden=false;tdHi();}
+function openMat(){
+  matBefore=snapshot();matApply=false;renderMat();$('dlgMat').hidden=false;
+  var seen=false;try{seen=!!localStorage.getItem(MAT_HINT);localStorage.setItem(MAT_HINT,'1');}catch(x){}
+  $('dlgMat').classList.toggle('seen',seen);$('dlgMat').classList.remove('hint');$('matInfo').setAttribute('aria-expanded','false');
+  $('app').classList.add('matopen');tdHi();tdFit();
+}
 function closeMat(){
-  $('dlgMat').hidden=true;tdHi();
+  $('dlgMat').hidden=true;$('app').classList.remove('matopen');tdHi();tdFit();
   if(matBefore!==null&&matBefore!==snapshot()){pushHist(matBefore);save();}
   matBefore=null;
 }
@@ -4324,6 +4415,7 @@ $('matRows').addEventListener('input',function(e){
   setMat(k,e.target.value);
 });
 $('matRows').addEventListener('change',function(e){
+  if(e.target.hasAttribute('data-scope-sel')){MS=e.target.value?{room:e.target.value}:{};matApply=false;renderMat();$('dlgMat').querySelector('.dlg-box').scrollTop=0;return;}
   var fk=e.target.getAttribute('data-fk');
   if(fk){setMat(fk,e.target.value||null);renderMat();return;}
   var fn=e.target.getAttribute('data-fn');
@@ -4340,6 +4432,12 @@ $('matRows').addEventListener('click',function(e){
   var t=e.target.closest&&e.target.closest('button');if(!t)return;
   if(t.hasAttribute('data-scope')){var id=t.getAttribute('data-scope');MS=id?{room:id}:{};matApply=false;renderMat();return;}
   if(t.id==='matApplyBtn'){matApply=!matApply;renderMat();return;}
+  if(t.hasAttribute('data-st')){
+    var inp=t.parentNode.querySelector('input'),cur=inp.value!==''?+inp.value:(+inp.placeholder||0);
+    var nv=Math.round(cur+(+t.getAttribute('data-d')));setMat(t.getAttribute('data-st'),nv);renderMat();
+    var again=$('matRows').querySelector('[data-st="'+t.getAttribute('data-st')+'"][data-d="'+t.getAttribute('data-d')+'"]');if(again)again.focus();
+    return;
+  }
   if(t.id==='matApplyGo'){
     var ids=Array.prototype.map.call($('matRows').querySelectorAll('.mapply input:checked'),function(c){return c.value;});
     if(!ids.length){flash('סמנו לפחות חדר אחד');return;}
