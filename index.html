@@ -167,6 +167,8 @@ button.danger{color:var(--sel)}
 .morelist{display:grid;gap:6px}
 .morelist button,.morelist label{height:auto;min-height:44px;text-align:start;justify-content:flex-start;display:flex;align-items:center;gap:8px;padding:6px 12px;border:1px solid var(--line);border-radius:6px;background:var(--btn);font-size:14px}
 .morelist label input{width:20px;height:20px;accent-color:var(--accent)}
+.morelist h3{margin:8px 2px 0;font-size:12px;font-weight:600;color:var(--muted)}
+.morelist button.mpri{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600}
 .morelist label select{margin-inline-start:auto;height:34px}
 /* view settings (grid, room sizes, snapping) live in the ⋯ menu on every screen */
 .brk{display:none}
@@ -255,6 +257,7 @@ button.danger{color:var(--sel)}
 .lyrow .lyact small{color:var(--muted);font-size:12px;font-weight:400}
 .lyrow .lyeye{min-width:96px;height:auto;font-size:13px}
 .toast button{margin-inline-start:10px;height:28px;padding:0 10px;background:var(--paper);color:var(--ink);border-color:var(--paper);font-weight:700}
+@media (pointer:coarse){.toast button{height:40px;padding:0 14px;font-size:15px}}
 /* dialog */
 .dlg{position:fixed;inset:0;background:rgba(10,14,20,.55);display:grid;place-items:center;padding:16px;z-index:20}
 .dlg-box{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;width:min(560px,100%);display:grid;gap:8px}
@@ -713,12 +716,14 @@ button.hl{animation:hl .6s ease 3;border-color:var(--sel)}
     <div class="dlg-box" role="dialog" aria-modal="true" aria-labelledby="moreTitle">
       <h2 id="moreTitle">עוד</h2>
       <div class="morelist">
+        <button type="button" data-m="export" class="mpri">⬇ ייצוא PDF…</button>
+        <button type="button" data-m="sum">📋 סיכום נקודות לפי חדר</button>
+        <button type="button" data-m="layers">🗂 שכבות</button>
+        <h3>תצוגה</h3>
         <label><input type="checkbox" id="mGrid"> הצג רשת</label>
         <label><input type="checkbox" id="mDims"> מידות חדרים</label>
         <label>הצמדה לרשת <select id="mSnap" aria-label="הצמדה לרשת"><option value="0">כבויה</option><option value="5">5 ס״מ</option><option value="10">10 ס״מ</option><option value="25">25 ס״מ</option></select></label>
-        <button type="button" data-m="layers">🗂 שכבות</button>
-        <button type="button" data-m="sum">📋 סיכום נקודות לפי חדר</button>
-        <button type="button" data-m="export">⬇ ייצוא PDF…</button>
+        <h3>עזרה</h3>
         <button type="button" data-m="new">✨ מה חדש</button>
         <button type="button" data-m="help">? עזרה</button>
         <button type="button" data-m="tour">📖 הדרכה קצרה</button>
@@ -3059,8 +3064,8 @@ toastEl.className='toast';toastEl.setAttribute('role','status');toastEl.title='�
 toastEl.addEventListener('click',function(){clearTimeout(toastT);toastEl.style.display='none';});
 $('stage').appendChild(toastEl);
 var toastT=null;
-function flashAct(t,label,fn){
-  flash(t,6000);
+function flashAct(t,label,fn,ms){
+  flash(t,ms||6000);
   var b=document.createElement('button');b.type='button';b.textContent=label;
   b.addEventListener('click',function(e){e.stopPropagation();toastEl.style.display='none';fn();});
   toastEl.appendChild(b);
@@ -3768,6 +3773,17 @@ $('expGo').addEventListener('click',function(){
 });
 $('expClose').addEventListener('click',function(){$('dlgExp').hidden=true;});
 $('dlgExp').addEventListener('click',function(e){if(e.target===$('dlgExp'))$('dlgExp').hidden=true;});
+/* phones and some computers can hand a file to WhatsApp, mail and so on. The share sheet needs a tap, so it is a button on the message */
+function offerShare(blob,name){
+  var f=null;
+  try{f=new File([blob],name,{type:'application/pdf'});}catch(x){return;}
+  if(!navigator.share||!navigator.canShare||!navigator.canShare({files:[f]}))return;
+  setTimeout(function(){
+    flashAct('ה־PDF נשמר','📤 שתף',function(){
+      navigator.share({files:[f],title:'תוכנית הדירה'}).catch(function(e){if(e&&e.name!=='AbortError')flash('השיתוף לא הצליח. הקובץ נשמר בהורדות');});
+    },12000);
+  },60);
+}
 function pagesToPdf(src,name){
   if(pdfBusy){flash('ה־PDF עדיין בהכנה…');return;}
   pdfBusy=true;$('expBtn').disabled=true;
@@ -3776,7 +3792,9 @@ function pagesToPdf(src,name){
     flash(src.length>1?'מכין PDF… עמוד '+Math.min(i+1,src.length)+' מתוך '+src.length:'מכין PDF…',60000);
     if(i>=src.length){
       done();
-      try{saveFile(name,new Blob([makePdf(out,595.28,841.89)],{type:'application/pdf'}));}catch(e){fail();}
+      var blob;
+      try{blob=new Blob([makePdf(out,595.28,841.89)],{type:'application/pdf'});saveFile(name,blob);}catch(e){fail();return;}
+      offerShare(blob,name);
       return;
     }
     svgToJpg(src[i],function(pg){out.push(pg);next(i+1);},fail);
