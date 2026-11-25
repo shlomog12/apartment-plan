@@ -273,11 +273,14 @@ button.danger{color:var(--sel)}
 #dlgMat .dlg-box{padding-top:0}
 #dlgMat .mhead{position:sticky;top:0;z-index:2;background:var(--panel);padding-top:12px;margin:0 -14px;padding-inline:14px}
 #dlgMat h2{display:flex;align-items:center;gap:6px;margin:0}
-#dlgMat h2 span{flex:1}
+#dlgMat h2>span:first-child{flex:1}
 #dlgMat .ib{width:30px;height:30px;padding:0;border-radius:50%;font-size:15px;line-height:1}
 #dlgMat .grip{display:none}
-.mpick{display:none;align-items:center;gap:8px;font-size:14px;font-weight:600;padding:2px 0 6px}
-.mpick select{flex:1;min-width:0}
+#dlgMat h2{flex-wrap:wrap}
+#dlgMat #matPick{order:5;flex:0 0 100%;display:block}
+.mpick{width:100%}
+.mpick{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;padding:8px 0 6px}
+.mpick select{flex:1;min-width:0;font-size:14px;height:34px}
 #matInfo{display:none}
 .mnum{display:inline-flex;align-items:center;gap:6px}
 .stp{display:inline-flex;align-items:center;direction:rtl}
@@ -293,16 +296,18 @@ button.danger{color:var(--sel)}
   #dlgMat .grip{display:flex;justify-content:center;align-items:center;height:22px;margin-top:-6px;touch-action:none;cursor:ns-resize}
   #dlgMat .grip i{width:44px;height:5px;border-radius:3px;background:var(--line)}
   #dlgMat .mhead{padding-top:8px}
-  /* ט2: one picker instead of three rows of room tabs; the explanation after the first time behind ⓘ */
-  #dlgMat .mtabs{display:none}
-  .mpick{display:flex}
+  /* ט2: one picker instead of three rows of room tabs, in the title's place; the explanation after the first time behind ⓘ */
+  #dlgMat h2{flex-wrap:nowrap}
+  #dlgMat h2>span:first-child{display:none}
+  #dlgMat #matPick{order:0;flex:1 1 auto;min-width:0}
+  .mpick{padding:0;font-size:14px}
   .mpick select{height:44px;font-size:16px}
   #matInfo{display:inline-block}
   #dlgMat.seen:not(.hint) .mathint{display:none}
   #dlgMat .ib{width:40px;height:40px;font-size:18px}
   /* ט3: finger-sized controls, and 16px text so iOS does not zoom when a field is tapped */
   #dlgMat .matrow select,#dlgMat .mopts select{font-size:16px;height:40px}
-  #dlgMat .matrow input[type=color]{width:52px;height:40px}
+  #dlgMat .swc{height:40px;font-size:14px;padding:0 12px}
   #dlgMat .stp button{width:40px;height:40px;font-size:20px}
   #dlgMat .stp input{width:56px;height:40px;font-size:16px}
   #dlgMat .mguide summary{min-height:44px;font-size:14px}
@@ -312,9 +317,13 @@ button.danger{color:var(--sel)}
 .matrow{display:grid;gap:5px;padding:7px 0;border-top:1px solid var(--line)}
 .matrow .mh{display:flex;align-items:center;gap:8px;font-weight:600;font-size:13px}
 .matrow .mh span{flex:1}
-.matrow input[type=color]{width:38px;height:28px;padding:0;border:1px solid var(--line);border-radius:6px;background:none;cursor:pointer}
 .matrow select{font:inherit;font-size:12px}
 .sw{display:flex;flex-wrap:wrap;gap:5px}
+.sw button.on,.sw .swc.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset;font-weight:600}
+.swc{position:relative;display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:3px 7px;border:1px dashed var(--line);border-radius:6px;background:var(--btn);cursor:pointer;height:30px}
+.swc i{width:13px;height:13px;border-radius:3px;border:1px solid rgba(0,0,0,.25);display:inline-block}
+.swc input[type=color]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:0;padding:0}
+.swc:focus-within{outline:2px solid var(--accent);outline-offset:1px}
 .mtabs{display:flex;flex-wrap:wrap;gap:5px;padding-bottom:4px}
 .mtabs button{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:4px 8px;border-radius:14px}
 .mtabs button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
@@ -337,11 +346,16 @@ button.danger{color:var(--sel)}
 .mguide .gs b{color:var(--sel);font-weight:600}
 .mguide .gh{margin:0 0 6px;color:var(--muted)}
 .mguide .mstart{margin-bottom:6px}
+.mpic{display:block;width:100%;max-height:170px;margin:4px 0 6px;font-family:Arial,Helvetica,sans-serif}
 .mline{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;width:100%}
 @media (pointer:coarse){.mguide summary{min-height:44px}}
 .mcuts.warn{color:var(--sel)}
 .lnk{border:none;background:none;padding:0;color:var(--accent);font:inherit;font-size:12px;cursor:pointer;text-decoration:underline}
-.mitem{display:flex;align-items:center;gap:10px;padding:6px 0}
+.mitem{background:var(--paper);border:1px solid var(--line)}
+.mitem{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;padding:8px 10px;margin:4px 0;border-radius:8px;background:color-mix(in srgb,var(--sel) 12%,var(--panel));border:1px solid color-mix(in srgb,var(--sel) 45%,var(--line))}
+.mitem span{font-size:12px;color:var(--muted);flex-basis:100%}
+.mitem b{flex:1;font-size:14px}
+.tdtip{position:fixed;z-index:30;display:none;pointer-events:none;background:var(--ink);color:var(--paper);font-size:12px;padding:4px 8px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,.25);white-space:nowrap}
 .mapply{display:grid;gap:4px;padding:8px;border:1px solid var(--line);border-radius:8px;font-size:13px}
 .mapply .mwhat{margin:0 0 4px;color:var(--muted);font-size:12px;line-height:1.4}
 .mapply .mwhat b{color:var(--ink);font-weight:600}
@@ -846,7 +860,7 @@ button.hl{animation:hl .6s ease 3;border-color:var(--sel)}
     <div class="dlg-box" role="dialog" aria-labelledby="matTitle">
       <div class="mhead">
         <div class="grip" id="matGrip" role="button" tabindex="0" aria-label="הגדלה או הקטנה של החלונית" title="גררו או לחצו כדי להגדיל או להקטין"><i></i></div>
-        <h2 id="matTitle"><span>🎨 צבעים וחומרים</span><button type="button" id="matInfo" class="ib" aria-label="הסבר" title="הסבר" aria-expanded="false">ⓘ</button><button type="button" id="matX" class="ib" aria-label="סגור" title="סגור (Esc)">×</button></h2>
+        <h2 id="matTitle"><span>🎨 צבעים וחומרים</span><span id="matPick"></span><button type="button" id="matInfo" class="ib" aria-label="הסבר" title="הסבר" aria-expanded="false">ⓘ</button><button type="button" id="matX" class="ib" aria-label="סגור" title="סגור (Esc)">×</button></h2>
       </div>
       <p class="mathint">בוחרים לכל הבית, ואפשר לשנות חדר אחד. השליכט החיצוני נמצא בלשונית כל הבית. כשהחלונית פתוחה, לחיצה בהדמיה על רצפה, קיר, דלת או חלון בוחרת אותם.</p>
       <div id="matRows"></div>
@@ -3550,22 +3564,55 @@ function patternPieces(F,fc,x0,y0,x1,y1){
 }
 function floorTilesSvg(u){
   var s='';
-  tiledRooms().forEach(function(t,n){
-    var r=t.r,F=t.F,L=t.L,fc=floorCanvas(F),rot=fc.rot,c=Math.cos(rot),sn=Math.sin(rot);
-    /* room corners in the pattern frame */
-    var xs=[],ys=[];[[0,0],[r.w,0],[0,r.h],[r.w,r.h]].forEach(function(q){var X=q[0]-L.ox,Y=q[1]-L.oy;xs.push(X*c+Y*sn);ys.push(-X*sn+Y*c);});
-    var pcs=patternPieces(F,fc,Math.min.apply(null,xs),Math.min.apply(null,ys),Math.max.apply(null,xs),Math.max.apply(null,ys));
-    s+='<clipPath id="flc'+n+'"><rect x="'+r.x+'" y="'+r.y+'" width="'+r.w+'" height="'+r.h+'"/></clipPath>';
-    s+='<g clip-path="url(#flc'+n+')"><g transform="translate('+(r.x+L.ox)+' '+(r.y+L.oy)+') rotate('+(rot*180/Math.PI)+')" stroke="#8d8a84" stroke-width="'+u(.1)+'">';
-    pcs.forEach(function(q){
-      var full=true;
-      [[q[0],q[1]],[q[0]+q[2],q[1]],[q[0],q[1]+q[3]],[q[0]+q[2],q[1]+q[3]]].forEach(function(v){
-        var X=L.ox+v[0]*c-v[1]*sn,Y=L.oy+v[0]*sn+v[1]*c;if(X<-.5||X>r.w+.5||Y<-.5||Y>r.h+.5)full=false;});
-      s+='<rect x="'+q[0]+'" y="'+q[1]+'" width="'+q[2]+'" height="'+q[3]+'" fill="'+(full?'#fff':'#FBDDB8')+'"/>';
-    });
-    s+='</g></g>';
-  });
+  tiledRooms().forEach(function(t,n){s+=roomTilesSvg(t.r,t.F,t.L,'flc'+n,u(.1));});
   return s;
+}
+/* every tile and plank of one room, in plan units, clipped to the room; cut pieces shaded */
+function roomTilesSvg(r,F,L,clipId,sw){
+  var s='',fc=floorCanvas(F),rot=fc.rot,c=Math.cos(rot),sn=Math.sin(rot);
+  /* room corners in the pattern frame */
+  var xs=[],ys=[];[[0,0],[r.w,0],[0,r.h],[r.w,r.h]].forEach(function(q){var X=q[0]-L.ox,Y=q[1]-L.oy;xs.push(X*c+Y*sn);ys.push(-X*sn+Y*c);});
+  var pcs=patternPieces(F,fc,Math.min.apply(null,xs),Math.min.apply(null,ys),Math.max.apply(null,xs),Math.max.apply(null,ys));
+  s+='<clipPath id="'+clipId+'"><rect x="'+r.x+'" y="'+r.y+'" width="'+r.w+'" height="'+r.h+'"/></clipPath>';
+  s+='<g clip-path="url(#'+clipId+')"><g transform="translate('+(r.x+L.ox)+' '+(r.y+L.oy)+') rotate('+(rot*180/Math.PI)+')" stroke="#8d8a84" stroke-width="'+sw+'">';
+  pcs.forEach(function(q){
+    var full=true;
+    [[q[0],q[1]],[q[0]+q[2],q[1]],[q[0],q[1]+q[3]],[q[0]+q[2],q[1]+q[3]]].forEach(function(v){
+      var X=L.ox+v[0]*c-v[1]*sn,Y=L.oy+v[0]*sn+v[1]*c;if(X<-.5||X>r.w+.5||Y<-.5||Y>r.h+.5)full=false;});
+    s+='<rect x="'+q[0]+'" y="'+q[1]+'" width="'+q[2]+'" height="'+q[3]+'" fill="'+(full?'#fff':'#FBDDB8')+'"/>';
+  });
+  return s+'</g></g>';
+}
+/* the small picture in the colours panel: the room's tiles, the cuts at each wall and where whole tiles start */
+function cutsPic(rm,F,L){
+  if(!F.col&&FLOOR_P[F.type])F=Object.assign({},F,{col:FLOOR_P[F.type][0][1]});
+  var r={x:0,y:0,w:rm.w,h:rm.h},fs=Math.max(rm.w,rm.h)/13,sw=Math.max(rm.w,rm.h)/400,m=fs*1.7,t='';
+  function lab(x,y,v,rotate){
+    var tr=rotate?' transform="rotate(-90 '+x+' '+y+')"':'';
+    return '<text x="'+x+'" y="'+y+'" text-anchor="middle" dominant-baseline="central" font-size="'+fs+'" fill="#7a3d00" font-weight="600"'+tr+'>'+v+'</text>';
+  }
+  function cv(c,unit){return c>=unit-.5?'שלם':fmt(c);}
+  if(L.cx){t+=lab(-m/2,rm.h/2,cv(L.cx[0],L.U.W),true)+lab(rm.w+m/2,rm.h/2,cv(L.cx[1],L.U.W),true);}
+  if(L.cy){t+=lab(rm.w/2,-m/2,cv(L.cy[0],L.U.H))+lab(rm.w/2,rm.h+m/2,cv(L.cy[1],L.U.H));}
+  var ax=clamp(L.anc.x,0,rm.w),ay=clamp(L.anc.y,0,rm.h),R=fs*.55;
+  return '<svg class="mpic" viewBox="'+(-m)+' '+(-m)+' '+(rm.w+2*m)+' '+(rm.h+2*m)+'" role="img" aria-label="פריסת האריחים בחדר: חתוכים בכתום, העיגול הוא נקודת ההתחלה">'+
+    '<rect x="0" y="0" width="'+rm.w+'" height="'+rm.h+'" fill="#fff"/>'+roomTilesSvg(r,F,L,'mpc',sw)+
+    '<rect x="0" y="0" width="'+rm.w+'" height="'+rm.h+'" fill="none" stroke="#1A222D" stroke-width="'+(sw*4)+'"/>'+
+    '<circle cx="'+ax+'" cy="'+ay+'" r="'+R+'" fill="#D9480F" stroke="#fff" stroke-width="'+(sw*2)+'"/>'+t+'</svg>';
+}
+/* where whole tiles should start so the narrowest cut at the walls is as wide as possible: centred, shifted up to half a tile */
+function bestStart(rm,F){
+  var U=floorUnits(F);if(!U||U.turned)return null;
+  function axis(len,unit){
+    var best=null;
+    for(var d=-Math.floor(unit/2);d<=Math.floor(unit/2);d++){
+      var k=Math.min.apply(null,edgeCuts(len,unit,axisJoint(len,unit,'c',d)));
+      if(!best||k>best.k+.01||(Math.abs(k-best.k)<=.01&&Math.abs(d)<Math.abs(best.d)))best={d:d,k:k};
+    }
+    return best;
+  }
+  var bx=U.xVaries?null:axis(rm.w,U.W),by=axis(rm.h,U.H);
+  return {dx:bx?bx.d:null,dy:by.d,min:Math.min(bx?bx.k:1e9,by.k)};
 }
 function floorMarks(u,F){
   var s='',col='#C2410C';
@@ -4330,12 +4377,17 @@ function roomCustom(id){
   if(Object.keys(roomOver(id)).length)return true;
   return Object.keys(matItems()).some(function(k){return k.split('|')[3]===id;});
 }
-function swBtns(key,list){return '<div class="sw">'+list.map(function(p){return '<button type="button" data-mk="'+key+'" data-v="'+p[1]+'"><i style="background:'+p[1]+'"></i>'+p[0]+'</button>';}).join('')+'</div>';}
+function swBtns(key,list,cur,name,own){
+  var c=String(cur||'').toLowerCase(),hit=false;
+  var h='<div class="sw">'+list.map(function(p){var on=p[1]&&p[1].toLowerCase()===c;if(on)hit=true;return '<button type="button" data-mk="'+key+'" data-v="'+p[1]+'"'+(on?' class="on" aria-pressed="true"':'')+'><i style="background:'+p[1]+'"></i>'+p[0]+'</button>';}).join('');
+  if(cur)h+='<label class="swc'+(!hit&&own?' on':'')+'" title="כל צבע אחר"><i style="background:'+cur+'"></i>🎨 אחר…<input type="color" data-mk="'+key+'" value="'+cur+'" aria-label="צבע אחר ל'+name+'"></label>';
+  return h+'</div>';
+}
 /* one row: name, colour, presets, and either "inherited from ..." or a reset. below: what follows the colours (floor size, layout, tiler's notes) */
 function matRow(name,key,col,list,own,from,extra,below){
-  var h='<div class="matrow"><div class="mh"><span>'+name+'</span>'+(extra||'')+'<input type="color" data-mk="'+key+'" value="'+col+'" aria-label="צבע '+name+'"></div>';
+  var h='<div class="matrow"><div class="mh"><span>'+name+'</span>'+(extra||'')+'</div>';
   if(from)h+='<div class="mfrom">'+(own?'מותאם · <button type="button" class="lnk" data-mk="'+key+'" data-v="">✕ חזרה ל'+from+'</button>':from)+'</div>';
-  return h+swBtns(key,list)+(below||'')+'</div>';
+  return h+swBtns(key,list,col,name,own)+(below||'')+'</div>';
 }
 /* size, layout and grout of a tiled or parquet floor. keys: the keys to store under; inh: label of the inherited value, or null at house level */
 function floorOpts(F,keys,cur,inh){
@@ -4368,29 +4420,23 @@ function floorOpts(F,keys,cur,inh){
 }
 /* the folded "for the tiler" section: start point, shifts, and (for a room) the cuts at each wall */
 var matGuideOpen=false;
-function guideBox(o,cuts){
+function guideBox(o,cuts,pic,fix){
   var warn=/⚠/.test(cuts||'');
   return '<details class="mguide"'+(matGuideOpen?' open':'')+'><summary><span class="gt">📏 הנחיות לרצף</span><span class="gs">'+(warn?'<b>⚠ חיתוך צר</b>':'התחלה: '+o.at)+'</span></summary>'+
     '<p class="gh">מאיפה מתחילים אריחים שלמים, ואיפה יהיו החיתוכים. מופיע בעמוד פריסת הריצוף בייצוא PDF.</p>'+
-    o.guide+(cuts?'<div class="mcuts'+(warn?' warn':'')+'">'+cuts+'</div>':'')+'</details>';
+    o.guide+(pic||'')+(cuts?'<div class="mcuts'+(warn?' warn':'')+'">'+cuts+'</div>':'')+(warn&&fix?'<div class="row"><button type="button" id="matAuto" class="pri">✨ התאם אוטומטית</button><span class="gh" style="align-self:center">מזיז את נקודת ההתחלה כך שהחיתוך הצר יהיה רחב ככל האפשר</span></div>':'')+'</details>';
 }
 function rowsOf(k){for(var i=0;i<MAT_ROWS.length;i++)if(MAT_ROWS[i].k===k)return MAT_ROWS[i].p;return [];}
 function renderMat(){
-  var MT=mats(),h='<div class="mtabs">',rooms=roomRects();
+  var MT=mats(),h='',rooms=roomRects();
   if(MS.room&&!byId(MS.room))MS={};
-  h+='<button type="button" data-scope=""'+(!MS.room&&!MS.item?' class="on"':'')+'>🏠 כל הבית</button>';
-  rooms.forEach(function(r){
-    var F=floorOf(r,MT),on=MS.room===r.id&&!MS.item;
-    h+='<button type="button" data-scope="'+r.id+'"'+(on?' class="on"':'')+'><i style="background:'+F.show+'"></i>'+esc(roomName(r.id))+(roomCustom(r.id)?' <b>●</b>':'')+'</button>';
-  });
-  h+='</div>';
-  h+='<label class="mpick"><span>עורכים:</span><select data-scope-sel aria-label="מה עורכים"><option value=""'+(!MS.room?' selected':'')+'>🏠 כל הבית</option>'+rooms.map(function(r){
+  $('matPick').innerHTML='<label class="mpick"><span>עורכים:</span><select data-scope-sel aria-label="מה עורכים: כל הבית או חדר אחד"><option value=""'+(!MS.room?' selected':'')+'>🏠 כל הבית</option>'+rooms.map(function(r){
     return '<option value="'+r.id+'"'+(MS.room===r.id?' selected':'')+'>'+esc(roomName(r.id))+(roomCustom(r.id)?' ●':'')+'</option>';
   }).join('')+'</select></label>';
   if(MS.item){
     var it=matItems()[MS.item],kind=MS.item[0],up=kind==='a'?'כל הבית':(MS.room?roomName(MS.room):'כל הבית');
     var cur=kind==='w'?wallColOf(MS.room,MS.item.split('|')[1],+MS.item.split('|')[2],MT,MS.ext):kind==='d'?doorColOf(byId(MS.item.slice(2))||{},MT):aluColOf({id:MS.item.slice(2)},MT);
-    h+='<div class="mitem"><button type="button" class="lnk" data-scope="'+(MS.room||'')+'">→ חזרה</button><b>'+MS.label+'</b></div>';
+    h+='<div class="mitem"><span>✏️ פריט אחד, מסומן בהדמיה:</span><b>'+MS.label+'</b><button type="button" data-scope="'+(MS.room||'')+'">→ חזרה ל'+(MS.room?esc(roomName(MS.room)):'כל הבית')+'</button></div>';
     if(MS.ext)up='שליכט של כל הבית';
     h+=matRow(kind==='w'?'צבע הקיר':kind==='d'?'צבע הדלת':'צבע האלומיניום','v',cur,rowsOf(kind==='w'?(MS.ext?'ext':'wall'):kind==='d'?'door':'alu'),isHex(it),'כמו ב'+up);
   }else if(MS.room){
@@ -4401,7 +4447,8 @@ function renderMat(){
     if(FLOOR_P[R.floor]&&R.floor!==HF.type)HF={sz:FLOOR_SZ[F.type]?FLOOR_SZ[F.type][0]:'',lay:FLOOR_LAY[F.type]?FLOOR_LAY[F.type][0][0]:'',gr:'light'};
     if(!HF.ax){HF.ax='c';HF.ay='c';HF.dx=0;HF.dy=0;}
     var fo=floorOpts(F,['sz','lay','gr','ax','ay','dx','dy'],[R.sz||'',R.lay||'',R.gr||'',R.ax||'',R.ay||'',R.dx,R.dy],HF);
-    var opts=fo?fo.look+guideBox(fo,cutsText(floorLayout(rm,F))):'';
+    var LL=fo?floorLayout(rm,F):null;
+    var opts=fo?fo.look+guideBox(fo,cutsText(LL),LL?cutsPic(rm,F,LL):'',!!bestStart(rm,F)):'';
     h+=matRow('ריצוף','floorC',F.show,FLOOR_P[F.type],!!(R.floor||R.floorC||R.sz||R.lay||R.gr||R.ax||R.ay||R.dx||R.dy),'כמו בבית',sel,opts);
     h+=matRow('קירות','wall',isHex(R.wall)?R.wall:MT.wall,rowsOf('wall'),isHex(R.wall),'כמו בבית');
     h+=matRow('דלתות שנפתחות לחדר','door',isHex(R.door)?R.door:MT.door,rowsOf('door'),isHex(R.door),'כמו בבית');
@@ -4425,7 +4472,7 @@ function renderMat(){
       var sel=fl?'<select data-ft="'+fl+'" aria-label="סוג '+R.n+'">'+FLOOR_T.map(function(t){return '<option value="'+t[0]+'"'+(t[0]===type?' selected':'')+'>'+t[1]+'</option>';}).join('')+'</select>':'';
       var list=fl?FLOOR_P[type].concat(type==='plain'?[['לפי החדר','']]:[]):R.p,opts='';
       if(fl){var HF=floorOf({id:'',label:fl==='wet'?'רחצה':''},MT),o0=matObj()||{};var fo=floorOpts(HF,[fl+'Sz',fl+'Lay',fl+'Gr',fl+'Ax',fl+'Ay',fl+'Dx',fl+'Dy'],[HF.sz,HF.lay,HF.gr,HF.ax,HF.ay,o0[fl+'Dx'],o0[fl+'Dy']],null);opts=fo?fo.look+guideBox(fo,''):'';}
-      h+=matRow(R.n,R.k,col,list,false,null,sel,opts);
+      h+=matRow(R.n,R.k,col,list,!!MT.set[R.k],null,sel,opts);
     });
   }
   $('matRows').innerHTML=h;tdHi();
@@ -4469,6 +4516,16 @@ $('dlgMat').addEventListener('keydown',function(e){if(e.key==='Escape')closeMat(
 /* while a room's tab is open in the colours panel, its floor is outlined in 3D so it is clear which room is being edited */
 function tdHi(){
   if(!T.sc||typeof THREE==='undefined')return;
+  hookHover();
+  if(T.hov)tdHover(null);
+  (T.selB||[]).forEach(function(b){T.sc.remove(b);b.geometry.dispose();b.material.dispose();});T.selB=[];
+  if(!$('dlgMat').hidden&&MS.item&&T.pick){
+    var pp=MS.item.split('|'),k=pp[0],id=pp[1];
+    T.pick.forEach(function(m){
+      var u=m.userData;
+      if((k==='w'&&u.wall===id&&((+pp[2]>0?u.rp:u.rm)||'')===(pp[3]||''))||(k==='d'&&u.doorId===id)||(k==='a'&&u.win===id))T.selB.push(selBox(m,'--sel'));
+    });
+  }
   if(T.hi){T.sc.remove(T.hi);T.hi.traverse(function(n){if(n.geometry)n.geometry.dispose();if(n.material)n.material.dispose();});T.hi=null;}
   var o=!$('dlgMat').hidden&&MS.room&&!MS.item?byId(MS.room):null;if(!o)return;
   var col=new THREE.Color(getComputedStyle(document.documentElement).getPropertyValue('--sel').trim()||'#D9480F');
@@ -4494,22 +4551,53 @@ function closeMat(){
   matCommit();matLast=null;save();
 }
 /* with the panel open, a tap in 3D picks what to colour: a floor opens its room, a wall side, a door or a window opens that item */
-function tdPickMat(e){
-  if($('dlgMat').hidden||!T.pick||!T.pick.length)return false;
+/* what is under the pointer in 3D, as a scope for the colours panel: {ms, mesh, label}, {edge:true} on the top of a wall, or null */
+function tdHitMat(e){
+  if(!T.pick||!T.pick.length||!T.r)return null;
   var r=T.r.domElement.getBoundingClientRect(),rc=new THREE.Raycaster();
   rc.setFromCamera(new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height*2-1)),T.cam);
-  var hit=rc.intersectObjects(T.pick,false)[0];if(!hit)return false;
-  var u=hit.object.userData;
-  if(u.room){MS={room:u.room};}
+  var hit=rc.intersectObjects(T.pick,false)[0];if(!hit)return null;
+  var u=hit.object.userData,ms;
+  if(u.room)ms={room:u.room};
   else if(u.wall){
-    var nz=hit.face?hit.face.normal.z:0;if(Math.abs(nz)<.5)return true;
+    var nz=hit.face?hit.face.normal.z:0;if(Math.abs(nz)<.5)return {edge:true};
     var side=nz>0?1:-1,rid=side>0?u.rp:u.rm,ex=!rid&&(side>0?u.ep:u.em);
-    MS={item:'w|'+u.wall+'|'+side+'|'+(rid||''),room:rid,ext:ex,label:ex?'קיר חיצוני (שליכט)':'קיר'+(rid?' · '+esc(roomName(rid)):'')};
-  }else if(u.doorId){var dr=doorRoom(byId(u.doorId)||{});MS={item:'d|'+u.doorId,room:dr,label:'דלת'+(dr?' · '+esc(roomName(dr)):'')};}
-  else if(u.win){var wo=byId(u.win),wr=wo?roomAt(wo.x,wo.y):null;MS={item:'a|'+u.win,label:'חלון'};}
-  else return false;
-  matApply=false;renderMat();flash(MS.item?'נבחר: '+MS.label.replace(/&[^;]+;/g,''):'נבחר: '+roomName(MS.room));
+    ms={item:'w|'+u.wall+'|'+side+'|'+(rid||''),room:rid,ext:ex,label:ex?'קיר חיצוני (שליכט)':'קיר'+(rid?' · '+esc(roomName(rid)):'')};
+  }else if(u.doorId){var dr=doorRoom(byId(u.doorId)||{});ms={item:'d|'+u.doorId,room:dr,label:'דלת'+(dr?' · '+esc(roomName(dr)):'')};}
+  else if(u.win)ms={item:'a|'+u.win,label:'חלון'};
+  else return null;
+  return {ms:ms,mesh:hit.object,label:ms.item?ms.label.replace(/&[^;]+;/g,''):'רצפה · '+roomName(ms.room)};
+}
+function tdPickMat(e){
+  if($('dlgMat').hidden)return false;
+  var h=tdHitMat(e);if(!h)return false;if(h.edge)return true;
+  MS=h.ms;matApply=false;renderMat();tdHover(null);flash('נבחר: '+h.label);
   return true;
+}
+/* hovering with a mouse while the panel is open: outline what a click would pick, and say what it is */
+var tdTip=null,hovRaf=0,hovEv=null;
+function tdHover(e){
+  if(T.hov){T.sc.remove(T.hov);T.hov.geometry.dispose();T.hov.material.dispose();T.hov=null;}
+  if(!tdTip){tdTip=document.createElement('div');tdTip.className='tdtip';document.body.appendChild(tdTip);}
+  var h=e&&!$('dlgMat').hidden?tdHitMat(e):null;
+  if(!h||h.edge){tdTip.style.display='none';if(T.r)T.r.domElement.style.cursor='';return;}
+  T.hov=selBox(h.mesh,'--accent');
+  tdTip.textContent=h.label+' · לחצו לבחירה';tdTip.style.display='block';
+  tdTip.style.left=Math.min(e.clientX+14,window.innerWidth-tdTip.offsetWidth-8)+'px';tdTip.style.top=(e.clientY+16)+'px';
+  T.r.domElement.style.cursor='pointer';
+}
+/* an outline box around a mesh, drawn over everything */
+function selBox(mesh,cssVar){
+  var col=getComputedStyle(document.documentElement).getPropertyValue(cssVar).trim()||'#D9480F';
+  var b=new THREE.BoxHelper(mesh,new THREE.Color(col));b.material.depthTest=false;b.material.transparent=true;b.renderOrder=11;T.sc.add(b);return b;
+}
+function hookHover(){
+  var el=T.r&&T.r.domElement;if(!el||el.__hov)return;el.__hov=true;
+  el.addEventListener('pointermove',function(e){
+    if(e.pointerType!=='mouse'||e.buttons||$('dlgMat').hidden){if(T.hov||(tdTip&&tdTip.style.display!=='none'))tdHover(null);return;}
+    hovEv=e;if(!hovRaf)hovRaf=requestAnimationFrame(function(){hovRaf=0;tdHover(hovEv);});
+  });
+  el.addEventListener('pointerleave',function(){tdHover(null);});
 }
 $('vMat').addEventListener('click',function(){if($('dlgMat').hidden)openMat();else closeMat();});
 $('matClose').addEventListener('click',closeMat);
@@ -4535,8 +4623,11 @@ $('matRows').addEventListener('input',function(e){
   var k=e.target.getAttribute('data-mk');if(!k||e.target.type!=='color')return;
   setMat(k,e.target.value);
 });
+$('matPick').addEventListener('change',function(e){
+  if(!e.target.hasAttribute('data-scope-sel'))return;
+  MS=e.target.value?{room:e.target.value}:{};matApply=false;renderMat();$('dlgMat').querySelector('.dlg-box').scrollTop=0;
+});
 $('matRows').addEventListener('change',function(e){
-  if(e.target.hasAttribute('data-scope-sel')){MS=e.target.value?{room:e.target.value}:{};matApply=false;renderMat();$('dlgMat').querySelector('.dlg-box').scrollTop=0;return;}
   var fk=e.target.getAttribute('data-fk');
   if(fk){setMat(fk,e.target.value||null);renderMat();return;}
   var fn=e.target.getAttribute('data-fn');
@@ -4553,6 +4644,11 @@ $('matRows').addEventListener('click',function(e){
   var t=e.target.closest&&e.target.closest('button');if(!t)return;
   if(t.hasAttribute('data-scope')){var id=t.getAttribute('data-scope');MS=id?{room:id}:{};matApply=false;renderMat();return;}
   if(t.id==='matApplyBtn'){matApply=!matApply;renderMat();return;}
+  if(t.id==='matAuto'&&MS.room){
+    var arm=byId(MS.room),bs=arm?bestStart(arm,floorOf(arm,mats())):null;if(!bs)return;
+    setMat('ax','c');setMat('ay','c');if(bs.dx!==null)setMat('dx',bs.dx||null);setMat('dy',bs.dy||null);renderMat();
+    flashAct('נקודת ההתחלה הותאמה: החיתוך הצר ביותר עכשיו '+fmt(bs.min)+' ס״מ','↶ ביטול',doUndo,8000);return;
+  }
   if(t.hasAttribute('data-st')){
     var inp=t.parentNode.querySelector('input'),cur=inp.value!==''?+inp.value:(+inp.placeholder||0);
     var nv=Math.round(cur+(+t.getAttribute('data-d')));setMat(t.getAttribute('data-st'),nv);renderMat();
