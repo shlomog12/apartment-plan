@@ -243,6 +243,15 @@ button.danger{color:var(--sel)}
 .matrow input[type=color]{width:38px;height:28px;padding:0;border:1px solid var(--line);border-radius:6px;background:none;cursor:pointer}
 .matrow select{font:inherit;font-size:12px}
 .sw{display:flex;flex-wrap:wrap;gap:5px}
+.mtabs{display:flex;flex-wrap:wrap;gap:5px;padding-bottom:4px}
+.mtabs button{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:4px 8px;border-radius:14px}
+.mtabs button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.mtabs b{color:var(--sel);font-size:10px}
+.mtabs i{width:11px;height:11px;border-radius:50%;border:1px solid rgba(0,0,0,.25);display:inline-block}
+.mfrom{font-size:12px;color:var(--muted)}
+.lnk{border:none;background:none;padding:0;color:var(--accent);font:inherit;font-size:12px;cursor:pointer;text-decoration:underline}
+.mitem{display:flex;align-items:center;gap:10px;padding:6px 0}
+.mapply{display:grid;gap:4px;padding:8px;border:1px solid var(--line);border-radius:8px;font-size:13px}
 .sw button{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:3px 7px}
 .sw i{width:13px;height:13px;border-radius:3px;border:1px solid rgba(0,0,0,.25);display:inline-block}
 .dlg-box p{margin:0;color:var(--muted);font-size:12px;line-height:1.5}
@@ -732,7 +741,7 @@ button.hl{animation:hl .6s ease 3;border-color:var(--sel)}
   <div class="dlg side" id="dlgMat" hidden>
     <div class="dlg-box" role="dialog" aria-labelledby="matTitle">
       <h2 id="matTitle">🎨 צבעים וחומרים</h2>
-      <p class="mathint">השינויים נראים מיד בתלת־ממד ונשמרים עם התוכנית. אפשר לבחור מהדוגמאות או כל צבע אחר בריבוע הצבע.</p>
+      <p class="mathint">בוחרים לכל הבית, ואפשר לשנות חדר אחד. כשהחלונית פתוחה, לחיצה בהדמיה על רצפה, קיר, דלת או חלון בוחרת אותם.</p>
       <div id="matRows"></div>
       <div class="row"><button id="matReset" type="button">חזרה לברירת המחדל</button><span style="flex:1"></span><button id="matClose" type="button" class="pri">סגור</button></div>
     </div>
@@ -2180,7 +2189,7 @@ function tdEnsure(){
   function up(e){
     var tp=T.tap;T.tap=null;
     if(e.type==='pointerup'&&tp&&T.ptrs.size===1&&Date.now()-tp.t<400){
-      if(!tdTapDoor(e)&&T.mode==='inside')tdWalkTo(e);
+      if(!tdPickMat(e)&&!tdTapDoor(e)&&T.mode==='inside')tdWalkTo(e);
     }
     T.ptrs.delete(e.pointerId);T.dr=null;T.pd=0;
   }
@@ -2274,6 +2283,7 @@ function box(parent,x0,x1,y0,y1,t,mat){
   if(x1-x0<.5||y1-y0<.5)return;
   var m=new THREE.Mesh(new THREE.BoxGeometry((x1-x0)/100,(y1-y0)/100,t/100),mat);
   m.position.set((x0+x1)/200,(y0+y1)/200,0);m.castShadow=true;m.receiveShadow=true;parent.add(m);
+  return m;
 }
 function furnColor(l){
   if(/ספה|כורסה/.test(l))return 0x7a8fa6;
@@ -2375,9 +2385,36 @@ function floorCanvas(type,col){
   }
   return null;
 }
+/* per room and per item choices: mat.rooms[roomId] = {floor, floorC, wall, door};
+   mat.items['w|wallId|side|roomId'] = one side of a wall within a room, 'd|doorId' = a door, 'a|windowId' = a window frame */
+function matRooms(){var o=matObj();return (o&&o.rooms&&typeof o.rooms==='object')?o.rooms:{};}
+function matItems(){var o=matObj();return (o&&o.items&&typeof o.items==='object')?o.items:{};}
+function roomOver(id){var r=matRooms()[id];return (r&&typeof r==='object')?r:{};}
+function roomRects(){return state.objs.filter(function(o){return o.type==='rect'&&o.kind==='room';});}
+function roomAt(x,y){var best=null;roomRects().forEach(function(r){if(x>r.x&&x<r.x+r.w&&y>r.y&&y<r.y+r.h&&(!best||r.w*r.h<best.w*best.h))best=r;});return best;}
+function roomName(id){var r=byId(id);if(!r)return '';if(r.label)return r.label;return 'חדר '+(roomRects().indexOf(r)+1);}
+/* floor type and colour of a room: the room's own choice, else the house's (wet rooms have their own house setting) */
+function floorOf(room,MT){
+  var R=roomOver(room.id),wet=isWetRoom(room.label),ht=wet?MT.wet:MT.floor,ck=wet?'wetC':'floorC';
+  var type=FLOOR_P[R.floor]?R.floor:ht,col=isHex(R.floorC)?R.floorC:(FLOOR_P[R.floor]?null:(MT.set[ck]?MT[ck]:null));
+  return {type:type,col:col,show:col||(type==='plain'?'#'+('00000'+floorColor(room.label||'').toString(16)).slice(-6):FLOOR_P[type][0][1])};
+}
+function wallColOf(roomId,wid,side,MT){
+  var it=matItems()['w|'+wid+'|'+side+'|'+(roomId||'')];if(isHex(it))return it;
+  var R=roomId?roomOver(roomId):{};return isHex(R.wall)?R.wall:MT.wall;
+}
+/* a door belongs to the room it opens into */
+function doorRoom(d){
+  var r=d.rot*Math.PI/180,lx=0,ly=d.w*.5*d.fy;
+  var rm=roomAt(d.x+lx*Math.cos(r)-ly*Math.sin(r),d.y+lx*Math.sin(r)+ly*Math.cos(r));return rm?rm.id:null;
+}
+function doorColOf(d,MT){
+  var it=matItems()['d|'+d.id];if(isHex(it))return it;
+  var rid=doorRoom(d),R=rid?roomOver(rid):{};return isHex(R.door)?R.door:MT.door;
+}
+function aluColOf(o,MT){var it=matItems()['a|'+o.id];return isHex(it)?it:MT.alu;}
 function floorMat(room,MT){
-  var wet=isWetRoom(room.label),type=wet?MT.wet:MT.floor,ck=wet?'wetC':'floorC';
-  var col=MT.set[ck]?MT[ck]:null;
+  var F=floorOf(room,MT),type=F.type,col=F.col;
   if(type==='plain')return m3(col?hexN(col):floorColor(room.label||''));
   var fc=floorCanvas(type,col||FLOOR_P[type][0][1]),t=new THREE.CanvasTexture(fc.c);
   t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(room.w/fc.sz,room.h/fc.sz);t.anisotropy=4;
@@ -2386,12 +2423,14 @@ function floorMat(room,MT){
 function tdBuild(){
   if(T.root){
     T.sc.remove(T.root);
-    T.root.traverse(function(n){if(n.geometry)n.geometry.dispose();if(n.material){if(n.material.map)n.material.map.dispose();n.material.dispose();}});
+    T.root.traverse(function(n){if(n.geometry)n.geometry.dispose();[].concat(n.material||[]).forEach(function(m){if(m.map)m.map.dispose();m.dispose();});});
   }
   var root=new THREE.Group();T.root=root;T.sc.add(root);
   var bg=getComputedStyle(document.documentElement).getPropertyValue('--paper').trim()||'#EEF1F5';
   T.sc.background=new THREE.Color(bg);
-  var bb=bboxAll(false),MT=mats();
+  var bb=bboxAll(false),MT=mats(),MC={};
+  T.pick=[];
+  function mc(hex,ex){var k=hex+(ex?'m':'');return MC[k]||(MC[k]=m3(hexN(hex),ex));}
   T.center={x:(bb.x+bb.w/2)/100,z:(bb.y+bb.h/2)/100};T.bb=bb;
   /* floors */
   var base=new THREE.Mesh(new THREE.PlaneGeometry((bb.w+60)/100,(bb.h+60)/100),m3(0xc9c4bb));
@@ -2400,15 +2439,31 @@ function tdBuild(){
     if(o.type!=='rect'||o.kind!=='room')return;
     var f=new THREE.Mesh(new THREE.PlaneGeometry(o.w/100,o.h/100),floorMat(o,MT));
     f.rotation.x=-Math.PI/2;f.position.set((o.x+o.w/2)/100,.003+i*.0002,(o.y+o.h/2)/100);f.receiveShadow=true;root.add(f);
+    f.userData.room=o.id;T.pick.push(f);
   });
   /* walls with openings */
-  var wmat=m3(hexN(MT.wall)),doorMat=m3(hexN(MT.door),{roughness:.6}),frameMat=m3(hexN(MT.alu),{metalness:.25,roughness:.45}),glassMat=m3(0x9fc4e8,{transparent:true,opacity:.38,roughness:.2});
+  var wmat=mc(MT.wall),ALU={metalness:.25,roughness:.45},glassMat=m3(0x9fc4e8,{transparent:true,opacity:.38,roughness:.2});
   var opens=state.objs.filter(isOpen);
   state.objs.forEach(function(w){
     if(w.type!=='wall')return;
     var L=wallLen(w);if(L<1)return;
     var ux=(w.x2-w.x1)/L,uy=(w.y2-w.y1)/L,H=wallH(w),t=w.t;
     var g=new THREE.Group();g.position.set(w.x1/100,0,w.y1/100);g.rotation.y=-Math.atan2(uy,ux);root.add(g);
+    /* the wall is cut where the room on either side changes, so each side of each piece takes its room's colour.
+       Local +z of the group is the plan direction (-uy, ux): side 1; the other face is side -1 */
+    var K=[];
+    roomRects().forEach(function(r){[[r.x,r.y],[r.x+r.w,r.y],[r.x,r.y+r.h],[r.x+r.w,r.y+r.h]].forEach(function(c){
+      var sv=(c[0]-w.x1)*ux+(c[1]-w.y1)*uy;if(sv>-t/2+.5&&sv<L+t/2-.5)K.push(sv);});});
+    K.sort(function(p,q){return p-q;});
+    function wbox(x0,x1,y0,y1){
+      var cuts=[x0].concat(K.filter(function(v){return v>x0+.5&&v<x1-.5;}),[x1]);
+      for(var i=0;i+1<cuts.length;i++){
+        var a=cuts[i],b=cuts[i+1],sm=(a+b)/2,px=w.x1+ux*sm,py=w.y1+uy*sm,dd=t/2+15;
+        var rp=roomAt(px-uy*dd,py+ux*dd),rn=roomAt(px+uy*dd,py-ux*dd),ip=rp?rp.id:null,im=rn?rn.id:null;
+        var m=box(g,a,b,y0,y1,t,[wmat,wmat,wmat,wmat,mc(wallColOf(ip,w.id,1,MT)),mc(wallColOf(im,w.id,-1,MT))]);
+        if(m){m.userData={wall:w.id,rp:ip,rm:im};T.pick.push(m);}
+      }
+    }
     var list=[];
     opens.forEach(function(o){
       if(wallOf(o)!==w)return;
@@ -2419,26 +2474,26 @@ function tdBuild(){
     var cur=-t/2;
     list.forEach(function(it){
       var a=Math.max(it.a,cur),b=Math.max(it.b,a),o=it.o;
-      box(g,cur,a,0,H,t,wmat);
+      wbox(cur,a,0,H);
       var top=Math.min(H,o.sl+o.h);
-      box(g,a,b,top,H,t,wmat);
-      if(o.sl>0)box(g,a,b,0,o.sl,t,wmat);
+      wbox(a,b,top,H);
+      if(o.sl>0)wbox(a,b,0,o.sl);
       var w2=b-a;
       if(o.type==='door'){
         /* the leaf is built separately (td3Doors) so it can be open or closed */
       }else{
-        var fw=4;
-        box(g,a,b,o.sl,o.sl+fw,t+2,frameMat);box(g,a,b,top-fw,top,t+2,frameMat);
-        box(g,a,a+fw,o.sl,top,t+2,frameMat);box(g,b-fw,b,o.sl,top,t+2,frameMat);
-        box(g,(a+b)/2-1.5,(a+b)/2+1.5,o.sl,top,t+1,frameMat);
+        var fw=4,frameMat=mc(aluColOf(o,MT),ALU);
+        [box(g,a,b,o.sl,o.sl+fw,t+2,frameMat),box(g,a,b,top-fw,top,t+2,frameMat),
+         box(g,a,a+fw,o.sl,top,t+2,frameMat),box(g,b-fw,b,o.sl,top,t+2,frameMat),
+         box(g,(a+b)/2-1.5,(a+b)/2+1.5,o.sl,top,t+1,frameMat)].forEach(function(m){if(m){m.userData={win:o.id};T.pick.push(m);}});
         var gl=new THREE.Mesh(new THREE.BoxGeometry((w2-2*fw)/100,(top-o.sl-2*fw)/100,.01),glassMat);
         gl.position.set((a+b)/200,(o.sl+top)/200,0);g.add(gl);
       }
       cur=b;
     });
-    box(g,cur,L+t/2,0,H,t,wmat);
+    wbox(cur,L+t/2,0,H);
   });
-  td3Doors(root,doorMat);
+  td3Doors(root,function(d){return mc(doorColOf(d,MT),{roughness:.6});});
   /* electrical points */
   T.pins=null;
   var P3=state.objs.filter(isPt);
@@ -2474,7 +2529,7 @@ function tdBuild(){
 }
 /* doors: open (swung the way the plan shows) or closed; T.doorOv holds doors tapped open/closed one by one */
 function doorIsOpen(d){var v=T.doorOv&&T.doorOv[d.id];return v===undefined?state.doorsOpen!==false:v;}
-function td3Doors(root,mat){
+function td3Doors(root,matOf){
   T.doorMeshes=[];
   var metal=m3(0xc9c9c9,{metalness:.3,roughness:.35});
   state.objs.forEach(function(d){
@@ -2484,10 +2539,10 @@ function td3Doors(root,mat){
     var H=P(-d.w/2,0),E=doorIsOpen(d)?P(-d.w/2,d.w*.97):P(d.w/2,0);  /* hinge, and the far edge closed or open */
     var len=Math.hypot(E.x-H.x,E.y-H.y)-2,ang=Math.atan2(E.y-H.y,E.x-H.x),top=(d.sl||0)+d.h;
     var g=new THREE.Group();g.position.set(H.x/100,0,H.y/100);g.rotation.y=-ang;root.add(g);
-    var leaf=new THREE.Mesh(new THREE.BoxGeometry(len/100,(top-(d.sl||0)-1)/100,.04),mat);
+    var leaf=new THREE.Mesh(new THREE.BoxGeometry(len/100,(top-(d.sl||0)-1)/100,.04),matOf(d));
     leaf.position.set((len/2+1)/100,((d.sl||0)+top)/200,0);leaf.castShadow=true;leaf.receiveShadow=true;leaf.userData.doorId=d.id;g.add(leaf);
     [-1,1].forEach(function(sd){var hd=new THREE.Mesh(new THREE.BoxGeometry(.1,.025,.03),metal);hd.position.set((len-8)/100,1,sd*.035);g.add(hd);});
-    T.doorMeshes.push(leaf);
+    T.doorMeshes.push(leaf);if(T.pick)T.pick.push(leaf);
   });
 }
 /* a tap on a door leaf opens or closes that door; true if a door was hit */
@@ -3428,7 +3483,7 @@ $('mSnap').addEventListener('change',function(e){$('snapSel').value=e.target.val
 /* ---------- what's new (once, for people who already know the app) ---------- */
 var NEW_KEY='apt-new-2';
 var NEWS=[
-  {i:'🎨',t:'צבעים וחומרים בתלת־ממד',d:'צבע לקירות, לאלומיניום, לדלתות ולמטבח (ארונות ומשטח), ורצפה חלקה, פרקט, דמוי קרמיקה או דמוי בטון, בנפרד לחדרים הרטובים.',a:'נסו',f:function(){setView('3d');openMat();}},
+  {i:'🎨',t:'צבעים וחומרים בתלת־ממד',d:'צבע לקירות, לאלומיניום, לדלתות ולמטבח, ורצפה חלקה, פרקט, דמוי קרמיקה או דמוי בטון. לכל הבית, לחדר מסוים, או לקיר, דלת או חלון אחד בלחיצה עליהם בהדמיה.',a:'נסו',f:function(){setView('3d');openMat();}},
   {i:'📐',t:'PDF עם מידות',d:'כל המידות מחושבות לבד מהתוכנית: מהפינה לחלון ולדלת, אורך כל קיר, ריהוט קבוע, ומיקום וגובה של כל שקע ונקודת מים או גז, חזיתות חיצוניות, ופריסה לכל קיר עם חלון או נקודות. משנים חלון, והמידות מתעדכנות בייצוא הבא.',a:'הורד',f:function(){exportDimsPdf();}},
   {i:'⚡',t:'חשמל ואינסטלציה',d:'שקעים, מתגים, תאורה, נקודות מים, ניקוז וגז על הקירות, עם גובה מהרצפה. נראים אמיתיים בתלת־ממד.',a:'נסו',f:function(){if(view!=='plan')setView('plan');openAdd();}},
   {i:'🗂',t:'שכבות',d:'עובדים על שכבה אחת (קירות וריהוט, חשמל או אינסטלציה), והשאר חיוורות ונעולות כדי שלא יזוזו בטעות.',a:'פתח',f:function(){openLayers();}},
@@ -3865,49 +3920,132 @@ $('vOrbit').addEventListener('click',function(){tdMode('orbit');});
 $('vTop').addEventListener('click',function(){tdMode('top');});
 $('vIn').addEventListener('click',function(){tdMode('inside');});
 $('vPng').addEventListener('click',save3dPng);
-/* ---------- colours and finishes panel (3D) ---------- */
-var matBefore=null,matRaf=0;
+/* ---------- colours and finishes panel (3D) ----------
+   Three levels, each inheriting from the one above until changed: the whole house, a room, one item. */
+var matBefore=null,matRaf=0,MS={},matApply=false;
+function matRebuild(){save();if(!matRaf)matRaf=requestAnimationFrame(function(){matRaf=0;if(T.r)tdBuild();});}
+function matRoot(){var o=matObj();if(!o){o={id:'mat',type:'mat'};state.objs.push(o);}return o;}
+/* k in the current scope; v null = back to inheriting */
 function setMat(k,v){
-  var o=matObj();if(!o){o={id:'mat',type:'mat'};state.objs.push(o);}
-  if(v===null)delete o[k];else o[k]=v;
-  save();
-  if(!matRaf)matRaf=requestAnimationFrame(function(){matRaf=0;if(T.r)tdBuild();});
+  var o=matRoot();
+  if(MS.item){o.items=o.items||{};if(v===null)delete o.items[MS.item];else o.items[MS.item]=v;}
+  else if(MS.room){o.rooms=o.rooms||{};var R=o.rooms[MS.room]=o.rooms[MS.room]||{};if(v===null)delete R[k];else R[k]=v;if(!Object.keys(R).length)delete o.rooms[MS.room];}
+  else{if(v===null)delete o[k];else o[k]=v;}
+  matRebuild();
 }
+function roomCustom(id){
+  if(Object.keys(roomOver(id)).length)return true;
+  return Object.keys(matItems()).some(function(k){return k.split('|')[3]===id;});
+}
+function swBtns(key,list){return '<div class="sw">'+list.map(function(p){return '<button type="button" data-mk="'+key+'" data-v="'+p[1]+'"><i style="background:'+p[1]+'"></i>'+p[0]+'</button>';}).join('')+'</div>';}
+/* one row: name, colour, presets, and either "inherited from ..." or a reset */
+function matRow(name,key,col,list,own,from,extra){
+  var h='<div class="matrow"><div class="mh"><span>'+name+'</span>'+(extra||'')+'<input type="color" data-mk="'+key+'" value="'+col+'" aria-label="צבע '+name+'"></div>';
+  if(from)h+='<div class="mfrom">'+(own?'מותאם · <button type="button" class="lnk" data-mk="'+key+'" data-v="">✕ חזרה ל'+from+'</button>':from)+'</div>';
+  return h+swBtns(key,list)+'</div>';
+}
+function rowsOf(k){for(var i=0;i<MAT_ROWS.length;i++)if(MAT_ROWS[i].k===k)return MAT_ROWS[i].p;return [];}
 function renderMat(){
-  var MT=mats(),h='';
-  MAT_ROWS.forEach(function(R){
-    var fl=R.t,type=fl?MT[fl]:null,col=MT[R.k];
-    if(fl&&type!=='plain'&&!MT.set[R.k])col=FLOOR_P[type][0][1];
-    if(fl&&type==='plain'&&!MT.set[R.k])col=fl==='wet'?'#bccdd4':'#d2bf9f';
-    h+='<div class="matrow"><div class="mh"><span>'+R.n+'</span>';
-    if(fl){h+='<select data-ft="'+fl+'" aria-label="סוג '+R.n+'">'+FLOOR_T.map(function(t){return '<option value="'+t[0]+'"'+(t[0]===type?' selected':'')+'>'+t[1]+'</option>';}).join('')+'</select>';}
-    h+='<input type="color" data-mk="'+R.k+'" value="'+col+'" aria-label="צבע '+R.n+'"></div><div class="sw">';
-    (fl?FLOOR_P[type]:R.p).forEach(function(p){h+='<button type="button" data-mk="'+R.k+'" data-v="'+p[1]+'"><i style="background:'+p[1]+'"></i>'+p[0]+'</button>';});
-    if(fl&&type==='plain')h+='<button type="button" data-mk="'+R.k+'" data-v="">לפי החדר</button>';
-    h+='</div></div>';
+  var MT=mats(),h='<div class="mtabs">',rooms=roomRects();
+  if(MS.room&&!byId(MS.room))MS={};
+  h+='<button type="button" data-scope=""'+(!MS.room&&!MS.item?' class="on"':'')+'>🏠 כל הבית</button>';
+  rooms.forEach(function(r){
+    var F=floorOf(r,MT),on=MS.room===r.id&&!MS.item;
+    h+='<button type="button" data-scope="'+r.id+'"'+(on?' class="on"':'')+'><i style="background:'+F.show+'"></i>'+esc(roomName(r.id))+(roomCustom(r.id)?' <b>●</b>':'')+'</button>';
   });
+  h+='</div>';
+  if(MS.item){
+    var it=matItems()[MS.item],kind=MS.item[0],up=kind==='a'?'כל הבית':(MS.room?roomName(MS.room):'כל הבית');
+    var cur=kind==='w'?wallColOf(MS.room,MS.item.split('|')[1],+MS.item.split('|')[2],MT):kind==='d'?doorColOf(byId(MS.item.slice(2))||{},MT):aluColOf({id:MS.item.slice(2)},MT);
+    h+='<div class="mitem"><button type="button" class="lnk" data-scope="'+(MS.room||'')+'">→ חזרה</button><b>'+MS.label+'</b></div>';
+    h+=matRow(kind==='w'?'צבע הקיר':kind==='d'?'צבע הדלת':'צבע האלומיניום','v',cur,rowsOf(kind==='w'?'wall':kind==='d'?'door':'alu'),isHex(it),'כמו ב'+up);
+  }else if(MS.room){
+    var R=roomOver(MS.room),rm=byId(MS.room),F=floorOf(rm,MT),wet=isWetRoom(rm.label);
+    var ht=wet?MT.wet:MT.floor,tn=function(t){for(var i=0;i<FLOOR_T.length;i++)if(FLOOR_T[i][0]===t)return FLOOR_T[i][1];return t;};
+    var sel='<select data-ft="floor" aria-label="סוג ריצוף"><option value="">כמו בבית ('+tn(ht)+')</option>'+FLOOR_T.map(function(t){return '<option value="'+t[0]+'"'+(R.floor===t[0]?' selected':'')+'>'+t[1]+'</option>';}).join('')+'</select>';
+    h+=matRow('ריצוף','floorC',F.show,FLOOR_P[F.type],!!(R.floor||R.floorC),'כמו בבית',sel);
+    h+=matRow('קירות','wall',isHex(R.wall)?R.wall:MT.wall,rowsOf('wall'),isHex(R.wall),'כמו בבית');
+    h+=matRow('דלתות שנפתחות לחדר','door',isHex(R.door)?R.door:MT.door,rowsOf('door'),isHex(R.door),'כמו בבית');
+    h+='<div class="row"><button type="button" id="matApplyBtn">📋 החל גם על…</button></div>';
+    if(matApply){
+      h+='<div class="mapply">'+rooms.filter(function(r){return r.id!==MS.room;}).map(function(r){return '<label><input type="checkbox" value="'+r.id+'"> '+esc(roomName(r.id))+'</label>';}).join('')+
+        '<button type="button" class="pri" id="matApplyGo">החל על החדרים שסומנו</button></div>';
+    }
+  }else{
+    MAT_ROWS.forEach(function(R){
+      var fl=R.t,type=fl?MT[fl]:null,col=MT[R.k];
+      if(fl&&type!=='plain'&&!MT.set[R.k])col=FLOOR_P[type][0][1];
+      if(fl&&type==='plain'&&!MT.set[R.k])col=fl==='wet'?'#bccdd4':'#d2bf9f';
+      var sel=fl?'<select data-ft="'+fl+'" aria-label="סוג '+R.n+'">'+FLOOR_T.map(function(t){return '<option value="'+t[0]+'"'+(t[0]===type?' selected':'')+'>'+t[1]+'</option>';}).join('')+'</select>':'';
+      var list=fl?FLOOR_P[type].concat(type==='plain'?[['לפי החדר','']]:[]):R.p;
+      h+=matRow(R.n,R.k,col,list,false,null,sel);
+    });
+  }
   $('matRows').innerHTML=h;
+  var scopeTxt=MS.item?'':MS.room?'איפוס החדר':'איפוס הכל';
+  $('matReset').textContent=scopeTxt;$('matReset').hidden=!scopeTxt;
 }
-function openMat(){matBefore=snapshot();renderMat();$('dlgMat').hidden=false;}
+function openMat(){matBefore=snapshot();matApply=false;renderMat();$('dlgMat').hidden=false;}
 function closeMat(){
   $('dlgMat').hidden=true;
   if(matBefore!==null&&matBefore!==snapshot()){pushHist(matBefore);save();}
   matBefore=null;
 }
+/* with the panel open, a tap in 3D picks what to colour: a floor opens its room, a wall side, a door or a window opens that item */
+function tdPickMat(e){
+  if($('dlgMat').hidden||!T.pick||!T.pick.length)return false;
+  var r=T.r.domElement.getBoundingClientRect(),rc=new THREE.Raycaster();
+  rc.setFromCamera(new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height*2-1)),T.cam);
+  var hit=rc.intersectObjects(T.pick,false)[0];if(!hit)return false;
+  var u=hit.object.userData;
+  if(u.room){MS={room:u.room};}
+  else if(u.wall){
+    var nz=hit.face?hit.face.normal.z:0;if(Math.abs(nz)<.5)return true;
+    var side=nz>0?1:-1,rid=side>0?u.rp:u.rm;
+    MS={item:'w|'+u.wall+'|'+side+'|'+(rid||''),room:rid,label:'קיר'+(rid?' · '+esc(roomName(rid)):'')};
+  }else if(u.doorId){var dr=doorRoom(byId(u.doorId)||{});MS={item:'d|'+u.doorId,room:dr,label:'דלת'+(dr?' · '+esc(roomName(dr)):'')};}
+  else if(u.win){var wo=byId(u.win),wr=wo?roomAt(wo.x,wo.y):null;MS={item:'a|'+u.win,label:'חלון'};}
+  else return false;
+  matApply=false;renderMat();flash(MS.item?'נבחר: '+MS.label.replace(/&[^;]+;/g,''):'נבחר: '+roomName(MS.room));
+  return true;
+}
 $('vMat').addEventListener('click',function(){if($('dlgMat').hidden)openMat();else closeMat();});
 $('matClose').addEventListener('click',closeMat);
 $('matReset').addEventListener('click',function(){
   var o=matObj();if(!o)return;
-  state.objs=state.objs.filter(function(q){return q!==o;});save();if(T.r)tdBuild();renderMat();flash('הצבעים חזרו לברירת המחדל');
+  if(MS.room){
+    if(o.rooms)delete o.rooms[MS.room];
+    if(o.items)Object.keys(o.items).forEach(function(k){if(k.split('|')[3]===MS.room)delete o.items[k];});
+    flash('החדר חזר לצבעים של הבית');
+  }else{state.objs=state.objs.filter(function(q){return q!==o;});flash('כל הצבעים חזרו לברירת המחדל');}
+  matRebuild();renderMat();
 });
-$('matRows').addEventListener('input',function(e){var k=e.target.getAttribute('data-mk');if(k)setMat(k,e.target.value);});
+$('matRows').addEventListener('input',function(e){
+  var k=e.target.getAttribute('data-mk');if(!k||e.target.type!=='color')return;
+  setMat(k,e.target.value);
+});
 $('matRows').addEventListener('change',function(e){
   var ft=e.target.getAttribute('data-ft');
-  if(ft){setMat(ft,e.target.value);setMat(ft==='wet'?'wetC':'floorC',null);renderMat();}
+  if(ft){
+    if(MS.room){setMat('floor',e.target.value||null);setMat('floorC',null);}
+    else{setMat(ft,e.target.value);setMat(ft==='wet'?'wetC':'floorC',null);}
+    renderMat();return;
+  }
+  if(e.target.type==='color')renderMat();
 });
 $('matRows').addEventListener('click',function(e){
-  var b=e.target.closest&&e.target.closest('button[data-mk]');if(!b)return;
-  var v=b.getAttribute('data-v');setMat(b.getAttribute('data-mk'),v||null);renderMat();
+  var t=e.target.closest&&e.target.closest('button');if(!t)return;
+  if(t.hasAttribute('data-scope')){var id=t.getAttribute('data-scope');MS=id?{room:id}:{};matApply=false;renderMat();return;}
+  if(t.id==='matApplyBtn'){matApply=!matApply;renderMat();return;}
+  if(t.id==='matApplyGo'){
+    var ids=Array.prototype.map.call($('matRows').querySelectorAll('.mapply input:checked'),function(c){return c.value;});
+    if(!ids.length){flash('סמנו לפחות חדר אחד');return;}
+    var o=matRoot(),src=roomOver(MS.room);o.rooms=o.rooms||{};
+    ids.forEach(function(id){if(Object.keys(src).length)o.rooms[id]=JSON.parse(JSON.stringify(src));else delete o.rooms[id];});
+    matApply=false;matRebuild();renderMat();flash('הוחל על '+(ids.length===1?'חדר אחד':ids.length+' חדרים'));return;
+  }
+  var k=t.getAttribute('data-mk');if(!k)return;
+  setMat(k,t.getAttribute('data-v')||null);renderMat();
 });
 
 function syncDoorsBtn(){var o=state.doorsOpen!==false;$('vDoors').textContent=o?'🚪 דלתות פתוחות':'🚪 דלתות סגורות';$('vDoors').classList.toggle('on',o);}
