@@ -3237,16 +3237,70 @@ function autoDims(pg,u,F){
   var col=pg==='base'?'#2347A6':LCOL[pg],TOT='#555';
   function P(f,al,ac){return f.o==='h'?[al,ac]:[ac,al];}
   function seg(x1,y1,x2,y2,c,w){return '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="'+c+'" stroke-width="'+(w||SW)+'"/>';}
-  function label(x,y,txt,c,vert){
-    var t=vert?' transform="rotate(-90 '+x+' '+y+')"':'';
-    return '<text x="'+x+'" y="'+y+'" text-anchor="middle" dominant-baseline="central" font-size="'+FS+'" fill="'+c+'" stroke="#fff" stroke-width="'+u(.5)+'" paint-order="stroke" '+F+t+'>'+txt+'</text>';
+  /* ---- numbers are placed last, each on the first of its candidate spots that is clear of room and furniture names,
+     other numbers and dimension lines. A number moved away from its line gets a thin leader back to it. ---- */
+  var LBL=[],OBS=[],LNS=[],own=0;
+  function tbox(x,y,txt,vert,fs,wide){
+    var w=String(txt).length*fs*(wide?.64:.56)+u(.5),h=fs*1.1;
+    if(vert){var t=w;w=h;h=t;}
+    return {x0:x-w/2,y0:y-h/2,x1:x+w/2,y1:y+h/2};
+  }
+  function over(a,b){return a.x0<b.x1&&a.x1>b.x0&&a.y0<b.y1&&a.y1>b.y0;}
+  function lineObs(x1,y1,x2,y2,id){var e=u(.15);LNS.push({x0:Math.min(x1,x2)-e,y0:Math.min(y1,y2)-e,x1:Math.max(x1,x2)+e,y1:Math.max(y1,y2)+e,id:id});}
+  /* names already on the page (drawn by printSvg): rooms, their sizes, furniture, heights of wall points */
+  state.objs.forEach(function(o){
+    if(o.type!=='rect')return;
+    var cx=o.x+o.w/2,cy=o.y+o.h/2;
+    if(o.kind==='room'){
+      if(o.label){var f1=u(3.4);OBS.push(tbox(cx,cy-f1*.35,o.label,false,f1,true));}
+      if(state.dims){var f2=u(2.2),nd=netDims(o);OBS.push(tbox(cx,cy+u(3.6)-f2*.35,fmt(nd.w)+' × '+fmt(nd.h),false,f2));}
+    }else if(o.label)OBS.push(tbox(cx,cy,o.label,o.h>2.2*o.w,u(2.2),true));
+  });
+  /* the walls themselves: a number on a thick black wall cannot be read */
+  state.objs.forEach(function(w){
+    if(w.type!=='wall')return;
+    var h=(w.t||10)/2;
+    if(Math.abs(w.y1-w.y2)<.01||Math.abs(w.x1-w.x2)<.01)OBS.push({x0:Math.min(w.x1,w.x2)-h,y0:Math.min(w.y1,w.y2)-h,x1:Math.max(w.x1,w.x2)+h,y1:Math.max(w.y1,w.y2)+h});
+  });
+  state.objs.forEach(function(o){
+    if(!isPt(o)||!isWallPt(o)||ptLay(o.kind)!==pg)return;
+    var PR=u(1.5),g=ptFramePrint(o,PR);OBS.push(tbox(g.cx+g.nx*PR*2.6,g.cy+g.ny*PR*2.6,fmt(o.h),false,u(1.7)));
+    var R=PR*1.3;OBS.push({x0:g.cx-R,y0:g.cy-R,x1:g.cx+R,y1:g.cy+R});
+  });
+  /* cands: [x,y] spots in order of preference; anchor: the point on the line the number belongs to; id: its own line */
+  /* home: for a piece of furniture, its outline: a size that stays inside it needs no leader */
+  function label(txt,c,vert,cands,anchor,id,fs,home){LBL.push({txt:txt,c:c,vert:vert,cands:cands,anchor:anchor,id:id,fs:fs||FS,home:home});return '';}
+  function placeLabels(){
+    var out='',done=[];
+    LBL.forEach(function(L){
+      var pick=null,i,b;
+      for(i=0;i<L.cands.length&&!pick;i++){
+        b=tbox(L.cands[i][0],L.cands[i][1],L.txt,L.vert,L.fs);
+        var bad=OBS.some(function(o){return over(b,o);})||done.some(function(o){return over(b,o);})||LNS.some(function(o){return o.id!==L.id&&over(b,o);});
+        if(!bad)pick={p:L.cands[i],b:b};
+      }
+      if(!pick){i=1;pick={p:L.cands[0],b:tbox(L.cands[0][0],L.cands[0][1],L.txt,L.vert,L.fs)};}
+      done.push(pick.b);
+      var x=pick.p[0],y=pick.p[1];
+      var inHome=L.home&&x>L.home.x0&&x<L.home.x1&&y>L.home.y0&&y<L.home.y1;
+      if(L.anchor&&i>1&&!inHome){
+        /* leader from the line to the nearest edge of the number, when it had to move away */
+        var bx=clamp(L.anchor[0],pick.b.x0,pick.b.x1),by=clamp(L.anchor[1],pick.b.y0,pick.b.y1);
+        if(Math.hypot(bx-L.anchor[0],by-L.anchor[1])>u(1.2)){
+          out+=seg(L.anchor[0],L.anchor[1],bx,by,L.c,u(.1))+'<circle cx="'+L.anchor[0]+'" cy="'+L.anchor[1]+'" r="'+u(.28)+'" fill="'+L.c+'"/>';
+        }
+      }
+      var t=L.vert?' transform="rotate(-90 '+x+' '+y+')"':'';
+      out+='<text x="'+x+'" y="'+y+'" text-anchor="middle" dominant-baseline="central" font-size="'+L.fs+'" fill="'+L.c+'" stroke="#fff" stroke-width="'+u(.5)+'" paint-order="stroke" '+F+t+'>'+L.txt+'</text>';
+    });
+    return out;
   }
   /* a chain of dimensions along a face, off it by off mm, through the positions in cuts */
   function chain(f,cuts,off,c){
     cuts=cuts.slice().sort(function(p,q){return p-q;}).filter(function(v,i,a){return i===0||v-a[i-1]>.5;});
     if(cuts.length<2)return '';
-    var ac=f.c+f.n*u(off),o='',i,p,q;
-    p=P(f,cuts[0],ac);q=P(f,cuts[cuts.length-1],ac);o+=seg(p[0],p[1],q[0],q[1],c);
+    var ac=f.c+f.n*u(off),o='',i,p,q,id=++own;
+    p=P(f,cuts[0],ac);q=P(f,cuts[cuts.length-1],ac);o+=seg(p[0],p[1],q[0],q[1],c);lineObs(p[0],p[1],q[0],q[1],id);
     cuts.forEach(function(v){
       var e1=P(f,v,f.c),e2=P(f,v,ac+f.n*u(.6));o+=seg(e1[0],e1[1],e2[0],e2[1],c,u(.08));
       var t1=P(f,v-TK,ac-TK*f.n*(f.o==='h'?1:-1)),t2=P(f,v+TK,ac+TK*f.n*(f.o==='h'?1:-1));o+=seg(t1[0],t1[1],t2[0],t2[1],c,u(.22));
@@ -3255,8 +3309,12 @@ function autoDims(pg,u,F){
     for(i=0;i+1<cuts.length;i++){
       var d=cuts[i+1]-cuts[i],txt=fmt(d),fit=d*10>=u(txt.length*1.05+.8)*10;
       /* spans too short for their number: alternate between the room side and the wall side of the line */
-      var side=fit?1:((small++)%2?-1:1),tp=P(f,(cuts[i]+cuts[i+1])/2,ac+f.n*side*u(1.25));
-      o+=label(tp[0],tp[1],txt,c,f.o==='v');
+      var side=fit?1:((small++)%2?-1:1),m=(cuts[i]+cuts[i+1])/2,ln=u(txt.length*1.05+1.2),cands=[];
+      /* the usual spot, the other side of the line, a little along it, then further out */
+      [[0,side*1.25],[0,-side*1.25],[ln,side*1.25],[-ln,side*1.25],[ln,-side*1.25],[-ln,-side*1.25],[0,side*3.4],[ln,side*3.4],[-ln,side*3.4],[2*ln,side*1.25],[-2*ln,side*1.25],[0,side*5.6]].forEach(function(k){
+        cands.push(P(f,m+k[0],ac+f.n*u(k[1])));
+      });
+      o+=label(txt,c,f.o==='v',cands,P(f,m,ac),id);
     }
     return o;
   }
@@ -3286,10 +3344,11 @@ function autoDims(pg,u,F){
       });
       if(!best||best.d<1)return;
       var f=best.f,e=f.n<0?hi:lo,p=P(f,best.m,f.c),q=P(f,best.m,e),k=u(.7);
-      o+=seg(p[0],p[1],q[0],q[1],c);
+      var id=++own;o+=seg(p[0],p[1],q[0],q[1],c);lineObs(p[0],p[1],q[0],q[1],id);
       [f.c,e].forEach(function(v){var a=P(f,best.m-k,v-k*(f.o==='h'?1:-1)),b=P(f,best.m+k,v+k*(f.o==='h'?1:-1));o+=seg(a[0],a[1],b[0],b[1],c,u(.22));});
-      var tp=P(f,best.m+u(1.3),(f.c+e)/2);
-      o+=label(tp[0],tp[1],fmt(best.d),c,f.o==='v');
+      var mid=(f.c+e)/2,q1=f.c+(e-f.c)*.25,q3=f.c+(e-f.c)*.75,cands=[];
+      [[1.3,mid],[-1.3,mid],[1.3,q1],[1.3,q3],[-1.3,q1],[-1.3,q3],[3.4,mid],[-3.4,mid]].forEach(function(k){cands.push(P(f,best.m+u(k[0]),k[1]));});
+      o+=label(fmt(best.d),c,f.o==='v',cands,P(f,best.m,mid),id);
     });
     return o;
   }
@@ -3300,12 +3359,13 @@ function autoDims(pg,u,F){
       var cx=o.x+o.w/2,cy=o.y+o.h/2,vert=o.h>2.2*o.w,txt=fmt(o.w)+' × '+fmt(o.h),thin=Math.min(o.w,o.h)<u(6),dy=o.label?u(2.6):0,dx=0;
       /* too thin for two lines: the size goes after the name, on the same line */
       if(thin&&o.label){dy=0;dx=-u(o.label.length*.6+txt.length*.5+1.5);}
-      s+=label(vert?cx+dy:cx+dx,vert?cy-dx:cy+dy,txt,col,vert);
+      var fc=[[dx,dy],[dx,-dy||-u(2.6)],[dx,dy+u(2.6)],[dx,dy-u(5.2)],[dx-u(txt.length*1.1),dy],[dx+u(txt.length*1.1),dy]].map(function(k){return vert?[cx+k[1],cy-k[0]]:[cx+k[0],cy+k[1]];});
+      s+=label(txt,col,vert,fc,[cx,cy],0,0,{x0:o.x,y0:o.y,x1:o.x+o.w,y1:o.y+o.h});
     });
   }else{
     state.objs.forEach(function(o){if(isPt(o)&&isFreeK(o.kind)&&ptLay(o.kind)===pg)s+=toWalls(o.x,o.y,o.x,o.y,col);});
   }
-  return s+'</g>';
+  return s+placeLabels()+'</g>';
 }
 /* ---------- facades and wall elevations for the dimensioned PDF ----------
    Facades: one drawing per side of the apartment, seen from outside.
