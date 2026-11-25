@@ -1457,17 +1457,21 @@ function mutate(fn){
   draw();syncPanel();
 }
 function doUndo(){
+  if(typeof matCommit==='function'){matCommit();matLast=null;}
   if(!hist.length)return;
   redo.push(snapshot());state.objs=JSON.parse(hist.pop());
   if(sel&&!byId(sel))sel=null;
-  elSig='';renderPanel();draw();updateBtns();save();
+  elSig='';renderPanel();draw();updateBtns();save();afterHist();
 }
 function doRedo(){
+  if(typeof matCommit==='function'){matCommit();matLast=null;}
   if(!redo.length)return;
   hist.push(snapshot());state.objs=JSON.parse(redo.pop());
   if(sel&&!byId(sel))sel=null;
-  elSig='';renderPanel();draw();updateBtns();save();
+  elSig='';renderPanel();draw();updateBtns();save();afterHist();
 }
+/* the colours panel shows the restored values, and its room tab survives unless the room is gone */
+function afterHist(){if(!$('dlgMat').hidden)renderMat();}
 
 /* ---------- editing actions ---------- */
 function applyField(o,k,v){
@@ -4207,11 +4211,27 @@ $('vIn').addEventListener('click',function(){tdMode('inside');});
 $('vPng').addEventListener('click',save3dPng);
 /* ---------- colours and finishes panel (3D) ----------
    Three levels, each inheriting from the one above until changed: the whole house, a room, one item. */
-var matBefore=null,matRaf=0,MS={},matApply=false;
+var matRaf=0,MS={},matApply=false;
+/* undo in the colours panel: every change is its own step. Changes made in one go (one tap that sets several keys)
+   form one step, and quick repeats of the same change (dragging the colour picker, tapping + again) merge into one. */
+var matTx=null,matLast=null;
+function matBegin(k){
+  if(matTx)return;
+  matTx={b:snapshot(),k:k};
+  setTimeout(matCommit,0);
+}
+function matCommit(){
+  var tx=matTx;if(!tx)return;matTx=null;
+  if(tx.b===snapshot())return;
+  var now=Date.now();
+  if(matLast&&matLast.k===tx.k&&now-matLast.t<2000&&matLast.n===hist.length&&hist.length){matLast.t=now;redo=[];updateBtns();return;}
+  pushHist(tx.b);matLast={k:tx.k,t:now,n:hist.length};
+}
 function matRebuild(){save();if(!matRaf)matRaf=requestAnimationFrame(function(){matRaf=0;if(T.r)tdBuild();});}
 function matRoot(){var o=matObj();if(!o){o={id:'mat',type:'mat'};state.objs.push(o);}return o;}
 /* k in the current scope; v null = back to inheriting */
 function setMat(k,v){
+  matBegin((MS.item||MS.room||'')+'|'+k);
   var o=matRoot();
   if(MS.item){o.items=o.items||{};if(v===null)delete o.items[MS.item];else o.items[MS.item]=v;}
   else if(MS.room){o.rooms=o.rooms||{};var R=o.rooms[MS.room]=o.rooms[MS.room]||{};if(v===null)delete R[k];else R[k]=v;if(!Object.keys(R).length)delete o.rooms[MS.room];}
@@ -4370,15 +4390,14 @@ function tdHi(){
   T.sc.add(g);T.hi=g;
 }
 function openMat(){
-  matBefore=snapshot();matApply=false;renderMat();$('dlgMat').hidden=false;
+  matApply=false;matLast=null;renderMat();$('dlgMat').hidden=false;
   var seen=false;try{seen=!!localStorage.getItem(MAT_HINT);localStorage.setItem(MAT_HINT,'1');}catch(x){}
   $('dlgMat').classList.toggle('seen',seen);$('dlgMat').classList.remove('hint');$('matInfo').setAttribute('aria-expanded','false');
   $('app').classList.add('matopen');tdHi();tdFit();
 }
 function closeMat(){
   $('dlgMat').hidden=true;$('app').classList.remove('matopen');tdHi();tdFit();
-  if(matBefore!==null&&matBefore!==snapshot()){pushHist(matBefore);save();}
-  matBefore=null;
+  matCommit();matLast=null;save();
 }
 /* with the panel open, a tap in 3D picks what to colour: a floor opens its room, a wall side, a door or a window opens that item */
 function tdPickMat(e){
@@ -4402,6 +4421,7 @@ $('vMat').addEventListener('click',function(){if($('dlgMat').hidden)openMat();el
 $('matClose').addEventListener('click',closeMat);
 $('matReset').addEventListener('click',function(){
   var o=matObj();if(!o)return;
+  matBegin('reset');
   if(MS.room){
     if(o.rooms)delete o.rooms[MS.room];
     if(o.items)Object.keys(o.items).forEach(function(k){if(k.split('|')[3]===MS.room)delete o.items[k];});
@@ -4441,6 +4461,7 @@ $('matRows').addEventListener('click',function(e){
   if(t.id==='matApplyGo'){
     var ids=Array.prototype.map.call($('matRows').querySelectorAll('.mapply input:checked'),function(c){return c.value;});
     if(!ids.length){flash('סמנו לפחות חדר אחד');return;}
+    matBegin('apply');
     var o=matRoot(),src=roomOver(MS.room);o.rooms=o.rooms||{};
     ids.forEach(function(id){if(Object.keys(src).length)o.rooms[id]=JSON.parse(JSON.stringify(src));else delete o.rooms[id];});
     matApply=false;matRebuild();renderMat();flash('הוחל על '+(ids.length===1?'חדר אחד':ids.length+' חדרים'));return;
@@ -5182,9 +5203,9 @@ document.addEventListener('keydown',function(e){
   if(e.key==='Escape'&&CM.placing){CM.placing=false;flash('בוטל');return;}
   if(e.key==='Escape'&&!$('dlgHist').hidden){closeHistory();return;}
   if(!$('dlgTour').hidden)return;
-  if(view==='3d')return;
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();if(e.shiftKey)doRedo();else doUndo();return;}
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='y'){e.preventDefault();doRedo();return;}
+  if(view==='3d')return;
   var o=sel?byId(sel):null;if(!o)return;
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='d'){e.preventDefault();var n2;mutate(function(){n2=dupSel(o);});select(n2);return;}
   if(e.key==='Delete'){e.preventDefault();delSel();return;}
