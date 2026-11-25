@@ -281,6 +281,20 @@ button.danger{color:var(--sel)}
 .mopts b{font-weight:600;width:100%}
 .mopts input{font:inherit;font-size:12px}
 .mcuts{font-size:12px;color:var(--muted);background:var(--paper);border-radius:6px;padding:5px 7px}
+.mguide{border:1px solid var(--line);border-radius:8px;padding:0 8px;font-size:12px}
+.mguide[open]{padding-bottom:8px}
+.mguide summary{display:flex;align-items:center;gap:8px;min-height:34px;cursor:pointer;list-style:none;font-weight:600}
+.mguide summary::-webkit-details-marker{display:none}
+.mguide summary::before{content:'◂';color:var(--muted);font-size:11px;transition:transform .15s}
+.mguide[open] summary::before{transform:rotate(-90deg)}
+.mguide .gt{flex:none}
+.mguide .gs{flex:1;text-align:end;font-weight:400;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mguide .gs b{color:var(--sel);font-weight:600}
+.mguide .gh{margin:0 0 6px;color:var(--muted)}
+.mguide .mstart{margin-bottom:6px}
+.mline{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;width:100%}
+.mstart input{width:56px}
+@media (pointer:coarse){.mguide summary{min-height:44px}.mstart input{width:64px;height:36px;font-size:16px}}
 .mcuts.warn{color:var(--sel)}
 .lnk{border:none;background:none;padding:0;color:var(--accent);font:inherit;font-size:12px;cursor:pointer;text-decoration:underline}
 .mitem{display:flex;align-items:center;gap:10px;padding:6px 0}
@@ -1343,6 +1357,7 @@ function renderPanel(){
   h+='</div><div class="btns"><button type="button" data-a="ok" class="pri" title="השינויים כבר עודכנו בתוכנית. סוגר את החלון">✓ סיום</button>';
   if(o.type!=='text'&&o.type!=='measure'&&!isPt(o)&&(view==='plan'||o.type==='wall'||o.type==='rect'))h+='<button type="button" data-a="rot">סובב</button>';
   if(view==='plan'&&(o.type==='wall'||isOpen(o)||isWallPt(o)))h+='<button type="button" data-a="elev" class="pri">חזית הקיר ←</button>';
+  if(view==='plan'&&o.type==='rect'&&o.kind==='room')h+='<button type="button" data-a="mat" title="סוג ריצוף, צבע, גודל ופריסה, ונקודת ההתחלה לרצף. נפתח בהדמיה 3D">🎨 ריצוף וצבעים</button>';
   if(o.type==='door'&&view==='plan'){
     h+='<button type="button" data-a="fx" title="מעביר את הצירים לצד השני של הפתח">⇆ צד הציר</button>';
     h+='<button type="button" data-a="fy" title="הדלת תיפתח לחדר שמעבר לקיר">⇅ פתיחה לצד השני</button>';
@@ -2642,6 +2657,7 @@ function tdBuild(){
     m.position.set((o.x+o.w/2)/100,h/200,(o.y+o.h/2)/100);
     m.castShadow=true;m.receiveShadow=true;root.add(m);
   });
+  tdHi();
 }
 /* doors: open (swung the way the plan shows) or closed; T.doorOv holds doors tapped open/closed one by one */
 function doorIsOpen(d){var v=T.doorOv&&T.doorOv[d.id];return v===undefined?state.doorsOpen!==false:v;}
@@ -4165,11 +4181,11 @@ function roomCustom(id){
   return Object.keys(matItems()).some(function(k){return k.split('|')[3]===id;});
 }
 function swBtns(key,list){return '<div class="sw">'+list.map(function(p){return '<button type="button" data-mk="'+key+'" data-v="'+p[1]+'"><i style="background:'+p[1]+'"></i>'+p[0]+'</button>';}).join('')+'</div>';}
-/* one row: name, colour, presets, and either "inherited from ..." or a reset */
+/* one row: name, colour, presets, and either "inherited from ..." or a reset. below: what follows the colours (floor size, layout, tiler's notes) */
 function matRow(name,key,col,list,own,from,extra,below){
   var h='<div class="matrow"><div class="mh"><span>'+name+'</span>'+(extra||'')+'<input type="color" data-mk="'+key+'" value="'+col+'" aria-label="צבע '+name+'"></div>';
   if(from)h+='<div class="mfrom">'+(own?'מותאם · <button type="button" class="lnk" data-mk="'+key+'" data-v="">✕ חזרה ל'+from+'</button>':from)+'</div>';
-  return h+(below||'')+swBtns(key,list)+'</div>';
+  return h+swBtns(key,list)+(below||'')+'</div>';
 }
 /* size, layout and grout of a tiled or parquet floor. keys: the keys to store under; inh: label of the inherited value, or null at house level */
 function floorOpts(F,keys,cur,inh){
@@ -4183,10 +4199,23 @@ function floorOpts(F,keys,cur,inh){
   function nm(list,v){for(var i=0;i<list.length;i++){if(list[i]===v)return v;if(list[i][0]===v)return list[i][1];}return v;}
   var h='<div class="mopts">'+sel(keys[0],'גודל (ס״מ)',FLOOR_SZ[F.type],cur[0],inh&&inh.sz)+sel(keys[1],'פריסה',FLOOR_LAY[F.type],cur[1],inh&&nm(FLOOR_LAY[F.type],inh.lay));
   if(F.type==='tile')h+=sel(keys[2],'רובה',FLOOR_GR,cur[2],inh&&nm(FLOOR_GR,inh.gr));
-  h+='</div><div class="mopts"><b>אריחים שלמים מתחילים מ:</b>'+sel(keys[3],'רוחב',FLOOR_AX,cur[3],inh&&nm(FLOOR_AX,inh.ax).replace(/ \(.*\)/,''))+sel(keys[4],'אורך',FLOOR_AY,cur[4],inh&&nm(FLOOR_AY,inh.ay).replace(/ \(.*\)/,''));
-  function numIn(k,label,v,iv){return '<label>'+label+' <input type="number" step="1" data-fn="'+k+'" value="'+(v===''||v===undefined?'':v)+'" placeholder="'+(inh?iv:'0')+'" style="width:56px"></label>';}
-  h+=numIn(keys[5],'הזזה ימינה',cur[5],inh&&inh.dx)+numIn(keys[6],'הזזה למטה',cur[6],inh&&inh.dy)+'</div>';
-  return h;
+  h+='</div>';
+  function numIn(k,label,v,iv){return '<label>'+label+' <input type="number" inputmode="numeric" step="1" data-fn="'+k+'" value="'+(v===''||v===undefined?'':v)+'" placeholder="'+(inh?iv:'0')+'"> ס״מ</label>';}
+  var g='<div class="mopts mstart"><b>אריחים שלמים מתחילים מ:</b>'+
+    '<div class="mline">'+sel(keys[3],'ימין־שמאל',FLOOR_AX,cur[3],inh&&nm(FLOOR_AX,inh.ax).replace(/ \(.*\)/,''))+numIn(keys[5],'הזזה ימינה',cur[5],inh&&inh.dx)+'</div>'+
+    '<div class="mline">'+sel(keys[4],'למעלה־למטה',FLOOR_AY,cur[4],inh&&nm(FLOOR_AY,inh.ay).replace(/ \(.*\)/,''))+numIn(keys[6],'הזזה למטה',cur[6],inh&&inh.dy)+'</div></div>';
+  /* the summary line tells where whole tiles start, so the folded section still says something */
+  var ax=cur[3]||(inh?inh.ax:'')||'c',ay=cur[4]||(inh?inh.ay:'')||'c';
+  var at=(ax==='c'&&ay==='c')?'ממרכז החדר':(nm(FLOOR_AX,ax).replace(/ \(.*\)/,'')+' · '+nm(FLOOR_AY,ay).replace(/ \(.*\)/,''));
+  return {look:h,guide:g,at:at};
+}
+/* the folded "for the tiler" section: start point, shifts, and (for a room) the cuts at each wall */
+var matGuideOpen=false;
+function guideBox(o,cuts){
+  var warn=/⚠/.test(cuts||'');
+  return '<details class="mguide"'+(matGuideOpen?' open':'')+'><summary><span class="gt">📏 הנחיות לרצף</span><span class="gs">'+(warn?'<b>⚠ חיתוך צר</b>':'התחלה: '+o.at)+'</span></summary>'+
+    '<p class="gh">מאיפה מתחילים אריחים שלמים, ואיפה יהיו החיתוכים. מופיע בעמוד פריסת הריצוף בייצוא PDF.</p>'+
+    o.guide+(cuts?'<div class="mcuts'+(warn?' warn':'')+'">'+cuts+'</div>':'')+'</details>';
 }
 function rowsOf(k){for(var i=0;i<MAT_ROWS.length;i++)if(MAT_ROWS[i].k===k)return MAT_ROWS[i].p;return [];}
 function renderMat(){
@@ -4211,8 +4240,8 @@ function renderMat(){
     var HF=floorOf({id:'',label:rm.label},MT);
     if(FLOOR_P[R.floor]&&R.floor!==HF.type)HF={sz:FLOOR_SZ[F.type]?FLOOR_SZ[F.type][0]:'',lay:FLOOR_LAY[F.type]?FLOOR_LAY[F.type][0][0]:'',gr:'light'};
     if(!HF.ax){HF.ax='c';HF.ay='c';HF.dx=0;HF.dy=0;}
-    var opts=floorOpts(F,['sz','lay','gr','ax','ay','dx','dy'],[R.sz||'',R.lay||'',R.gr||'',R.ax||'',R.ay||'',R.dx,R.dy],HF);
-    var ct=cutsText(floorLayout(rm,F));if(ct)opts+='<div class="mcuts'+(/⚠/.test(ct)?' warn':'')+'">'+ct+'</div>';
+    var fo=floorOpts(F,['sz','lay','gr','ax','ay','dx','dy'],[R.sz||'',R.lay||'',R.gr||'',R.ax||'',R.ay||'',R.dx,R.dy],HF);
+    var opts=fo?fo.look+guideBox(fo,cutsText(floorLayout(rm,F))):'';
     h+=matRow('ריצוף','floorC',F.show,FLOOR_P[F.type],!!(R.floor||R.floorC||R.sz||R.lay||R.gr||R.ax||R.ay||R.dx||R.dy),'כמו בבית',sel,opts);
     h+=matRow('קירות','wall',isHex(R.wall)?R.wall:MT.wall,rowsOf('wall'),isHex(R.wall),'כמו בבית');
     h+=matRow('דלתות שנפתחות לחדר','door',isHex(R.door)?R.door:MT.door,rowsOf('door'),isHex(R.door),'כמו בבית');
@@ -4229,17 +4258,34 @@ function renderMat(){
       if(fl&&type==='plain'&&!MT.set[R.k])col=fl==='wet'?'#bccdd4':'#d2bf9f';
       var sel=fl?'<select data-ft="'+fl+'" aria-label="סוג '+R.n+'">'+FLOOR_T.map(function(t){return '<option value="'+t[0]+'"'+(t[0]===type?' selected':'')+'>'+t[1]+'</option>';}).join('')+'</select>':'';
       var list=fl?FLOOR_P[type].concat(type==='plain'?[['לפי החדר','']]:[]):R.p,opts='';
-      if(fl){var HF=floorOf({id:'',label:fl==='wet'?'רחצה':''},MT),o0=matObj()||{};opts=floorOpts(HF,[fl+'Sz',fl+'Lay',fl+'Gr',fl+'Ax',fl+'Ay',fl+'Dx',fl+'Dy'],[HF.sz,HF.lay,HF.gr,HF.ax,HF.ay,o0[fl+'Dx'],o0[fl+'Dy']],null);}
+      if(fl){var HF=floorOf({id:'',label:fl==='wet'?'רחצה':''},MT),o0=matObj()||{};var fo=floorOpts(HF,[fl+'Sz',fl+'Lay',fl+'Gr',fl+'Ax',fl+'Ay',fl+'Dx',fl+'Dy'],[HF.sz,HF.lay,HF.gr,HF.ax,HF.ay,o0[fl+'Dx'],o0[fl+'Dy']],null);opts=fo?fo.look+guideBox(fo,''):'';}
       h+=matRow(R.n,R.k,col,list,false,null,sel,opts);
     });
   }
-  $('matRows').innerHTML=h;
+  $('matRows').innerHTML=h;tdHi();
   var scopeTxt=MS.item?'':MS.room?'איפוס החדר':'איפוס הכל';
   $('matReset').textContent=scopeTxt;$('matReset').hidden=!scopeTxt;
 }
-function openMat(){matBefore=snapshot();matApply=false;renderMat();$('dlgMat').hidden=false;}
+/* while a room's tab is open in the colours panel, its floor is outlined in 3D so it is clear which room is being edited */
+function tdHi(){
+  if(!T.sc||typeof THREE==='undefined')return;
+  if(T.hi){T.sc.remove(T.hi);T.hi.traverse(function(n){if(n.geometry)n.geometry.dispose();if(n.material)n.material.dispose();});T.hi=null;}
+  var o=!$('dlgMat').hidden&&MS.room&&!MS.item?byId(MS.room):null;if(!o)return;
+  var col=new THREE.Color(getComputedStyle(document.documentElement).getPropertyValue('--sel').trim()||'#D9480F');
+  var g=new THREE.Group(),w=o.w/100,d=o.h/100,b=.07,y=.02;
+  var fill=new THREE.Mesh(new THREE.PlaneGeometry(w,d),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.2,depthWrite:false}));
+  fill.rotation.x=-Math.PI/2;fill.position.y=y;g.add(fill);
+  [[0,-d/2+b/2,w,b],[0,d/2-b/2,w,b],[-w/2+b/2,0,b,d],[w/2-b/2,0,b,d]].forEach(function(e){
+    /* the outline is drawn over the walls, so a room hidden behind them still shows where it is */
+    var m=new THREE.Mesh(new THREE.BoxGeometry(e[2],.012,e[3]),new THREE.MeshBasicMaterial({color:col,depthTest:false,transparent:true,opacity:.95}));
+    m.position.set(e[0],y,e[1]);m.renderOrder=10;g.add(m);
+  });
+  g.position.set((o.x+o.w/2)/100,0,(o.y+o.h/2)/100);
+  T.sc.add(g);T.hi=g;
+}
+function openMat(){matBefore=snapshot();matApply=false;renderMat();$('dlgMat').hidden=false;tdHi();}
 function closeMat(){
-  $('dlgMat').hidden=true;
+  $('dlgMat').hidden=true;tdHi();
   if(matBefore!==null&&matBefore!==snapshot()){pushHist(matBefore);save();}
   matBefore=null;
 }
@@ -4272,6 +4318,7 @@ $('matReset').addEventListener('click',function(){
   }else{state.objs=state.objs.filter(function(q){return q!==o;});flash('כל הצבעים חזרו לברירת המחדל');}
   matRebuild();renderMat();
 });
+$('matRows').addEventListener('toggle',function(e){if(e.target.classList&&e.target.classList.contains('mguide'))matGuideOpen=e.target.open;},true);
 $('matRows').addEventListener('input',function(e){
   var k=e.target.getAttribute('data-mk');if(!k||e.target.type!=='color')return;
   setMat(k,e.target.value);
@@ -4327,6 +4374,7 @@ $('panel').addEventListener('click',function(e){
   if(a==='fold'){panelFold=!panelFold;renderPanel();return;}
   if(!o)return;
   if(a==='elev'){setView('elev');return;}
+  if(a==='mat'){var rid=o.id;select(null);setView('3d');if(view!=='3d')return;MS={room:rid};openMat();return;}
   if(a==='del'){delSel();return;}
   if(a==='dup'){
     if(view==='elev'&&isOpen(o)){dupOpening(o);return;}
