@@ -404,7 +404,7 @@ button.hl{animation:hl .6s ease 3;border-color:var(--sel)}
     <span class="sep"></span>
  <button id="sumBtn" type="button" title="כמה שקעים, מתגים, נקודות מים וכו׳ יש בכל חדר">📋 סיכום</button>
     <button id="pdf" type="button" title="שמירת התוכנית כקובץ PDF להדפסה">⬇ ייצוא PDF</button>
-    <button id="pdfDims" type="button" title="PDF עם כל המידות, מחושבות לבד מהתוכנית: עמוד לקירות, פתחים וריהוט קבוע, עמוד לחשמל, עמוד למים, ביוב וגז, וחזית לכל קיר עם חלון או נקודות">📐 PDF עם מידות</button>
+    <button id="pdfDims" type="button" title="PDF עם כל המידות, מחושבות לבד מהתוכנית: עמוד לקירות, פתחים וריהוט קבוע, עמוד לחשמל, עמוד למים, ביוב וגז, חזיתות חיצוניות ופריסה לכל קיר עם חלון או נקודות">📐 PDF עם מידות</button>
     <button id="helpBtn" type="button" aria-label="עזרה" title="עזרה">?</button>
     <button id="moreBtn" type="button" class="mob" aria-label="עוד אפשרויות" title="עוד אפשרויות">⋯</button>
   </header>
@@ -2826,7 +2826,7 @@ function wallRuns(){
 }
 /* the inner faces of the walls, one per stretch between the walls that meet it on that side (a room or a niche).
    n = which side (+1 = towards larger x/y), c = the face line, a..b = corner to corner */
-function wallFaces(){
+function wallFaces(ext){
   var R=wallRuns(),bb=bboxAll(true),faces=[];
   function inside(x,y){
     if(x<=bb.x+1||x>=bb.x+bb.w-1||y<=bb.y+1||y>=bb.y+bb.h-1)return false;
@@ -2846,7 +2846,8 @@ function wallFaces(){
       if(s1-prev>=15)segs.push({a:prev,b:s1});
       segs.forEach(function(g){
         var m=(g.a+g.b)/2,q=fc+n*20;
-        if(!(w.o==='h'?inside(m,q):inside(q,m)))return;
+        if(ext){var ox=w.o==='h'?m:q,oy=w.o==='h'?q:m;if(ox>bb.x&&ox<bb.x+bb.w&&oy>bb.y&&oy<bb.y+bb.h)return;}
+        else if(!(w.o==='h'?inside(m,q):inside(q,m)))return;
         faces.push({o:w.o,c:fc,n:n,a:g.a,b:g.b,wc:w.c,t:w.t,wh:w.wh});
       });
     });
@@ -2952,8 +2953,9 @@ function autoDims(pg,u,F){
   }
   return s+'</g>';
 }
-/* ---------- wall elevations for the dimensioned PDF ----------
-   One drawing per wall face that has a window or points on it, seen from inside the room, three to a page.
+/* ---------- facades and wall elevations for the dimensioned PDF ----------
+   Facades: one drawing per side of the apartment, seen from outside.
+   Room elevations: one drawing per wall face that has a window or points on it, seen from inside the room, room by room.
    Everything here is in millimetres on the A4 page. */
 function elevFaces(){
   var rooms=state.objs.filter(function(o){return o.type==='rect'&&o.kind==='room';}),out=[],seen={};
@@ -2968,14 +2970,35 @@ function elevFaces(){
     rooms.forEach(function(r){if(px>r.x&&px<r.x+r.w&&py>r.y&&py<r.y+r.h&&(!room||r.w*r.h<room.w*room.h))room=r;});
     var name=((room&&room.label)||'חדר')+' · '+SIDE[f.o][String(f.n)];
     seen[name]=(seen[name]||0)+1;if(seen[name]>1)name+=' ('+seen[name]+')';
-    out.push({f:f,L:L,H:f.wh||250,name:name,
+    out.push({fs:[f],room:(room&&room.label)||'',L:L,H:f.wh||250,name:name,
       ops:it.ops.map(function(d){return {o:d.o,x:E(d.al)};}),
       pts:it.pts.map(function(p){return {o:p.o,x:E(p.al)};})});
   });
+  /* room by room, the walls of a room together */
+  var ord={};out.forEach(function(e,i){if(!(e.room in ord))ord[e.room]=i;});
+  return out.map(function(e,i){return {e:e,i:i};}).sort(function(p,q){return ord[p.e.room]-ord[q.e.room]||p.i-q.i;}).map(function(p){return p.e;});
+}
+/* the outside of the apartment, one elevation per side: every outer wall facing that way, projected onto one plane */
+function facadeFaces(){
+  var G={},out=[],NAME={'h-1':'חזית עליונה','h1':'חזית תחתונה','v-1':'חזית שמאלית','v1':'חזית ימנית'};
+  wallFaces(true).forEach(function(f){var k=f.o+f.n;(G[k]=G[k]||[]).push(f);});
+  ['h-1','v1','h1','v-1'].forEach(function(k){
+    var fs=G[k];if(!fs)return;
+    var f0=fs[0],A=Math.min.apply(null,fs.map(function(f){return f.a;})),B=Math.max.apply(null,fs.map(function(f){return f.b;}));
+    var flip=(f0.o==='h'&&f0.n<0)||(f0.o==='v'&&f0.n>0),H=0,ops=[],pts=[];
+    function E(al){return flip?B-al:al-A;}
+    fs.forEach(function(f){
+      H=Math.max(H,f.wh||250);
+      var it=faceItems(f);
+      it.ops.forEach(function(d){ops.push({o:d.o,x:E(d.al)});});
+      it.pts.forEach(function(p){pts.push({o:p.o,x:E(p.al)});});
+    });
+    out.push({fs:fs,L:B-A,H:H,name:NAME[k]+' (כפי שהיא בתוכנית)',ops:ops,pts:pts});
+  });
   return out;
 }
-function elevSheets(){
-  var faces=elevFaces();if(!faces.length)return [];
+function elevSheets(faces,title){
+  if(!faces.length)return [];
   var PW=210,PH=297,M=12,HEAD=16,TW=34,DX=M+TW+6,DW=PW-M-DX,F='font-family="Arial, Helvetica, sans-serif"';
   var maxL=0,maxH=0;faces.forEach(function(e){maxL=Math.max(maxL,e.L);maxH=Math.max(maxH,e.H);});
   var D=Math.max(50,Math.ceil(Math.max(maxL*10/(DW-8),maxH*10/60)/5)*5),sc=10/D;
@@ -3002,22 +3025,26 @@ function elevSheets(){
     return Ln(x,y0,x,y1,col)+tick(x,y0,col)+tick(x,y1,col)+T(x+1.2,(y0+y1)/2,fmt(h1-h0),{col:col,fs:1.7,rot:1,c:1});
   }
   /* small key plan with the wall marked and an arrow from the room */
-  function keyPlan(f,x,y,w,h){
+  function keyPlan(fs,x,y,w,h){
     var bb=bboxAll(true),k=Math.min(w/bb.w,h/bb.h),ox=x+(w-bb.w*k)/2-bb.x*k,oy=y+(h-bb.h*k)/2-bb.y*k,s='';
     state.objs.forEach(function(o){if(o.type==='wall')s+=Ln(ox+o.x1*k,oy+o.y1*k,ox+o.x2*k,oy+o.y2*k,'#aaa',Math.max(.3,o.t*k));});
-    var a=f.o==='h'?[f.a,f.c,f.b,f.c]:[f.c,f.a,f.c,f.b];
-    s+='<line x1="'+(ox+a[0]*k)+'" y1="'+(oy+a[1]*k)+'" x2="'+(ox+a[2]*k)+'" y2="'+(oy+a[3]*k)+'" stroke="#D9480F" stroke-width="1.1" stroke-linecap="round"/>';
-    var m=(f.a+f.b)/2,nx=f.o==='h'?0:f.n,ny=f.o==='h'?f.n:0,cx=ox+(f.o==='h'?m:f.c)*k,cy=oy+(f.o==='h'?f.c:m)*k;
+    fs.forEach(function(f){
+      var a=f.o==='h'?[f.a,f.c,f.b,f.c]:[f.c,f.a,f.c,f.b];
+      s+='<line x1="'+(ox+a[0]*k)+'" y1="'+(oy+a[1]*k)+'" x2="'+(ox+a[2]*k)+'" y2="'+(oy+a[3]*k)+'" stroke="#D9480F" stroke-width="1.1" stroke-linecap="round"/>';
+    });
+    var f=fs[0],lo=Math.min.apply(null,fs.map(function(g){return g.a;})),hi=Math.max.apply(null,fs.map(function(g){return g.b;}));
+    if(f.n>0)f=fs.reduce(function(p,g){return g.c>p.c?g:p;});else f=fs.reduce(function(p,g){return g.c<p.c?g:p;});
+    var m=(lo+hi)/2,nx=f.o==='h'?0:f.n,ny=f.o==='h'?f.n:0,cx=ox+(f.o==='h'?m:f.c)*k,cy=oy+(f.o==='h'?f.c:m)*k;
     var tx=cx+nx*6,ty=cy+ny*6,hx=cx+nx*1.4,hy=cy+ny*1.4;
     s+=Ln(tx,ty,hx,hy,'#D9480F',.4)+'<path d="M '+hx+' '+hy+' l '+(nx*1.6+ny*1)+' '+(ny*1.6-nx*1)+' l '+(-ny*2)+' '+(nx*2)+' z" fill="#D9480F"/>';
     return s;
   }
   var R=1.3,blockH=function(e){return 7+e.H*sc+3.5+4.3*(1+(e.pts.length?1:0)+(e.ops.length?1:0))+5;};
   function block(e,y){
-    var s='',yb=y+7+e.H*sc,x0=DX+(DW-e.L*sc)/2,f=e.f;
+    var s='',yb=y+7+e.H*sc,x0=DX+(DW-e.L*sc)/2;
     s+=T(PW-M,y+3.5,esc(e.name),{a:'end',fs:3,b:1});
     s+=T(DX,y+3.5,'אורך '+fmt(e.L)+' · גובה '+fmt(e.H),{a:'start',fs:2.2,col:'#555'});
-    s+=keyPlan(f,M,y+5,TW,Math.max(20,blockH(e)-10));
+    s+=keyPlan(e.fs,M,y+5,TW,Math.max(20,blockH(e)-10));
     s+='<rect x="'+x0+'" y="'+(yb-e.H*sc)+'" width="'+(e.L*sc)+'" height="'+(e.H*sc)+'" fill="#F5F2EC" stroke="#111" stroke-width=".3"/>';
     s+=Ln(x0-3,yb,x0+e.L*sc+3,yb,'#111',.6);
     e.ops.forEach(function(d){
@@ -3044,7 +3071,7 @@ function elevSheets(){
   function head(){
     np++;
     var s='<svg xmlns="http://www.w3.org/2000/svg" width="'+(PW*8)+'" height="'+(PH*8)+'" viewBox="0 0 '+PW+' '+PH+'"><rect width="'+PW+'" height="'+PH+'" fill="#fff"/>';
-    s+=T(PW-M,M+6,'חזיתות קירות · מבט מתוך החדר',{a:'end',fs:6,b:1});
+    s+=T(PW-M,M+6,title,{a:'end',fs:6,b:1});
     s+=T(M,M+6,'1:'+D+'  ·  מידות בס״מ  ·  גבהים מהרצפה',{a:'start',fs:3.2,col:'#444'});
     s+=Ln(M,M+9,PW-M,M+9,'#111',.3);
     return {s:s,kinds:{}};
@@ -3216,7 +3243,7 @@ function exportPdf(){
 function exportDimsPdf(){
   var src=[printSvg('base')];
   ['elec','plumb'].forEach(function(ly){if(state.objs.some(function(o){return isPt(o)&&ptLay(o.kind)===ly;}))src.push(printSvg(ly));});
-  src=src.concat(elevSheets());
+  src=src.concat(elevSheets(facadeFaces(),'חזיתות חיצוניות · מבט מבחוץ'),elevSheets(elevFaces(),'פריסות קירות · מבט מתוך החדר'));
   pagesToPdf(src,'apartment-plan-dimensions.pdf');
 }
 function pagesToPdf(src,name){
@@ -3281,7 +3308,7 @@ $('mSnap').addEventListener('change',function(e){$('snapSel').value=e.target.val
 /* ---------- what's new (once, for people who already know the app) ---------- */
 var NEW_KEY='apt-new-2';
 var NEWS=[
-  {i:'📐',t:'PDF עם מידות',d:'כל המידות מחושבות לבד מהתוכנית: מהפינה לחלון ולדלת, אורך כל קיר, ריהוט קבוע, ומיקום וגובה של כל שקע ונקודת מים או גז, ועמודי חזית לכל קיר עם חלון או נקודות. משנים חלון, והמידות מתעדכנות בייצוא הבא.',a:'הורד',f:function(){exportDimsPdf();}},
+  {i:'📐',t:'PDF עם מידות',d:'כל המידות מחושבות לבד מהתוכנית: מהפינה לחלון ולדלת, אורך כל קיר, ריהוט קבוע, ומיקום וגובה של כל שקע ונקודת מים או גז, חזיתות חיצוניות, ופריסה לכל קיר עם חלון או נקודות. משנים חלון, והמידות מתעדכנות בייצוא הבא.',a:'הורד',f:function(){exportDimsPdf();}},
   {i:'⚡',t:'חשמל ואינסטלציה',d:'שקעים, מתגים, תאורה, נקודות מים, ניקוז וגז על הקירות, עם גובה מהרצפה. נראים אמיתיים בתלת־ממד.',a:'נסו',f:function(){if(view!=='plan')setView('plan');openAdd();}},
   {i:'🗂',t:'שכבות',d:'עובדים על שכבה אחת (קירות וריהוט, חשמל או אינסטלציה), והשאר חיוורות ונעולות כדי שלא יזוזו בטעות.',a:'פתח',f:function(){openLayers();}},
   {i:'📋',t:'סיכום לפי חדר',d:'כמה שקעים, מתגים ונקודות מים יש בכל חדר, לשליחה לחשמלאי או לאינסטלטור.',a:'פתח',f:function(){openSummary();}},
