@@ -198,11 +198,14 @@ button.danger{color:var(--sel)}
 .explist label small{color:var(--muted);font-size:12px}
 .explist label.off{opacity:.6;cursor:default}
 .newlist{display:grid;gap:8px}
-.newitem{display:grid;grid-template-columns:auto 1fr auto;gap:4px 10px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:8px 10px}
-.newitem .ic{font-size:22px;grid-row:span 2}
-.newitem b{font-size:14px}
-.newitem span{color:var(--muted);font-size:12px;grid-column:2}
-.newitem button{grid-row:span 2;grid-column:3;height:36px}
+/* icon on the side; title, a line or two, and the button under them */
+.newitem{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;align-items:start;border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.newitem .ic{font-size:22px;grid-column:1;grid-row:1/span 3;line-height:1.2;color:inherit}
+.newitem b{font-size:14px;grid-column:2}
+.newitem b em{font-style:normal;font-size:11px;font-weight:600;color:#fff;background:var(--sel);border-radius:8px;padding:1px 6px;margin-inline-start:4px;vertical-align:1px}
+.newitem span{color:var(--muted);font-size:12.5px;line-height:1.45;grid-column:2}
+.newitem button{grid-column:2;justify-self:start;height:30px;margin-top:3px;font-size:13px}
+@media (pointer:coarse){.newitem button{height:38px;padding:0 14px}}
 /* 3D: map for the inside view */
 .tdmap{position:absolute;z-index:4;top:8px;left:8px;width:130px;height:150px;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.18);cursor:pointer;touch-action:none}
 .tdmap svg{width:100%;height:100%;display:block}
@@ -340,6 +343,12 @@ button.danger{color:var(--sel)}
 .lnk{border:none;background:none;padding:0;color:var(--accent);font:inherit;font-size:12px;cursor:pointer;text-decoration:underline}
 .mitem{display:flex;align-items:center;gap:10px;padding:6px 0}
 .mapply{display:grid;gap:4px;padding:8px;border:1px solid var(--line);border-radius:8px;font-size:13px}
+.mapply .mwhat{margin:0 0 4px;color:var(--muted);font-size:12px;line-height:1.4}
+.mapply .mwhat b{color:var(--ink);font-weight:600}
+.mquick{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:2px}
+.mquick button{font-size:12px;padding:3px 9px;border-radius:14px}
+.mapply label{display:flex;align-items:center;gap:6px}
+@media (pointer:coarse){.mapply label{min-height:40px;font-size:15px}.mapply label input{width:20px;height:20px}.mquick button{height:36px;font-size:14px}}
 .sw button{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:3px 7px}
 .sw i{width:13px;height:13px;border-radius:3px;border:1px solid rgba(0,0,0,.25);display:inline-block}
 .dlg-box p{margin:0;color:var(--muted);font-size:12px;line-height:1.5}
@@ -3072,8 +3081,8 @@ function flashAct(t,label,fn,ms){
 }
 function flash(t,ms){
   var narrow=false;try{narrow=window.matchMedia('(max-width:760px)').matches;}catch(x){}
-  /* on phones the inspector sits at the bottom: show the message at the top instead of covering it */
-  var top=narrow&&!$('panel').hidden;
+  /* on phones the inspector and the colours panel sit at the bottom: show the message at the top instead of under them */
+  var top=narrow&&(!$('panel').hidden||!$('dlgMat').hidden);
   toastEl.style.top=top?((view==='elev'?(coarse?62:54):8)+'px'):'auto';
   toastEl.style.bottom=top?'auto':((view==='3d'&&T.mode==='inside')?'124px':'12px');
   toastEl.textContent=t;toastEl.style.display='block';clearTimeout(toastT);
@@ -3851,8 +3860,9 @@ $('mSnap').addEventListener('change',function(e){$('snapSel').value=e.target.val
 /* ---------- what's new (once, for people who already know the app) ---------- */
 var NEW_KEY='apt-new-2';
 var NEWS=[
-  {i:'🎨',t:'צבעים וחומרים בתלת־ממד',d:'צבע לקירות, לשליכט החיצוני, לאלומיניום, לדלתות ולמטבח, ורצפה חלקה, פרקט, דמוי קרמיקה או דמוי בטון, עם גודל, פריסה (ישר, מדורג, אלכסון, עצם דג) ונקודת התחלה של אריחים שלמים, ועמוד פריסת ריצוף עם החיתוכים בייצוא PDF. לכל הבית, לחדר מסוים, או לקיר, דלת או חלון אחד בלחיצה עליהם בהדמיה.',a:'נסו',f:function(){setView('3d');openMat();}},
-  {i:'📐',t:'ייצוא PDF עם מידות',d:'בכפתור ⬇ ייצוא PDF בוחרים אילו עמודים ייכנסו: מידות מהפינה לחלון ולדלת, אורך כל קיר, ריהוט קבוע, מיקום וגובה של כל שקע ונקודת מים או גז, פריסת ריצוף, חזיתות חיצוניות ופריסה לכל קיר. הכל מחושב לבד, ומתעדכן בייצוא הבא.',a:'פתח',f:function(){openExport();}},
+  {i:'🎨',nw:1,t:'צבעים וחומרים בהדמיה',d:'צבע לקירות, לדלתות, לחלונות, למטבח ולשליכט, וסוג רצפה. לכל הבית או לחדר אחד.',a:'נסו',f:function(){setView('3d');openMat();}},
+  {i:'🔲',nw:1,t:'ריצוף ופריסת אריחים',d:'גודל, פריסה ונקודת ההתחלה של האריחים, ועמוד ב־PDF עם כל החיתוכים לרצף.',a:'נסו',f:function(){setView('3d');if(view==='3d'){matGuideOpen=true;openMat();}}},
+  {i:'📐',nw:1,t:'PDF עם מידות',d:'המידות מחושבות לבד: קירות, חלונות, דלתות, שקעים ונקודות מים, וגם חזיתות ופריסות קירות.',a:'פתח',f:function(){openExport();}},
   {i:'⚡',t:'חשמל ואינסטלציה',d:'שקעים, מתגים, תאורה, נקודות מים, ניקוז וגז על הקירות, עם גובה מהרצפה. נראים אמיתיים בתלת־ממד.',a:'נסו',f:function(){if(view!=='plan')setView('plan');openAdd();}},
   {i:'🗂',t:'שכבות',d:'עובדים על שכבה אחת (קירות וריהוט, חשמל או אינסטלציה), והשאר חיוורות ונעולות כדי שלא יזוזו בטעות.',a:'פתח',f:function(){openLayers();}},
   {i:'📋',t:'סיכום לפי חדר',d:'כמה שקעים, מתגים ונקודות מים יש בכל חדר, לשליחה לחשמלאי או לאינסטלטור.',a:'פתח',f:function(){openSummary();}},
@@ -3862,7 +3872,7 @@ var NEWS=[
   {i:'🧊',t:'הליכה בתלת־ממד',d:'במבט "מבפנים" לוחצים על הרצפה כדי ללכת לשם, ומפה קטנה מראה איפה אתם.',a:'נסו',f:function(){setView('3d');tdMode('inside');}}
 ];
 function openNew(){
-  $('newList').innerHTML=NEWS.map(function(n,i){return '<div class="newitem"><span class="ic">'+n.i+'</span><b>'+n.t+'</b>'+(n.a?'<button type="button" data-n="'+i+'">'+n.a+'</button>':'')+'<span>'+n.d+'</span></div>';}).join('');
+  $('newList').innerHTML=NEWS.map(function(n,i){return '<div class="newitem"><span class="ic">'+n.i+'</span><b>'+n.t+(n.nw?' <em>חדש</em>':'')+'</b><span>'+n.d+'</span>'+(n.a?'<button type="button" data-n="'+i+'">'+n.a+' ←</button>':'')+'</div>';}).join('');
   $('dlgNew').hidden=false;
 }
 function closeNew(){$('dlgNew').hidden=true;try{localStorage.setItem(NEW_KEY,'1');}catch(x){}}
@@ -4397,8 +4407,14 @@ function renderMat(){
     h+=matRow('דלתות שנפתחות לחדר','door',isHex(R.door)?R.door:MT.door,rowsOf('door'),isHex(R.door),'כמו בבית');
     h+='<div class="row"><button type="button" id="matApplyBtn">📋 החל גם על…</button></div>';
     if(matApply){
-      h+='<div class="mapply">'+rooms.filter(function(r){return r.id!==MS.room;}).map(function(r){return '<label><input type="checkbox" value="'+r.id+'"> '+esc(roomName(r.id))+'</label>';}).join('')+
-        '<button type="button" class="pri" id="matApplyGo">החל על החדרים שסומנו</button></div>';
+      var others=rooms.filter(function(r){return r.id!==MS.room;}),what=[];
+      if(R.floor||R.floorC||R.sz||R.lay||R.gr||R.ax||R.ay||R.dx||R.dy)what.push('ריצוף ('+tn(F.type)+(F.sz&&FLOOR_SZ[F.type]?' '+F.sz:'')+')');
+      if(isHex(R.wall))what.push('צבע הקירות');
+      if(isHex(R.door))what.push('צבע הדלתות');
+      h+='<div class="mapply"><p class="mwhat">'+(what.length?'יועתקו מ"'+esc(roomName(MS.room))+'": <b>'+what.join(', ')+'</b>. מה שהיה בחדרים שתסמנו יוחלף.':'ל"'+esc(roomName(MS.room))+'" אין הגדרות משלו, כך שהחדרים שתסמנו <b>יחזרו להיות כמו בבית</b>.')+'</p>'+
+        '<div class="mquick"><button type="button" data-ap="all">הכל</button><button type="button" data-ap="wet">חדרים רטובים</button><button type="button" data-ap="dry">חדרים יבשים</button><button type="button" data-ap="none">נקה</button></div>'+
+        others.map(function(r){return '<label><input type="checkbox" value="'+r.id+'" data-wet="'+(isWetRoom(r.label)?1:0)+'"> '+esc(roomName(r.id))+'</label>';}).join('')+
+        '<button type="button" class="pri" id="matApplyGo" disabled>סמנו חדרים</button></div>';
     }
   }else{
     MAT_ROWS.forEach(function(R){
@@ -4503,10 +4519,17 @@ $('matReset').addEventListener('click',function(){
   if(MS.room){
     if(o.rooms)delete o.rooms[MS.room];
     if(o.items)Object.keys(o.items).forEach(function(k){if(k.split('|')[3]===MS.room)delete o.items[k];});
-    flash('החדר חזר לצבעים של הבית');
-  }else{state.objs=state.objs.filter(function(q){return q!==o;});flash('כל הצבעים חזרו לברירת המחדל');}
+    flashAct('החדר חזר להגדרות של הבית','↶ ביטול',doUndo,8000);
+  }else{state.objs=state.objs.filter(function(q){return q!==o;});flashAct('כל הצבעים חזרו לברירת המחדל','↶ ביטול',doUndo,8000);}
   matRebuild();renderMat();
 });
+/* the apply button says how many rooms it will change */
+function applyCount(){
+  var b=$('matApplyGo');if(!b)return;
+  var n=$('matRows').querySelectorAll('.mapply input:checked').length;
+  b.disabled=!n;b.textContent=n?'החל על '+(n===1?'חדר אחד':n+' חדרים'):'סמנו חדרים';
+}
+$('matRows').addEventListener('change',function(e){if(e.target.closest&&e.target.closest('.mapply'))applyCount();});
 $('matRows').addEventListener('toggle',function(e){if(e.target.classList&&e.target.classList.contains('mguide'))matGuideOpen=e.target.open;},true);
 $('matRows').addEventListener('input',function(e){
   var k=e.target.getAttribute('data-mk');if(!k||e.target.type!=='color')return;
@@ -4536,13 +4559,18 @@ $('matRows').addEventListener('click',function(e){
     var again=$('matRows').querySelector('[data-st="'+t.getAttribute('data-st')+'"][data-d="'+t.getAttribute('data-d')+'"]');if(again)again.focus();
     return;
   }
+  if(t.hasAttribute('data-ap')){
+    var ap=t.getAttribute('data-ap');
+    $('matRows').querySelectorAll('.mapply input[type=checkbox]').forEach(function(c){c.checked=ap==='all'||(ap==='wet'&&c.getAttribute('data-wet')==='1')||(ap==='dry'&&c.getAttribute('data-wet')==='0');});
+    applyCount();return;
+  }
   if(t.id==='matApplyGo'){
     var ids=Array.prototype.map.call($('matRows').querySelectorAll('.mapply input:checked'),function(c){return c.value;});
     if(!ids.length){flash('סמנו לפחות חדר אחד');return;}
     matBegin('apply');
     var o=matRoot(),src=roomOver(MS.room);o.rooms=o.rooms||{};
     ids.forEach(function(id){if(Object.keys(src).length)o.rooms[id]=JSON.parse(JSON.stringify(src));else delete o.rooms[id];});
-    matApply=false;matRebuild();renderMat();flash('הוחל על '+(ids.length===1?'חדר אחד':ids.length+' חדרים'));return;
+    matApply=false;matRebuild();renderMat();flashAct('הוחל על '+(ids.length===1?'חדר אחד':ids.length+' חדרים'),'↶ ביטול',doUndo,8000);return;
   }
   var k=t.getAttribute('data-mk');if(!k)return;
   if(MS.room&&!MS.item&&k==='floorC'&&t.classList.contains('lnk'))['floor','sz','lay','gr','ax','ay','dx','dy'].forEach(function(q){setMat(q,null);});
