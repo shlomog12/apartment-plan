@@ -232,6 +232,19 @@ button.danger{color:var(--sel)}
 .dlg{position:fixed;inset:0;background:rgba(10,14,20,.55);display:grid;place-items:center;padding:16px;z-index:20}
 .dlg-box{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;width:min(560px,100%);display:grid;gap:8px}
 .dlg-box h2{margin:0;font-size:16px}
+.dlg.side{background:transparent;pointer-events:none;place-items:end start}
+.dlg.side .dlg-box{pointer-events:auto;width:min(360px,100%);max-height:calc(100vh - 32px);overflow:auto;box-shadow:0 8px 30px rgba(0,0,0,.25)}
+.dlg.side .dlg-box{max-height:calc(100vh - 32px)}
+@media (max-width:760px){.dlg.side{place-items:end center;padding:8px}.dlg.side .dlg-box{max-height:48vh}}
+.mathint{margin:0;font-size:12px;color:var(--muted)}
+.matrow{display:grid;gap:5px;padding:7px 0;border-top:1px solid var(--line)}
+.matrow .mh{display:flex;align-items:center;gap:8px;font-weight:600;font-size:13px}
+.matrow .mh span{flex:1}
+.matrow input[type=color]{width:38px;height:28px;padding:0;border:1px solid var(--line);border-radius:6px;background:none;cursor:pointer}
+.matrow select{font:inherit;font-size:12px}
+.sw{display:flex;flex-wrap:wrap;gap:5px}
+.sw button{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:3px 7px}
+.sw i{width:13px;height:13px;border-radius:3px;border:1px solid rgba(0,0,0,.25);display:inline-block}
 .dlg-box p{margin:0;color:var(--muted);font-size:12px;line-height:1.5}
 .dlg-box textarea{width:100%;height:180px;direction:ltr;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:8px;resize:vertical}
 .row{display:flex;gap:6px;flex-wrap:wrap}
@@ -446,6 +459,7 @@ button.hl{animation:hl .6s ease 3;border-color:var(--sel)}
       <button id="vPts" type="button" class="on" hidden title="הצג או הסתר את נקודות החשמל">⚡ חשמל</button>
       <button id="vPlumb" type="button" class="on" hidden title="הצג או הסתר את נקודות האינסטלציה">💧 אינסטלציה</button>
       <button id="vDoors" type="button" class="on" title="פתיחה או סגירה של כל הדלתות. אפשר גם ללחוץ על דלת אחת">🚪 דלתות פתוחות</button>
+      <button id="vMat" type="button" title="צבע לקירות, לאלומיניום, לדלתות ולמטבח, וסוג וצבע לרצפה">🎨 צבעים וחומרים</button>
       <button id="vPng" type="button">שמור תמונה</button>
     </div>
     <div class="pad" id="pad" hidden>
@@ -715,6 +729,14 @@ button.hl{animation:hl .6s ease 3;border-color:var(--sel)}
       </div>
     </div>
   </div>
+  <div class="dlg side" id="dlgMat" hidden>
+    <div class="dlg-box" role="dialog" aria-labelledby="matTitle">
+      <h2 id="matTitle">🎨 צבעים וחומרים</h2>
+      <p class="mathint">השינויים נראים מיד בתלת־ממד ונשמרים עם התוכנית. אפשר לבחור מהדוגמאות או כל צבע אחר בריבוע הצבע.</p>
+      <div id="matRows"></div>
+      <div class="row"><button id="matReset" type="button">חזרה לברירת המחדל</button><span style="flex:1"></span><button id="matClose" type="button" class="pri">סגור</button></div>
+    </div>
+  </div>
   <div class="dlg" id="dlgConfirm" hidden>
     <div class="dlg-box">
       <h2 id="cfTitle">לנקות את הלוח?</h2>
@@ -915,7 +937,7 @@ function valid(a){
     else if(o.type==='text'){if(![o.x,o.y,o.fs].every(isFinite)||typeof o.text!=='string')return false;}
     else if(isOpen(o)){if(![o.x,o.y,o.w,o.rot,o.fx,o.fy].every(isFinite))return false;}
     else if(o.type==='pt'){if(![o.x,o.y].every(isFinite)||!EK[o.kind])return false;}
-    else return false;}
+    else if(o.type!=='mat')return false;}
   return true;
 }
 function normalize(){
@@ -1490,7 +1512,7 @@ function autoH(o){
 function ptName(o){return (EK[o.kind]||{}).n||'חשמל';}
 /* ---------- layers ---------- */
 var LAYERS=[{id:'base',n:'קירות וריהוט',i:'🧱',d:'קירות, חדרים, ריהוט, דלתות, חלונות וטקסט'},{id:'elec',n:'חשמל',i:'⚡',d:'שקעים, מתגים, תאורה ומזגנים'},{id:'plumb',n:'אינסטלציה',i:'💧',d:'נקודות מים, ניקוז וגז'}];
-function layerOf(o){return !o?null:isPt(o)?ptLay(o.kind):(o.type==='measure'?null:'base');}
+function layerOf(o){return !o?null:isPt(o)?ptLay(o.kind):(o.type==='measure'||o.type==='mat'?null:'base');}
 function layHidden(l){return !!state.lay.hide[l];}
 function layLocked(o){var l=layerOf(o);return !!l&&l!==state.lay.act;}
 function layInfo(l){for(var i=0;i<LAYERS.length;i++)if(LAYERS[i].id===l)return LAYERS[i];return LAYERS[0];}
@@ -2268,26 +2290,119 @@ function floorColor(l){
   if(/סלון|מסדרון/.test(l))return 0xddd6c8;
   return 0xd2bf9f;
 }
+/* ---------- colours and finishes in 3D ----------
+   Kept as one object of type 'mat' in the plan, so they are saved, shared and undone with it.
+   A key that is not set keeps the built-in look (floor colours by room, the default wall and door colours). */
+var MAT_DEF={wall:'#f1eee8',alu:'#e9e6e0',door:'#8a5a35',kitchen:'#c8b79c',counter:'#9aa3a8',floor:'plain',floorC:'#d2bf9f',wet:'plain',wetC:'#bccdd4'};
+var FLOOR_T=[['plain','חלק'],['parquet','פרקט'],['tile','דמוי קרמיקה'],['concrete','דמוי בטון']];
+var MAT_ROWS=[
+  {k:'wall',n:'קירות',p:[['לבן','#f4f2ee'],['שמנת','#efe6d4'],['אפור בהיר','#d9d9d6'],['ירוק מרווה','#b9c4ae'],['כחול אפרפר','#b8c4cc']]},
+  {k:'alu',n:'אלומיניום (חלונות)',p:[['לבן','#f2f2f0'],['שמפניה','#cbbd9e'],['אפור','#8c9094'],['אנתרציט','#3b3f44'],['שחור','#1c1d1f']]},
+  {k:'door',n:'דלתות',p:[['לבן','#f3f1ec'],['אלון','#b08a5e'],['אגוז','#6b4a30'],['אפור','#8f9295'],['שחור','#2a2a2a']]},
+  {k:'kitchen',n:'מטבח: ארונות',p:[['לבן','#f2f1ed'],['אפור','#a6a8a8'],['ירוק זית','#6f7a5b'],['כחול כהה','#2f3e52'],['עץ','#b48a5f']]},
+  {k:'counter',n:'מטבח: משטח',p:[['לבן','#eeeeea'],['שיש אפור','#c9c9c6'],['בטון','#9c9a94'],['שחור','#2d2e30'],['עץ','#a87b4f']]},
+  {k:'floorC',t:'floor',n:'רצפה'},
+  {k:'wetC',t:'wet',n:'רצפה בחדרים רטובים'}
+];
+var FLOOR_P={plain:[['בז׳','#d2bf9f'],['לבן','#ece9e3'],['אפור','#b4b4b1']],parquet:[['אלון בהיר','#c9a274'],['טבעי','#b58553'],['אגוז','#7a5536'],['אפור','#9a948c']],
+  tile:[['לבן','#e8e6e1'],['בז׳','#d6c8b0'],['אפור','#a9aaa8'],['אנתרציט','#55585b']],concrete:[['בהיר','#bdbab3'],['אפור','#8e8c87'],['כהה','#5f5e5b']]};
+function matObj(){for(var i=0;i<state.objs.length;i++)if(state.objs[i].type==='mat')return state.objs[i];return null;}
+function isHex(v){return typeof v==='string'&&/^#[0-9a-f]{6}$/i.test(v);}
+function mats(){
+  var o=matObj()||{},r={set:{}};
+  for(var k in MAT_DEF){var v=o[k],ok=/C$|^(wall|alu|door|kitchen|counter)$/.test(k)?isHex(v):FLOOR_P[v];r[k]=ok?v:MAT_DEF[k];r.set[k]=!!ok;}
+  return r;
+}
+function hexN(s){return parseInt(s.slice(1),16);}
+function shade(hex,f){
+  var n=hexN(hex),c=[n>>16&255,n>>8&255,n&255].map(function(v){return Math.max(0,Math.min(255,Math.round(v*f)));});
+  return 'rgb('+c.join(',')+')';
+}
+function isWetRoom(l){return /רחצה|שירות|מקלחת|אמבט|כביסה/.test(l||'');}
+function isKitchenFurn(o){
+  var l=o.label||'';
+  if(MOVABLE_RE.test(l))return false;
+  if(/משטח|דלפק|מזווה|מטבח/.test(l))return true;
+  var cx=o.x+o.w/2,cy=o.y+o.h/2;
+  return state.objs.some(function(r){return r.type==='rect'&&r.kind==='room'&&/מטבח/.test(r.label||'')&&cx>r.x&&cx<r.x+r.w&&cy>r.y&&cy<r.y+r.h;});
+}
+/* a repeating floor texture drawn on a canvas: one tile covers sz cm */
+var FLOOR_CV={};
+function floorCanvas(type,col){
+  var key=type+col;if(FLOOR_CV[key])return FLOOR_CV[key];
+  var N=512,c=document.createElement('canvas');c.width=c.height=N;var x=c.getContext('2d'),seed=7;
+  function rnd(){seed=(seed*16807)%2147483647;return seed/2147483647;}
+  x.fillStyle=col;x.fillRect(0,0,N,N);
+  if(type==='parquet'){
+    /* 6 rows of 20 cm planks, 120 cm long, joints staggered */
+    var ph=N/6;
+    for(var r=0;r<6;r++){
+      var off=((r*0.37)%1)*N;
+      [-1,0].forEach(function(j){
+        var x0=off+j*N;
+        x.fillStyle=shade(col,.9+rnd()*.18);x.fillRect(x0,r*ph,N,ph);
+        for(var g=0;g<14;g++){
+          x.strokeStyle='rgba(60,35,15,'+(.04+rnd()*.06)+')';x.lineWidth=1+rnd()*1.5;
+          var gy=r*ph+rnd()*ph;x.beginPath();x.moveTo(x0,gy);
+          for(var s=1;s<=8;s++)x.lineTo(x0+s*N/8,gy+Math.sin(s+rnd()*2)*2);
+          x.stroke();
+        }
+        x.fillStyle='rgba(40,25,10,.45)';x.fillRect(x0,r*ph,2,ph);
+      });
+      x.fillStyle='rgba(40,25,10,.35)';x.fillRect(0,r*ph,N,1.5);
+    }
+    return FLOOR_CV[key]={c:c,sz:120,rough:.7};
+  }
+  if(type==='tile'){
+    /* 2 x 2 tiles of 60 cm with grout */
+    var tw=N/2;
+    for(var i=0;i<2;i++)for(var k=0;k<2;k++){
+      x.fillStyle=shade(col,.96+rnd()*.07);x.fillRect(i*tw,k*tw,tw,tw);
+      for(var d=0;d<260;d++){x.fillStyle='rgba(0,0,0,'+(rnd()*.05)+')';x.fillRect(i*tw+rnd()*tw,k*tw+rnd()*tw,2,2);}
+    }
+    x.fillStyle=shade(col,.78);
+    for(var q=0;q<=2;q++){x.fillRect(q*tw-1.5,0,3,N);x.fillRect(0,q*tw-1.5,N,3);}
+    return FLOOR_CV[key]={c:c,sz:120,rough:.3};
+  }
+  if(type==='concrete'){
+    for(var b=0;b<90;b++){
+      var bx=rnd()*N,by=rnd()*N,br=20+rnd()*90,gr=x.createRadialGradient(bx,by,0,bx,by,br),f=.88+rnd()*.24;
+      gr.addColorStop(0,shade(col,f).replace('rgb','rgba').replace(')',',.35)'));gr.addColorStop(1,'rgba(0,0,0,0)');
+      x.fillStyle=gr;x.fillRect(bx-br,by-br,2*br,2*br);
+    }
+    for(var e=0;e<2500;e++){x.fillStyle='rgba('+(rnd()<.5?'0,0,0':'255,255,255')+','+(rnd()*.08)+')';x.fillRect(rnd()*N,rnd()*N,1.5,1.5);}
+    return FLOOR_CV[key]={c:c,sz:200,rough:.85};
+  }
+  return null;
+}
+function floorMat(room,MT){
+  var wet=isWetRoom(room.label),type=wet?MT.wet:MT.floor,ck=wet?'wetC':'floorC';
+  var col=MT.set[ck]?MT[ck]:null;
+  if(type==='plain')return m3(col?hexN(col):floorColor(room.label||''));
+  var fc=floorCanvas(type,col||FLOOR_P[type][0][1]),t=new THREE.CanvasTexture(fc.c);
+  t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(room.w/fc.sz,room.h/fc.sz);t.anisotropy=4;
+  return m3(0xffffff,{map:t,roughness:fc.rough});
+}
 function tdBuild(){
   if(T.root){
     T.sc.remove(T.root);
-    T.root.traverse(function(n){if(n.geometry)n.geometry.dispose();if(n.material)n.material.dispose();});
+    T.root.traverse(function(n){if(n.geometry)n.geometry.dispose();if(n.material){if(n.material.map)n.material.map.dispose();n.material.dispose();}});
   }
   var root=new THREE.Group();T.root=root;T.sc.add(root);
   var bg=getComputedStyle(document.documentElement).getPropertyValue('--paper').trim()||'#EEF1F5';
   T.sc.background=new THREE.Color(bg);
-  var bb=bboxAll(false);
+  var bb=bboxAll(false),MT=mats();
   T.center={x:(bb.x+bb.w/2)/100,z:(bb.y+bb.h/2)/100};T.bb=bb;
   /* floors */
   var base=new THREE.Mesh(new THREE.PlaneGeometry((bb.w+60)/100,(bb.h+60)/100),m3(0xc9c4bb));
   base.rotation.x=-Math.PI/2;base.position.set(T.center.x,0,T.center.z);base.receiveShadow=true;root.add(base);
   state.objs.forEach(function(o,i){
     if(o.type!=='rect'||o.kind!=='room')return;
-    var f=new THREE.Mesh(new THREE.PlaneGeometry(o.w/100,o.h/100),m3(floorColor(o.label||'')));
+    var f=new THREE.Mesh(new THREE.PlaneGeometry(o.w/100,o.h/100),floorMat(o,MT));
     f.rotation.x=-Math.PI/2;f.position.set((o.x+o.w/2)/100,.003+i*.0002,(o.y+o.h/2)/100);f.receiveShadow=true;root.add(f);
   });
   /* walls with openings */
-  var wmat=m3(0xf1eee8),doorMat=m3(0x8a5a35),frameMat=m3(0xe9e6e0),glassMat=m3(0x9fc4e8,{transparent:true,opacity:.38,roughness:.2});
+  var wmat=m3(hexN(MT.wall)),doorMat=m3(hexN(MT.door),{roughness:.6}),frameMat=m3(hexN(MT.alu),{metalness:.25,roughness:.45}),glassMat=m3(0x9fc4e8,{transparent:true,opacity:.38,roughness:.2});
   var opens=state.objs.filter(isOpen);
   state.objs.forEach(function(w){
     if(w.type!=='wall')return;
@@ -2334,7 +2449,7 @@ function tdBuild(){
   /* furniture */
   state.objs.forEach(function(o){
     if(o.type!=='rect'||o.kind==='room')return;
-    var h=furnH(o),mat=m3(furnColor(o.label||''));
+    var h=furnH(o),kit=isKitchenFurn(o),mat=m3(kit?hexN(MT.kitchen):furnColor(o.label||''));
     var ft=furnType(o);
     if(ft){
       var fg=furn3d(o,ft);
@@ -2347,6 +2462,11 @@ function tdBuild(){
     if(o.shape==='ellipse'){
       m=new THREE.Mesh(new THREE.CylinderGeometry(1,1,h/100,40),mat);
       m.scale.set(o.w/200,1,o.h/200);
+    }else if(kit&&h<=110){
+      /* kitchen base cabinets: the doors in the kitchen colour, a 3 cm worktop on top */
+      var top=new THREE.Mesh(new THREE.BoxGeometry(o.w/100+.02,.03,o.h/100+.02),m3(hexN(MT.counter),{roughness:.35}));
+      top.position.set((o.x+o.w/2)/100,(h-1.5)/100,(o.y+o.h/2)/100);top.castShadow=true;top.receiveShadow=true;root.add(top);
+      h-=3;m=new THREE.Mesh(new THREE.BoxGeometry(o.w/100,h/100,o.h/100),mat);
     }else m=new THREE.Mesh(new THREE.BoxGeometry(o.w/100,h/100,o.h/100),mat);
     m.position.set((o.x+o.w/2)/100,h/200,(o.y+o.h/2)/100);
     m.castShadow=true;m.receiveShadow=true;root.add(m);
@@ -3308,6 +3428,7 @@ $('mSnap').addEventListener('change',function(e){$('snapSel').value=e.target.val
 /* ---------- what's new (once, for people who already know the app) ---------- */
 var NEW_KEY='apt-new-2';
 var NEWS=[
+  {i:'🎨',t:'צבעים וחומרים בתלת־ממד',d:'צבע לקירות, לאלומיניום, לדלתות ולמטבח (ארונות ומשטח), ורצפה חלקה, פרקט, דמוי קרמיקה או דמוי בטון, בנפרד לחדרים הרטובים.',a:'נסו',f:function(){setView('3d');openMat();}},
   {i:'📐',t:'PDF עם מידות',d:'כל המידות מחושבות לבד מהתוכנית: מהפינה לחלון ולדלת, אורך כל קיר, ריהוט קבוע, ומיקום וגובה של כל שקע ונקודת מים או גז, חזיתות חיצוניות, ופריסה לכל קיר עם חלון או נקודות. משנים חלון, והמידות מתעדכנות בייצוא הבא.',a:'הורד',f:function(){exportDimsPdf();}},
   {i:'⚡',t:'חשמל ואינסטלציה',d:'שקעים, מתגים, תאורה, נקודות מים, ניקוז וגז על הקירות, עם גובה מהרצפה. נראים אמיתיים בתלת־ממד.',a:'נסו',f:function(){if(view!=='plan')setView('plan');openAdd();}},
   {i:'🗂',t:'שכבות',d:'עובדים על שכבה אחת (קירות וריהוט, חשמל או אינסטלציה), והשאר חיוורות ונעולות כדי שלא יזוזו בטעות.',a:'פתח',f:function(){openLayers();}},
@@ -3708,6 +3829,7 @@ function save3dPng(){
 /* ---------- view switching ---------- */
 var elevSeen=false;
 function setView(v){
+  if(v!=='3d'&&!$('dlgMat').hidden)closeMat();
   if(v!=='plan'&&!state.objs.some(function(o){return o.type==='wall';})){flash('אין קירות על הלוח. הוסיפו קיר קודם');return;}
   if(view==='3d'&&v!=='3d')tdStop();
   view=v;
@@ -3743,6 +3865,51 @@ $('vOrbit').addEventListener('click',function(){tdMode('orbit');});
 $('vTop').addEventListener('click',function(){tdMode('top');});
 $('vIn').addEventListener('click',function(){tdMode('inside');});
 $('vPng').addEventListener('click',save3dPng);
+/* ---------- colours and finishes panel (3D) ---------- */
+var matBefore=null,matRaf=0;
+function setMat(k,v){
+  var o=matObj();if(!o){o={id:'mat',type:'mat'};state.objs.push(o);}
+  if(v===null)delete o[k];else o[k]=v;
+  save();
+  if(!matRaf)matRaf=requestAnimationFrame(function(){matRaf=0;if(T.r)tdBuild();});
+}
+function renderMat(){
+  var MT=mats(),h='';
+  MAT_ROWS.forEach(function(R){
+    var fl=R.t,type=fl?MT[fl]:null,col=MT[R.k];
+    if(fl&&type!=='plain'&&!MT.set[R.k])col=FLOOR_P[type][0][1];
+    if(fl&&type==='plain'&&!MT.set[R.k])col=fl==='wet'?'#bccdd4':'#d2bf9f';
+    h+='<div class="matrow"><div class="mh"><span>'+R.n+'</span>';
+    if(fl){h+='<select data-ft="'+fl+'" aria-label="סוג '+R.n+'">'+FLOOR_T.map(function(t){return '<option value="'+t[0]+'"'+(t[0]===type?' selected':'')+'>'+t[1]+'</option>';}).join('')+'</select>';}
+    h+='<input type="color" data-mk="'+R.k+'" value="'+col+'" aria-label="צבע '+R.n+'"></div><div class="sw">';
+    (fl?FLOOR_P[type]:R.p).forEach(function(p){h+='<button type="button" data-mk="'+R.k+'" data-v="'+p[1]+'"><i style="background:'+p[1]+'"></i>'+p[0]+'</button>';});
+    if(fl&&type==='plain')h+='<button type="button" data-mk="'+R.k+'" data-v="">לפי החדר</button>';
+    h+='</div></div>';
+  });
+  $('matRows').innerHTML=h;
+}
+function openMat(){matBefore=snapshot();renderMat();$('dlgMat').hidden=false;}
+function closeMat(){
+  $('dlgMat').hidden=true;
+  if(matBefore!==null&&matBefore!==snapshot()){pushHist(matBefore);save();}
+  matBefore=null;
+}
+$('vMat').addEventListener('click',function(){if($('dlgMat').hidden)openMat();else closeMat();});
+$('matClose').addEventListener('click',closeMat);
+$('matReset').addEventListener('click',function(){
+  var o=matObj();if(!o)return;
+  state.objs=state.objs.filter(function(q){return q!==o;});save();if(T.r)tdBuild();renderMat();flash('הצבעים חזרו לברירת המחדל');
+});
+$('matRows').addEventListener('input',function(e){var k=e.target.getAttribute('data-mk');if(k)setMat(k,e.target.value);});
+$('matRows').addEventListener('change',function(e){
+  var ft=e.target.getAttribute('data-ft');
+  if(ft){setMat(ft,e.target.value);setMat(ft==='wet'?'wetC':'floorC',null);renderMat();}
+});
+$('matRows').addEventListener('click',function(e){
+  var b=e.target.closest&&e.target.closest('button[data-mk]');if(!b)return;
+  var v=b.getAttribute('data-v');setMat(b.getAttribute('data-mk'),v||null);renderMat();
+});
+
 function syncDoorsBtn(){var o=state.doorsOpen!==false;$('vDoors').textContent=o?'🚪 דלתות פתוחות':'🚪 דלתות סגורות';$('vDoors').classList.toggle('on',o);}
 $('vDoors').addEventListener('click',function(){
   state.doorsOpen=state.doorsOpen===false;T.doorOv={};syncDoorsBtn();save();if(T.r)tdBuild();
