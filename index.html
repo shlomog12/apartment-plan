@@ -168,6 +168,33 @@ button.danger{color:var(--sel)}
 .morelist button,.morelist label{height:auto;min-height:44px;text-align:start;justify-content:flex-start;display:flex;align-items:center;gap:8px;padding:6px 12px;border:1px solid var(--line);border-radius:6px;background:var(--btn);font-size:14px}
 .morelist label input{width:20px;height:20px;accent-color:var(--accent)}
 .morelist label select{margin-inline-start:auto;height:34px}
+/* view settings (grid, room sizes, snapping) live in the ⋯ menu on every screen */
+.brk{display:none}
+@media (min-width:761px){
+  /* nothing in the header may hide off-screen: it wraps instead of scrolling sideways */
+  header{flex-wrap:wrap;overflow:visible;row-gap:6px}
+  #furnSel{width:104px}#elecSel{width:96px}#plumbSel{width:128px}
+}
+/* mid-size screens: the drawing tools get a second row of their own */
+@media (min-width:1100px) and (max-width:1759px){.brk{display:block;flex-basis:100%;height:0}}
+@media (min-width:1760px){.brk{display:block;width:1px;height:20px;background:var(--line);margin:0 2px}}
+/* small laptops and tablets: the drawing tools fold into "+ הוסף", like on phones */
+@media (min-width:761px) and (max-width:1099px){
+  header h1{display:none}
+  #addBtn.mob{display:inline-flex;align-items:center}
+  #addWall,#addMeas,#addRoom,#furnSel,#addText,#addDoor,#addWin,#elecSel,#plumbSel{display:none!important}
+}
+#planTools>label.chk{display:none!important}
+/* the list scrolls, the export button stays in view on short phones */
+#dlgExp .dlg-box{display:flex;flex-direction:column;overflow:hidden}
+#dlgExp .explist{display:flex;flex-direction:column;overflow:auto;min-height:0;flex:0 1 auto;overscroll-behavior:contain}
+#dlgExp .explist label{flex:none}
+#dlgExp .dlg-box>.row{flex:none}
+.explist label{align-items:flex-start;padding:8px 12px;cursor:pointer}
+.explist label input{flex:none;margin-top:1px}
+.explist label span{display:grid;gap:2px;line-height:1.3}
+.explist label small{color:var(--muted);font-size:12px}
+.explist label.off{opacity:.6;cursor:default}
 .newlist{display:grid;gap:8px}
 .newitem{display:grid;grid-template-columns:auto 1fr auto;gap:4px 10px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:8px 10px}
 .newitem .ic{font-size:22px;grid-row:span 2}
@@ -181,7 +208,7 @@ button.danger{color:var(--sel)}
   .mob{display:inline-flex;align-items:center;justify-content:center}
   header{flex-wrap:wrap;overflow:visible;row-gap:6px}
   header .sep{display:none}
-  #addWall,#addMeas,#addRoom,#furnSel,#addText,#addDoor,#addWin,#elecSel,#plumbSel,#planTools>label.chk,#sumBtn,#pdf,#pdfDims,#helpBtn{display:none!important}
+  #addWall,#addMeas,#addRoom,#furnSel,#addText,#addDoor,#addWin,#elecSel,#plumbSel,#expBtn{display:none!important}
   #plansBtn{order:1}
   #status{order:2;flex:1 1 0;min-width:0;max-width:none}
   #issBtn{order:3}
@@ -406,7 +433,13 @@ button.hl{animation:hl .6s ease 3;border-color:var(--sel)}
       <button type="button" data-v="3d" title="הדמיה 3D של הדירה: מבחוץ, מלמעלה או הליכה בפנים"><span class="lg">הדמיה 3D</span><span class="sh">3D</span></button>
     </div>
     <span class="sep"></span>
+    <button id="undo" type="button" aria-label="בטל" title="בטל את הפעולה האחרונה (Ctrl+Z)">↶</button>
+    <button id="redo" type="button" aria-label="שחזר" title="החזר את מה שבוטל (Ctrl+Y)">↷</button>
+    <span class="sep"></span>
+    <button id="expBtn" type="button" title="קובץ PDF להדפסה או לשליחה. בוחרים אילו עמודים ייכנסו: תוכנית, סיכום, מידות, חשמל, מים, ריצוף, חזיתות ופריסות קירות">⬇ ייצוא PDF</button>
+    <button id="moreBtn" type="button" aria-label="עוד אפשרויות" title="עוד: סיכום נקודות, תצוגה, עזרה">⋯</button>
     <span id="planTools" style="display:contents">
+      <span class="brk" aria-hidden="true"></span>
       <button id="addBtn" type="button" class="pri mob" title="הוספת קיר, ריהוט, חשמל, אינסטלציה ועוד">+ הוסף</button>
       <button id="addWall" type="button">+ קיר</button>
       <button id="addMeas" type="button" title="קו מדידה בין שתי נקודות">+ מדידה</button>
@@ -425,16 +458,7 @@ button.hl{animation:hl .6s ease 3;border-color:var(--sel)}
           <option value="0">כבויה</option><option value="5">5 ס״מ</option><option value="10">10 ס״מ</option><option value="25">25 ס״מ</option>
         </select>
       </label>
-      <span class="sep"></span>
     </span>
-    <button id="undo" type="button" aria-label="בטל" title="בטל את הפעולה האחרונה (Ctrl+Z)">↶</button>
-    <button id="redo" type="button" aria-label="שחזר" title="החזר את מה שבוטל (Ctrl+Y)">↷</button>
-    <span class="sep"></span>
- <button id="sumBtn" type="button" title="כמה שקעים, מתגים, נקודות מים וכו׳ יש בכל חדר">📋 סיכום</button>
-    <button id="pdf" type="button" title="שמירת התוכנית כקובץ PDF להדפסה">⬇ ייצוא PDF</button>
-    <button id="pdfDims" type="button" title="PDF עם כל המידות, מחושבות לבד מהתוכנית: עמוד לקירות, פתחים וריהוט קבוע, עמוד לחשמל, עמוד למים, ביוב וגז, פריסת ריצוף, חזיתות חיצוניות ופריסה לכל קיר עם חלון או נקודות">📐 PDF עם מידות</button>
-    <button id="helpBtn" type="button" aria-label="עזרה" title="עזרה">?</button>
-    <button id="moreBtn" type="button" class="mob" aria-label="עוד אפשרויות" title="עוד אפשרויות">⋯</button>
   </header>
   <main class="stage" id="stage">
     <svg id="cv" xmlns="http://www.w3.org/2000/svg"></svg>
@@ -506,7 +530,8 @@ button.hl{animation:hl .6s ease 3;border-color:var(--sel)}
         <li>אינסטלציה: "+ אינסטלציה…" מוסיף נקודות מים, ניקוז וגז, באותו אופן כמו חשמל.</li>
         <li>⚠️ בדיקות: האפליקציה מסמנת בנקודה כתומה רהיט שחוסם דלת, נכנס לקיר, חופף לרהיט אחר או שאין מולו מקום. אפשר לסמן "זה בכוונה".</li>
         <li>💬 הערות: על תוכנית שמורה בענן. לחיצה ארוכה על התוכנית (במצב הזזת מסך) או "+ הערה חדשה" מוסיפים הערה; כל מי שרואה את התוכנית יכול לענות.</li>
-        <li>📋 סיכום: כמה נקודות חשמל ואינסטלציה יש בכל חדר, לשליחה לחשמלאי או לאינסטלטור.</li>
+        <li>⬇ ייצוא PDF: בוחרים אילו עמודים ייכנסו לקובץ, כולל עמודים עם כל המידות, מחושבות לבד.</li>
+        <li>📋 סיכום (בתפריט ⋯): כמה נקודות חשמל ואינסטלציה יש בכל חדר, לשליחה לחשמלאי או לאינסטלטור.</li>
         <li>חשמל: "+ חשמל…" מוסיף שקע, מתג או תאורה על הקיר. גוררים לאורך הקיר (גם לצד השני שלו), ואת הגובה קובעים בחזית הקיר או בשדה "גובה מהרצפה".</li>
         <li>הדמיה 3D: גרירה מסובבת, גלגלת מקרבת. הדלתות פתוחות; לחיצה על דלת סוגרת או פותחת אותה, והכפתור 🚪 עושה זאת לכולן. במבט "מבפנים": לחיצה על הרצפה מוליכה לשם, גרירה מסובבת את המבט, והמפה הקטנה בפינה מראה איפה אתם (לחיצה עליה מעבירה לשם). קירות עוצרים, דלתות לא.</li>
         <li>מקלדת: Delete מוחק, חיצים מזיזים (עם Shift בצעדים גדולים), Ctrl+Z מבטל, Ctrl+D משכפל, Esc מבטל בחירה.</li>
@@ -641,8 +666,7 @@ button.hl{animation:hl .6s ease 3;border-color:var(--sel)}
         <label>הצמדה לרשת <select id="mSnap" aria-label="הצמדה לרשת"><option value="0">כבויה</option><option value="5">5 ס״מ</option><option value="10">10 ס״מ</option><option value="25">25 ס״מ</option></select></label>
         <button type="button" data-m="layers">🗂 שכבות</button>
         <button type="button" data-m="sum">📋 סיכום נקודות לפי חדר</button>
-        <button type="button" data-m="pdf">⬇ ייצוא PDF</button>
-        <button type="button" data-m="pdfDims">📐 PDF עם מידות</button>
+        <button type="button" data-m="export">⬇ ייצוא PDF…</button>
         <button type="button" data-m="new">✨ מה חדש</button>
         <button type="button" data-m="help">? עזרה</button>
         <button type="button" data-m="tour">📖 הדרכה קצרה</button>
@@ -693,6 +717,14 @@ button.hl{animation:hl .6s ease 3;border-color:var(--sel)}
       <textarea id="thText" class="cmtxt" maxlength="1000" placeholder="תגובה…" aria-label="תגובה"></textarea>
       <p id="thMsg"></p>
       <div class="row"><button id="thSend" type="button" class="pri">שלח תגובה</button><button id="thRes" type="button"></button><button id="thGo" type="button">🎯 הצג בתוכנית</button><button id="thClose" type="button">סגור</button></div>
+    </div>
+  </div>
+  <div class="dlg sheet" id="dlgExp" hidden>
+    <div class="dlg-box" role="dialog" aria-modal="true" aria-labelledby="expTitle">
+      <h2 id="expTitle">⬇ ייצוא PDF</h2>
+      <p class="sub">בחרו מה ייכנס לקובץ. יוצא קובץ אחד, עמוד לכל נושא. המידות מחושבות לבד מהמצב העדכני של התוכנית.</p>
+      <div class="morelist explist" id="expList"></div>
+      <div class="row"><button id="expGo" type="button" class="pri"></button><button id="expClose" type="button">ביטול</button></div>
     </div>
   </div>
   <div class="dlg sheet" id="dlgSum" hidden>
@@ -3574,19 +3606,54 @@ function exportPdf(){
   if(summaryData().total.any)src.push(summarySvg());
   pagesToPdf(src,'apartment-plan.pdf');
 }
-/* one page per subject: walls and openings, electricity, water and gas (a page only when it has points) */
-function exportDimsPdf(){
-  var src=[printSvg('base')];
-  ['elec','plumb'].forEach(function(ly){if(state.objs.some(function(o){return isPt(o)&&ptLay(o.kind)===ly;}))src.push(printSvg(ly));});
-  if(tiledRooms().length)src.push(printSvg('floor'));
-  src=src.concat(elevSheets(facadeFaces(),'חזיתות חיצוניות · מבט מבחוץ'),elevSheets(elevFaces(),'פריסות קירות · מבט מתוך החדר'));
-  pagesToPdf(src,'apartment-plan-dimensions.pdf');
+/* ---------- export: one button, the person picks the pages ---------- */
+var EXP_KEY='apt-export',pdfBusy=false;
+function expParts(){
+  var has=function(ly){return state.objs.some(function(o){return isPt(o)&&ptLay(o.kind)===ly;});};
+  var fac=facadeFaces(),elv=elevFaces();
+  return [
+    {k:'plan',t:'🏠 התוכנית',d:'כמו שהיא על המסך, עם השכבות שמוצגות',ok:true,src:function(){return [printSvg()];}},
+    {k:'sum',t:'📋 סיכום נקודות לפי חדר',d:'כמה שקעים, מתגים ונקודות מים יש בכל חדר',ok:summaryData().total.any,no:'אין עדיין נקודות חשמל או מים',src:function(){return [summarySvg()];}},
+    {k:'base',t:'📐 מידות קירות, פתחים וריהוט קבוע',d:'מהפינה לכל חלון ודלת, אורך כל קיר, מטבח, כיורים ואסלה',ok:true,src:function(){return [printSvg('base')];}},
+    {k:'elec',t:'⚡ חשמל: מיקום וגובה',d:'מידות לכל שקע, מתג ונקודת תאורה, וגובה מהרצפה',ok:has('elec'),no:'אין נקודות חשמל בתוכנית',src:function(){return [printSvg('elec')];}},
+    {k:'plumb',t:'💧 מים, ביוב וגז: מיקום וגובה',d:'מידות לכל נקודת מים, ניקוז וגז, וגובה מהרצפה',ok:has('plumb'),no:'אין נקודות מים או גז בתוכנית',src:function(){return [printSvg('plumb')];}},
+    {k:'floor',t:'🔲 פריסת ריצוף',d:'כל אריח, החיתוכים ליד הקירות ונקודת ההתחלה',ok:tiledRooms().length>0,no:'אין ריצוף אריחים או פרקט. בוחרים בהדמיה 3D › 🎨 צבעים וחומרים',src:function(){return [printSvg('floor')];}},
+    {k:'fac',t:'🧱 חזיתות חיצוניות',d:'מבט מבחוץ על כל צד של הדירה, עם החלונות והגבהים',ok:fac.length>0,no:'אין קירות חיצוניים בתוכנית',src:function(){return elevSheets(fac,'חזיתות חיצוניות · מבט מבחוץ');}},
+    {k:'elv',t:'📏 פריסות קירות',d:'כל קיר עם חלון או נקודות, במבט מתוך החדר',ok:elv.length>0,no:'אין קירות עם חלון או נקודות חשמל ומים',src:function(){return elevSheets(elv,'פריסות קירות · מבט מתוך החדר');}}
+  ];
 }
+function expSel(){var d={};try{d=JSON.parse(localStorage.getItem(EXP_KEY)||'{}')||{};}catch(x){}return d;}
+function openExport(){
+  var sel=expSel(),parts=expParts();
+  $('expList').innerHTML=parts.map(function(P){
+    var on=P.ok&&sel[P.k]!==false;
+    return '<label class="'+(P.ok?'':'off')+'"><input type="checkbox" value="'+P.k+'"'+(on?' checked':'')+(P.ok?'':' disabled')+'><span><b>'+P.t+'</b><small>'+(P.ok?P.d:P.no)+'</small></span></label>';
+  }).join('');
+  expUpd();$('dlgExp').hidden=false;
+}
+function expChecked(){return [].slice.call($('expList').querySelectorAll('input:checked')).map(function(i){return i.value;});}
+function expUpd(){var n=expChecked().length;$('expGo').disabled=!n||pdfBusy;$('expGo').textContent=pdfBusy?'מכין PDF…':n?'⬇ ייצוא':'בחרו לפחות נושא אחד';}
+$('expList').addEventListener('change',function(e){
+  var i=e.target;if(!i||i.type!=='checkbox')return;
+  var sel=expSel();sel[i.value]=i.checked;try{localStorage.setItem(EXP_KEY,JSON.stringify(sel));}catch(x){}
+  expUpd();
+});
+$('expGo').addEventListener('click',function(){
+  var ks=expChecked();if(!ks.length||pdfBusy)return;
+  var src=[];expParts().forEach(function(P){if(P.ok&&ks.indexOf(P.k)>=0)src=src.concat(P.src());});
+  $('dlgExp').hidden=true;
+  pagesToPdf(src,ks.length===1&&ks[0]==='plan'?'apartment-plan.pdf':'apartment-plan-'+(ks.indexOf('plan')<0&&ks.indexOf('sum')<0?'dimensions':'export')+'.pdf');
+});
+$('expClose').addEventListener('click',function(){$('dlgExp').hidden=true;});
+$('dlgExp').addEventListener('click',function(e){if(e.target===$('dlgExp'))$('dlgExp').hidden=true;});
 function pagesToPdf(src,name){
-  flash('מכין PDF...');
-  var out=[],fail=function(){flash('יצירת ה־PDF נכשלה');};
+  if(pdfBusy){flash('ה־PDF עדיין בהכנה…');return;}
+  pdfBusy=true;$('expBtn').disabled=true;
+  var out=[],done=function(){pdfBusy=false;$('expBtn').disabled=false;},fail=function(){done();flash('יצירת ה־PDF נכשלה');};
   (function next(i){
+    flash(src.length>1?'מכין PDF… עמוד '+Math.min(i+1,src.length)+' מתוך '+src.length:'מכין PDF…',60000);
     if(i>=src.length){
+      done();
       try{saveFile(name,new Blob([makePdf(out,595.28,841.89)],{type:'application/pdf'}));}catch(e){fail();}
       return;
     }
@@ -3634,7 +3701,7 @@ $('dlgMore').addEventListener('click',function(e){
   if(e.target===$('dlgMore')){$('dlgMore').hidden=true;return;}
   var b=e.target.closest&&e.target.closest('[data-m]');if(!b)return;
   var m=b.getAttribute('data-m');$('dlgMore').hidden=true;
-  if(m==='layers')openLayers();else if(m==='sum')openSummary();else if(m==='pdf')exportPdf();else if(m==='pdfDims')exportDimsPdf();
+  if(m==='layers')openLayers();else if(m==='sum')openSummary();else if(m==='export')openExport();
   else if(m==='new')openNew();else if(m==='help')$('help').hidden=false;else if(m==='tour')tourShow(0);
 });
 $('mGrid').addEventListener('change',function(e){$('gridChk').checked=e.target.checked;$('gridChk').dispatchEvent(new Event('change'));});
@@ -3644,8 +3711,8 @@ $('mSnap').addEventListener('change',function(e){$('snapSel').value=e.target.val
 /* ---------- what's new (once, for people who already know the app) ---------- */
 var NEW_KEY='apt-new-2';
 var NEWS=[
-  {i:'🎨',t:'צבעים וחומרים בתלת־ממד',d:'צבע לקירות, לשליכט החיצוני, לאלומיניום, לדלתות ולמטבח, ורצפה חלקה, פרקט, דמוי קרמיקה או דמוי בטון, עם גודל, פריסה (ישר, מדורג, אלכסון, עצם דג) ונקודת התחלה של אריחים שלמים, ועמוד פריסת ריצוף עם החיתוכים ב־PDF עם מידות. לכל הבית, לחדר מסוים, או לקיר, דלת או חלון אחד בלחיצה עליהם בהדמיה.',a:'נסו',f:function(){setView('3d');openMat();}},
-  {i:'📐',t:'PDF עם מידות',d:'כל המידות מחושבות לבד מהתוכנית: מהפינה לחלון ולדלת, אורך כל קיר, ריהוט קבוע, ומיקום וגובה של כל שקע ונקודת מים או גז, חזיתות חיצוניות, ופריסה לכל קיר עם חלון או נקודות. משנים חלון, והמידות מתעדכנות בייצוא הבא.',a:'הורד',f:function(){exportDimsPdf();}},
+  {i:'🎨',t:'צבעים וחומרים בתלת־ממד',d:'צבע לקירות, לשליכט החיצוני, לאלומיניום, לדלתות ולמטבח, ורצפה חלקה, פרקט, דמוי קרמיקה או דמוי בטון, עם גודל, פריסה (ישר, מדורג, אלכסון, עצם דג) ונקודת התחלה של אריחים שלמים, ועמוד פריסת ריצוף עם החיתוכים בייצוא PDF. לכל הבית, לחדר מסוים, או לקיר, דלת או חלון אחד בלחיצה עליהם בהדמיה.',a:'נסו',f:function(){setView('3d');openMat();}},
+  {i:'📐',t:'ייצוא PDF עם מידות',d:'בכפתור ⬇ ייצוא PDF בוחרים אילו עמודים ייכנסו: מידות מהפינה לחלון ולדלת, אורך כל קיר, ריהוט קבוע, מיקום וגובה של כל שקע ונקודת מים או גז, פריסת ריצוף, חזיתות חיצוניות ופריסה לכל קיר. הכל מחושב לבד, ומתעדכן בייצוא הבא.',a:'פתח',f:function(){openExport();}},
   {i:'⚡',t:'חשמל ואינסטלציה',d:'שקעים, מתגים, תאורה, נקודות מים, ניקוז וגז על הקירות, עם גובה מהרצפה. נראים אמיתיים בתלת־ממד.',a:'נסו',f:function(){if(view!=='plan')setView('plan');openAdd();}},
   {i:'🗂',t:'שכבות',d:'עובדים על שכבה אחת (קירות וריהוט, חשמל או אינסטלציה), והשאר חיוורות ונעולות כדי שלא יזוזו בטעות.',a:'פתח',f:function(){openLayers();}},
   {i:'📋',t:'סיכום לפי חדר',d:'כמה שקעים, מתגים ונקודות מים יש בכל חדר, לשליחה לחשמלאי או לאינסטלטור.',a:'פתח',f:function(){openSummary();}},
@@ -4019,7 +4086,6 @@ function summarySvg(){
   if(d.empty.length)s+='<text x="'+(PW-M)+'" y="'+(y+5)+'" text-anchor="end" font-size="2.6" fill="#555" '+F+'>'+esc('חדרים בלי נקודות: '+d.empty.map(function(r){return r.name;}).join(', '))+'</text>';
   return {svg:s+'</svg>',w:PW*8,h:PH*8};
 }
-$('sumBtn').addEventListener('click',openSummary);
 $('sumClose').addEventListener('click',function(){$('dlgSum').hidden=true;});
 $('dlgSum').addEventListener('click',function(e){if(e.target===$('dlgSum'))$('dlgSum').hidden=true;});
 $('sumPdf').addEventListener('click',function(){$('dlgSum').hidden=true;exportPdf();});
@@ -4374,20 +4440,18 @@ function loadText(txt){
     draw();save();$('dlgPlans').hidden=true;flash('התוכנית נטענה. אפשר לבטל בכפתור ↶');
   }catch(err){$('plansMsg').textContent='הטקסט אינו תוכנית תקינה.';}
 }
-$('pdf').addEventListener('click',exportPdf);
-$('pdfDims').addEventListener('click',exportDimsPdf);
-$('helpBtn').addEventListener('click',function(){$('help').hidden=!$('help').hidden;});
+$('expBtn').addEventListener('click',openExport);
 $('helpClose').addEventListener('click',function(){$('help').hidden=true;});
 document.addEventListener('pointerdown',function(e){
   if($('help').hidden)return;
-  if($('help').contains(e.target)||$('helpBtn').contains(e.target))return;
+  if($('help').contains(e.target)||$('moreBtn').contains(e.target)||$('dlgMore').contains(e.target))return;
   $('help').hidden=true;
 },true);
 /* first-run tour */
 var TOUR_KEY='apt-tour-done',tourI=0;
 var TOUR=[
   {i:'✋ ✎',t:'שני מצבים: הזזה ועריכה',b:'<p>בפינת המסך יש שני כפתורים:</p><ul><li><b>✋ הזזת מסך</b> (ברירת המחדל): גוררים כדי להזיז את התצוגה, וצובטים או גוללים להגדלה. שום פריט לא זז בטעות.</li><li><b>✎ עריכה</b>: לחיצה על פריט בוחרת אותו ופותחת את פרטיו, וגרירה מזיזה אותו.</li></ul>'},
-  {i:'＋',t:'הוספת פריטים',b:'<ul><li>בסרגל העליון: <b>+ קיר</b>, <b>+ חדר</b>, <b>+ דלת</b>, <b>+ חלון</b>, <b>+ טקסט</b>, <b>+ מדידה</b>, ובחירה מהרשימות <b>+ ריהוט…</b> ו־<b>+ חשמל…</b> (שקעים, מתגים ותאורה).</li><li>הפריט מופיע במרכז המסך, נבחר, והאפליקציה עוברת למצב עריכה. בטלפון כל ההוספות נמצאות בכפתור <b>+ הוסף</b>.</li><li><b>חזית קיר</b>: מבט ישר על קיר אחד, לעריכת דלתות וחלונות. קיצור: לחיצה כפולה על קיר.</li></ul>'},
+  {i:'＋',t:'הוספת פריטים',b:'<ul><li>בסרגל העליון: <b>+ קיר</b>, <b>+ חדר</b>, <b>+ דלת</b>, <b>+ חלון</b>, <b>+ טקסט</b>, <b>+ מדידה</b>, ובחירה מהרשימות <b>+ ריהוט…</b> ו־<b>+ חשמל…</b> (שקעים, מתגים ותאורה).</li><li>הפריט מופיע במרכז המסך, נבחר, והאפליקציה עוברת למצב עריכה. בטלפון ובמסך קטן כל ההוספות נמצאות בכפתור <b>+ הוסף</b>.</li><li><b>חזית קיר</b>: מבט ישר על קיר אחד, לעריכת דלתות וחלונות. קיצור: לחיצה כפולה על קיר.</li></ul>'},
   {i:'💾',t:'שמירה',b:'<ul><li>העבודה נשמרת אוטומטית <b>בדפדפן הזה בלבד</b>.</li><li>כדי לשמור לצמיתות, לפתוח ממכשיר אחר או לשתף: <b>💾 שמירה ופתיחה</b> בראש המסך. אפשר בענן (עם שם משתמש) או כקובץ.</li><li>ליד הכפתור רואים אם התוכנית שמורה. <b>↶</b> מבטל כל פעולה.</li></ul>'}
 ];
 function tourShow(i){
