@@ -743,7 +743,7 @@ button.hl{animation:hl .6s ease 3;border-color:var(--sel)}
   <div class="dlg side" id="dlgMat" hidden>
     <div class="dlg-box" role="dialog" aria-labelledby="matTitle">
       <h2 id="matTitle">🎨 צבעים וחומרים</h2>
-      <p class="mathint">בוחרים לכל הבית, ואפשר לשנות חדר אחד. כשהחלונית פתוחה, לחיצה בהדמיה על רצפה, קיר, דלת או חלון בוחרת אותם.</p>
+      <p class="mathint">בוחרים לכל הבית, ואפשר לשנות חדר אחד. השליכט החיצוני נמצא בלשונית כל הבית. כשהחלונית פתוחה, לחיצה בהדמיה על רצפה, קיר, דלת או חלון בוחרת אותם.</p>
       <div id="matRows"></div>
       <div class="row"><button id="matReset" type="button">חזרה לברירת המחדל</button><span style="flex:1"></span><button id="matClose" type="button" class="pri">סגור</button></div>
     </div>
@@ -2305,10 +2305,11 @@ function floorColor(l){
 /* ---------- colours and finishes in 3D ----------
    Kept as one object of type 'mat' in the plan, so they are saved, shared and undone with it.
    A key that is not set keeps the built-in look (floor colours by room, the default wall and door colours). */
-var MAT_DEF={wall:'#f1eee8',alu:'#e9e6e0',door:'#8a5a35',kitchen:'#c8b79c',counter:'#9aa3a8',floor:'plain',floorC:'#d2bf9f',wet:'plain',wetC:'#bccdd4'};
+var MAT_DEF={wall:'#f1eee8',ext:'#e9e4da',alu:'#e9e6e0',door:'#8a5a35',kitchen:'#c8b79c',counter:'#9aa3a8',floor:'plain',floorC:'#d2bf9f',wet:'plain',wetC:'#bccdd4'};
 var FLOOR_T=[['plain','חלק'],['parquet','פרקט'],['tile','דמוי קרמיקה'],['concrete','דמוי בטון']];
 var MAT_ROWS=[
   {k:'wall',n:'קירות',p:[['לבן','#f4f2ee'],['שמנת','#efe6d4'],['אפור בהיר','#d9d9d6'],['ירוק מרווה','#b9c4ae'],['כחול אפרפר','#b8c4cc']]},
+  {k:'ext',n:'שליכט חיצוני',p:[['לבן','#f1efe9'],['שמנת','#ece3cf'],['בז׳ חול','#d9c7a5'],['אבן ירושלים','#dccdae'],['אפור בהיר','#c9c8c3'],['אפור כהה','#7d7e7c']]},
   {k:'alu',n:'אלומיניום (חלונות)',p:[['לבן','#f2f2f0'],['שמפניה','#cbbd9e'],['אפור','#8c9094'],['אנתרציט','#3b3f44'],['שחור','#1c1d1f']]},
   {k:'door',n:'דלתות',p:[['לבן','#f3f1ec'],['אלון','#b08a5e'],['אגוז','#6b4a30'],['אפור','#8f9295'],['שחור','#2a2a2a']]},
   {k:'kitchen',n:'מטבח: ארונות',p:[['לבן','#f2f1ed'],['אפור','#a6a8a8'],['ירוק זית','#6f7a5b'],['כחול כהה','#2f3e52'],['עץ','#b48a5f']]},
@@ -2322,7 +2323,7 @@ function matObj(){for(var i=0;i<state.objs.length;i++)if(state.objs[i].type==='m
 function isHex(v){return typeof v==='string'&&/^#[0-9a-f]{6}$/i.test(v);}
 function mats(){
   var o=matObj()||{},r={set:{}};
-  for(var k in MAT_DEF){var v=o[k],ok=/C$|^(wall|alu|door|kitchen|counter)$/.test(k)?isHex(v):FLOOR_P[v];r[k]=ok?v:MAT_DEF[k];r.set[k]=!!ok;}
+  for(var k in MAT_DEF){var v=o[k],ok=/C$|^(wall|ext|alu|door|kitchen|counter)$/.test(k)?isHex(v):FLOOR_P[v];r[k]=ok?v:MAT_DEF[k];r.set[k]=!!ok;}
   return r;
 }
 function hexN(s){return parseInt(s.slice(1),16);}
@@ -2424,8 +2425,10 @@ function floorOf(room,MT){
   var sz=pick('sz','Sz',FLOOR_SZ[type],FLOOR_SZ[type]?FLOOR_SZ[type][0]:''),lay=pick('lay','Lay',FLOOR_LAY[type],FLOOR_LAY[type]?FLOOR_LAY[type][0][0]:''),gr=pick('gr','Gr',type==='tile'?FLOOR_GR:null,'light');
   return {type:type,col:col,sz:sz,lay:lay,gr:gr,show:col||(type==='plain'?'#'+('00000'+floorColor(room.label||'').toString(16)).slice(-6):FLOOR_P[type][0][1])};
 }
-function wallColOf(roomId,wid,side,MT){
+/* ext: the side faces the outside of the apartment (the plaster colour, or the wall colour until one is chosen) */
+function wallColOf(roomId,wid,side,MT,ext){
   var it=matItems()['w|'+wid+'|'+side+'|'+(roomId||'')];if(isHex(it))return it;
+  if(!roomId&&ext)return MT.set.ext?MT.ext:MT.wall;
   var R=roomId?roomOver(roomId):{};return isHex(R.wall)?R.wall:MT.wall;
 }
 /* a door belongs to the room it opens into */
@@ -2461,7 +2464,8 @@ function tdBuild(){
   var root=new THREE.Group();T.root=root;T.sc.add(root);
   var bg=getComputedStyle(document.documentElement).getPropertyValue('--paper').trim()||'#EEF1F5';
   T.sc.background=new THREE.Color(bg);
-  var bb=bboxAll(false),MT=mats(),MC={};
+  var bb=bboxAll(false),MT=mats(),MC={},wb=bboxAll(true);
+  function outPlan(x,y){return x<wb.x||x>wb.x+wb.w||y<wb.y||y>wb.y+wb.h;}
   T.pick=[];
   function mc(hex,ex){var k=hex+(ex?'m':'');return MC[k]||(MC[k]=m3(hexN(hex),ex));}
   T.center={x:(bb.x+bb.w/2)/100,z:(bb.y+bb.h/2)/100};T.bb=bb;
@@ -2493,8 +2497,9 @@ function tdBuild(){
       for(var i=0;i+1<cuts.length;i++){
         var a=cuts[i],b=cuts[i+1],sm=(a+b)/2,px=w.x1+ux*sm,py=w.y1+uy*sm,dd=t/2+15;
         var rp=roomAt(px-uy*dd,py+ux*dd),rn=roomAt(px+uy*dd,py-ux*dd),ip=rp?rp.id:null,im=rn?rn.id:null;
-        var m=box(g,a,b,y0,y1,t,[wmat,wmat,wmat,wmat,mc(wallColOf(ip,w.id,1,MT)),mc(wallColOf(im,w.id,-1,MT))]);
-        if(m){m.userData={wall:w.id,rp:ip,rm:im};T.pick.push(m);}
+        var ep=outPlan(px-uy*dd,py+ux*dd),em=outPlan(px+uy*dd,py-ux*dd);
+        var m=box(g,a,b,y0,y1,t,[wmat,wmat,wmat,wmat,mc(wallColOf(ip,w.id,1,MT,ep)),mc(wallColOf(im,w.id,-1,MT,em))]);
+        if(m){m.userData={wall:w.id,rp:ip,rm:im,ep:ep,em:em};T.pick.push(m);}
       }
     }
     var list=[];
@@ -3516,7 +3521,7 @@ $('mSnap').addEventListener('change',function(e){$('snapSel').value=e.target.val
 /* ---------- what's new (once, for people who already know the app) ---------- */
 var NEW_KEY='apt-new-2';
 var NEWS=[
-  {i:'🎨',t:'צבעים וחומרים בתלת־ממד',d:'צבע לקירות, לאלומיניום, לדלתות ולמטבח, ורצפה חלקה, פרקט, דמוי קרמיקה או דמוי בטון, עם גודל ופריסה (ישר, מדורג, אלכסון, עצם דג). לכל הבית, לחדר מסוים, או לקיר, דלת או חלון אחד בלחיצה עליהם בהדמיה.',a:'נסו',f:function(){setView('3d');openMat();}},
+  {i:'🎨',t:'צבעים וחומרים בתלת־ממד',d:'צבע לקירות, לשליכט החיצוני, לאלומיניום, לדלתות ולמטבח, ורצפה חלקה, פרקט, דמוי קרמיקה או דמוי בטון, עם גודל ופריסה (ישר, מדורג, אלכסון, עצם דג). לכל הבית, לחדר מסוים, או לקיר, דלת או חלון אחד בלחיצה עליהם בהדמיה.',a:'נסו',f:function(){setView('3d');openMat();}},
   {i:'📐',t:'PDF עם מידות',d:'כל המידות מחושבות לבד מהתוכנית: מהפינה לחלון ולדלת, אורך כל קיר, ריהוט קבוע, ומיקום וגובה של כל שקע ונקודת מים או גז, חזיתות חיצוניות, ופריסה לכל קיר עם חלון או נקודות. משנים חלון, והמידות מתעדכנות בייצוא הבא.',a:'הורד',f:function(){exportDimsPdf();}},
   {i:'⚡',t:'חשמל ואינסטלציה',d:'שקעים, מתגים, תאורה, נקודות מים, ניקוז וגז על הקירות, עם גובה מהרצפה. נראים אמיתיים בתלת־ממד.',a:'נסו',f:function(){if(view!=='plan')setView('plan');openAdd();}},
   {i:'🗂',t:'שכבות',d:'עובדים על שכבה אחת (קירות וריהוט, חשמל או אינסטלציה), והשאר חיוורות ונעולות כדי שלא יזוזו בטעות.',a:'פתח',f:function(){openLayers();}},
@@ -4003,9 +4008,10 @@ function renderMat(){
   h+='</div>';
   if(MS.item){
     var it=matItems()[MS.item],kind=MS.item[0],up=kind==='a'?'כל הבית':(MS.room?roomName(MS.room):'כל הבית');
-    var cur=kind==='w'?wallColOf(MS.room,MS.item.split('|')[1],+MS.item.split('|')[2],MT):kind==='d'?doorColOf(byId(MS.item.slice(2))||{},MT):aluColOf({id:MS.item.slice(2)},MT);
+    var cur=kind==='w'?wallColOf(MS.room,MS.item.split('|')[1],+MS.item.split('|')[2],MT,MS.ext):kind==='d'?doorColOf(byId(MS.item.slice(2))||{},MT):aluColOf({id:MS.item.slice(2)},MT);
     h+='<div class="mitem"><button type="button" class="lnk" data-scope="'+(MS.room||'')+'">→ חזרה</button><b>'+MS.label+'</b></div>';
-    h+=matRow(kind==='w'?'צבע הקיר':kind==='d'?'צבע הדלת':'צבע האלומיניום','v',cur,rowsOf(kind==='w'?'wall':kind==='d'?'door':'alu'),isHex(it),'כמו ב'+up);
+    if(MS.ext)up='שליכט של כל הבית';
+    h+=matRow(kind==='w'?'צבע הקיר':kind==='d'?'צבע הדלת':'צבע האלומיניום','v',cur,rowsOf(kind==='w'?(MS.ext?'ext':'wall'):kind==='d'?'door':'alu'),isHex(it),'כמו ב'+up);
   }else if(MS.room){
     var R=roomOver(MS.room),rm=byId(MS.room),F=floorOf(rm,MT),wet=isWetRoom(rm.label);
     var ht=wet?MT.wet:MT.floor,tn=function(t){for(var i=0;i<FLOOR_T.length;i++)if(FLOOR_T[i][0]===t)return FLOOR_T[i][1];return t;};
@@ -4024,6 +4030,7 @@ function renderMat(){
   }else{
     MAT_ROWS.forEach(function(R){
       var fl=R.t,type=fl?MT[fl]:null,col=MT[R.k];
+      if(R.k==='ext'&&!MT.set.ext)col=MT.wall;
       if(fl&&type!=='plain'&&!MT.set[R.k])col=FLOOR_P[type][0][1];
       if(fl&&type==='plain'&&!MT.set[R.k])col=fl==='wet'?'#bccdd4':'#d2bf9f';
       var sel=fl?'<select data-ft="'+fl+'" aria-label="סוג '+R.n+'">'+FLOOR_T.map(function(t){return '<option value="'+t[0]+'"'+(t[0]===type?' selected':'')+'>'+t[1]+'</option>';}).join('')+'</select>':'';
@@ -4052,8 +4059,8 @@ function tdPickMat(e){
   if(u.room){MS={room:u.room};}
   else if(u.wall){
     var nz=hit.face?hit.face.normal.z:0;if(Math.abs(nz)<.5)return true;
-    var side=nz>0?1:-1,rid=side>0?u.rp:u.rm;
-    MS={item:'w|'+u.wall+'|'+side+'|'+(rid||''),room:rid,label:'קיר'+(rid?' · '+esc(roomName(rid)):'')};
+    var side=nz>0?1:-1,rid=side>0?u.rp:u.rm,ex=!rid&&(side>0?u.ep:u.em);
+    MS={item:'w|'+u.wall+'|'+side+'|'+(rid||''),room:rid,ext:ex,label:ex?'קיר חיצוני (שליכט)':'קיר'+(rid?' · '+esc(roomName(rid)):'')};
   }else if(u.doorId){var dr=doorRoom(byId(u.doorId)||{});MS={item:'d|'+u.doorId,room:dr,label:'דלת'+(dr?' · '+esc(roomName(dr)):'')};}
   else if(u.win){var wo=byId(u.win),wr=wo?roomAt(wo.x,wo.y):null;MS={item:'a|'+u.win,label:'חלון'};}
   else return false;
