@@ -156,6 +156,21 @@ button.danger{color:var(--sel)}
 .eplate{fill:var(--frame);stroke:var(--elec);stroke-width:1.4;vector-effect:non-scaling-stroke;cursor:move}
 .ptx2{fill:var(--elec);font-family:var(--font-ui);font-weight:700;text-anchor:middle;dominant-baseline:central;direction:ltr;pointer-events:none}
 .f select{width:100%;height:28px;padding:0 4px;font-size:13px}
+.f.seg{grid-template-columns:62px minmax(0,1fr)}
+.segb{display:flex}
+.segb button{flex:1;height:28px;font-size:13px;border-radius:0}
+.segb button:first-child{border-radius:0 6px 6px 0}
+.segb button:last-child{border-radius:6px 0 0 6px;margin-inline-start:-1px}
+.segb button.on{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600}
+.pmore{border:1px solid var(--line);border-radius:7px;padding:0 8px;margin:2px 0 6px}
+.pmore[open]{padding-bottom:4px}
+.pmore summary{display:flex;align-items:center;gap:8px;min-height:32px;cursor:pointer;list-style:none;font-size:12px}
+.pmore summary::-webkit-details-marker{display:none}
+.pmore summary::before{content:'◂';color:var(--muted);font-size:11px;transition:transform .15s}
+.pmore[open] summary::before{transform:rotate(-90deg)}
+.pmore summary span{flex:1;text-align:end;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pmore .fg{display:block}
+@media (pointer:coarse){.segb button{height:40px;font-size:15px}.pmore summary{min-height:44px;font-size:14px}}
 /* layers: the layer you are not working on is faded and locked; a hidden layer is not drawn */
 .dim-base .Lb{opacity:.28}
 .dim-elec .Le,.dim-plumb .Lp{opacity:.35}
@@ -407,6 +422,9 @@ button.danger{color:var(--sel)}
 }
 @media (max-width:760px){
   .float{top:auto;bottom:8px;left:8px;right:8px;width:auto;max-height:44%;display:block}
+  /* the buttons stay in view at the bottom of the panel while its fields scroll */
+  @media (max-height:620px){.float{max-height:56%}}
+  .float .btns{position:sticky;bottom:-8px;z-index:1;background:var(--panel);margin:6px -10px -8px;padding:6px 10px 8px;border-top:1px solid var(--line)}
   .app.elevmode .float{top:auto}
   .float .fg{display:grid;grid-template-columns:1fr 1fr;gap:0 8px}
   .f input,select,textarea{font-size:16px}
@@ -524,7 +542,7 @@ button.hl{animation:hl .6s ease 3;border-color:var(--sel)}
     <button id="redo" type="button" aria-label="שחזר" title="החזר את מה שבוטל (Ctrl+Y)">↷</button>
     <span class="sep"></span>
     <button id="expBtn" type="button" title="קובץ PDF להדפסה או לשליחה. בוחרים אילו עמודים ייכנסו: תוכנית, סיכום, מידות, חשמל, מים, ריצוף, חזיתות ופריסות קירות">⬇ ייצוא PDF</button>
-    <button id="moreBtn" type="button" aria-label="עוד אפשרויות" title="עוד: סיכום נקודות, תצוגה, עזרה">⋯</button>
+    <button id="moreBtn" type="button" aria-label="עוד אפשרויות" title="עוד: סיכום, שכבות, תצוגה, עזרה">⋯</button>
     <span id="planTools" style="display:contents">
       <span class="brk" aria-hidden="true"></span>
       <button id="addBtn" type="button" class="pri mob" title="הוספת קיר, ריהוט, חשמל, אינסטלציה ועוד">+ הוסף</button>
@@ -535,7 +553,7 @@ button.hl{animation:hl .6s ease 3;border-color:var(--sel)}
       <button id="addText" type="button">+ טקסט</button>
       <button id="addDoor" type="button">+ דלת</button>
       <button id="addWin" type="button">+ חלון</button>
-      <button id="addNiche" type="button" title="נישה בקיר (ארון ספרים, טלוויזיה, מדף), או מעבר בלי דלת. עם ראש ישר או קשת">+ נישה</button>
+      <button id="addNiche" type="button" title="נישה בקיר (ארון ספרים, טלוויזיה, מדף), או מעבר בלי דלת. עם ראש ישר או קשת">+ נישה / מעבר</button>
       <select id="elecSel" aria-label="הוספת נקודת חשמל" title="שקעים, מתגים ותאורה. בחרו סוג והוא יתווסף על הקיר"></select>
       <select id="plumbSel" aria-label="הוספת נקודת אינסטלציה" title="מים, ניקוז וגז. בחרו סוג והוא יתווסף על הקיר"></select>
       <button id="layersBtn" type="button" title="שכבות: על איזו שכבה עובדים, ומה מוצג">🗂 שכבות</button>
@@ -570,7 +588,7 @@ button.hl{animation:hl .6s ease 3;border-color:var(--sel)}
       <button id="elAdd" type="button" class="add mob">+ הוסף</button>
       <button id="elWin" type="button" class="add">+ חלון</button>
       <button id="elDoor" type="button" class="add">+ דלת</button>
-      <button id="elNiche" type="button" class="add" title="נישה או מעבר על הקיר הזה">+ נישה</button>
+      <button id="elNiche" type="button" class="add" title="נישה או מעבר על הקיר הזה">+ נישה / מעבר</button>
       <select id="elElecSel" aria-label="הוספת נקודת חשמל לקיר הזה" title="מוסיף נקודת חשמל על הקיר הזה, בגובה המקובל לסוג"></select>
       <select id="elPlumbSel" aria-label="הוספת נקודת אינסטלציה לקיר הזה" title="מוסיף נקודת אינסטלציה על הקיר הזה, בגובה המקובל לסוג"></select>
       <button id="elLayers" type="button" title="שכבות">🗂 שכבות</button>
@@ -752,7 +770,7 @@ button.hl{animation:hl .6s ease 3;border-color:var(--sel)}
       <h2 id="moreTitle">עוד</h2>
       <div class="morelist">
         <button type="button" data-m="export" class="mpri">⬇ ייצוא PDF…</button>
-        <button type="button" data-m="sum">📋 סיכום נקודות לפי חדר</button>
+        <button type="button" data-m="sum">📋 סיכום: נקודות ופתחים</button>
         <button type="button" data-m="layers">🗂 שכבות</button>
         <h3>תצוגה</h3>
         <label><input type="checkbox" id="mGrid"> הצג רשת</label>
@@ -821,8 +839,10 @@ button.hl{animation:hl .6s ease 3;border-color:var(--sel)}
   </div>
   <div class="dlg sheet" id="dlgSum" hidden>
     <div class="dlg-box" role="dialog" aria-modal="true" aria-labelledby="sumTitle">
-      <h2 id="sumTitle">📋 סיכום נקודות לפי חדר</h2>
-      <p class="sub">נספר אוטומטית לפי המיקום של כל נקודה בתוכנית. שקע כפול נספר כשני שקעים. לחיצה על חדר מראה אותו בתוכנית.</p>
+      <h2 id="sumTitle">📋 סיכום</h2>
+      <p class="sub">לשליחה לחשמלאי, לאינסטלטור, לנגר ולספק האלומיניום. לחיצה על חדר או על פתח מראה אותו בתוכנית.</p>
+      <h3 class="sumh" id="sumPtsH">⚡ נקודות חשמל ומים לפי חדר</h3>
+      <p class="sub" id="sumPtsSub">נספר לפי המיקום של כל נקודה. שקע כפול נספר כשני שקעים.</p>
       <div id="sumTotal"></div>
       <div id="sumList" class="vlist"></div>
       <p id="sumRest"></p>
@@ -1036,7 +1056,7 @@ function wallH(w){return w.wh||250;}
 var panOnly=false;
 var BUILTIN='התוכנית של יודה ונועם',LIB='apartment-plan-v1-lib';
 var state={objs:[],step:5,grid:true,dims:true,name:BUILTIN,lay:{act:'base',hide:{}}};
-var panelFold=false,lastTap={id:null,t:0};
+var panelFold=false,panelMore=false,lastTap={id:null,t:0};
 var V={x:0,y:0,k:1};
 var view='plan';
 var sel=null,drag=null,hist=[],redo=[],hasView=false,saveT=null;
@@ -1581,18 +1601,25 @@ function renderPanel(){
   }else{
     h+=fld('רוחב','w',fmt(o.w))+fld(isArch(o)?'גובה עד השיא':'גובה','h',fmt(o.h));
     if(o.type==='window'||isNiche(o))h+=fld('גובה מהרצפה','sl',fmt(o.sl));
+    if(isNiche(o))h+=fld('עומק','depth',fmt(o.depth));
+    var arch=isArch(o);
+    h+='<div class="f seg" style="grid-column:1/-1"><span>צורה למעלה</span><span class="segb" role="group" aria-label="צורה למעלה">'+
+      '<button type="button" data-a="top" data-v="flat" aria-pressed="'+(!arch)+'"'+(!arch?' class="on"':'')+'>▭ ישר</button>'+
+      '<button type="button" data-a="top" data-v="arch" aria-pressed="'+arch+'"'+(arch?' class="on"':'')+'>◠ קשת</button></span></div>';
+    if(arch)h+=fld('גובה הקשת','rise',fmt(riseOf(o)))+'<div class="meta" style="grid-column:1/-1">חצי עיגול: '+fmt(riseMax(o))+(o.type==='door'?'. הכנף מלבנית, ומעליה זכוכית קבועה בצורת הקשת':'')+'</div>';
     if(isNiche(o)){
-      h+=fld('עומק','depth',fmt(o.depth))+fld('מספר נישות','count',nCount(o),false,'').replace('step="5"','step="1"');
-      if(nCount(o)>1)h+=fld('רווח בין נישות','gap',fmt(nGap(o)));
-      h+=fld('מדפים בכל נישה','shelves',nShelves(o),false,'').replace('step="5"','step="1"');
-    }
-    h+=sel2('צורת ראש','top',isArch(o)?'arch':'flat',[['flat','ישר'],['arch','קשת']]);
-    if(isArch(o))h+=fld('גובה הקשת','rise',fmt(riseOf(o)))+'<div class="meta" style="grid-column:1/-1">חצי עיגול: '+fmt(riseMax(o))+(o.type==='door'?'. הכנף מלבנית, ומעליה זכוכית קבועה בצורת הקשת':'')+'</div>';
-    if(isNiche(o)){
-      var nt=wallT(o),nout=nicheOut(o,nt);
-      h+=sel2('בנייה','build',nout?'out':'in',[['in','בקיר'],['out','בולטת']]);
-      if(nout)h+=fld('מסגרת','frame',fmt(nFrame(o)));
-      h+='<div class="meta" style="grid-column:1/-1">'+nicheWhyTxt(o,nt)+'</div>';
+      /* the rest of a niche's settings, folded: the summary line says what they are now */
+      var nt=wallT(o),nout=nicheOut(o,nt),cnt=nCount(o),shv=nShelves(o),sm=[];
+      sm.push(nout?'בולטת '+fmt(o.depth)+' ס״מ לחדר':'בתוך הקיר');
+      if(cnt>1)sm.push(cnt+' נישות');
+      if(shv)sm.push(shv+' מדפים');
+      h+='<details class="pmore" style="grid-column:1/-1"'+(panelMore?' open':'')+'><summary><b>עוד הגדרות</b><span>'+sm.join(' · ')+'</span></summary><div class="fg">';
+      h+=fld('מספר נישות','count',cnt,false,'').replace('step="5"','step="1"');
+      if(cnt>1)h+=fld('רווח בין נישות','gap',fmt(nGap(o)));
+      h+=fld('מדפים בכל נישה','shelves',shv,false,'').replace('step="5"','step="1"');
+      h+=sel2('בנייה','build',nout?'out':'in',[['in','בתוך הקיר'],['out','בולטת לחדר']]);
+      if(nout)h+=fld('רוחב הגבס מסביב','frame',fmt(nFrame(o)));
+      h+='<div class="meta" style="grid-column:1/-1">'+nicheWhyTxt(o,nt)+'</div></div></details>';
     }
     if(view==='elev')h+=fld('מרחק מתחילת הקיר','pos',fmt(openPos(o)));
   }
@@ -2493,8 +2520,8 @@ function nicheIcon(t){
 }
 function openNiches(){
   var h='<div class="addsec"><div class="addgrid">'+NICHE_T.map(function(t){return '<button type="button" class="nicon" data-add="n:'+t.k+'">'+nicheIcon(t)+'<span>'+t.n+'</span></button>';}).join('')+'</div></div>';
-  $('addTitle').textContent='איזו נישה?';
-  $('addSub').textContent='אחרי ההוספה אפשר לשנות הכול: מידות, עומק, קשת ומדפים.';
+  $('addTitle').textContent='נישה או מעבר?';
+  $('addSub').textContent='אחרי ההוספה אפשר לשנות הכול: מידות, עומק, קשת ומדפים. גם לדלת ולחלון אפשר קשת, בחלון המאפיינים שלהם.';
   $('addBody').innerHTML=h;$('dlgAdd').hidden=false;
 }
 function addTemplate(k){
@@ -2529,10 +2556,10 @@ function addOpening(type,wall,at,preset){
   }
   mutate(function(){state.objs.push(o);});
   select(o.id);
-  var nm={door:'נוספה דלת. גררו אותה',window:'נוסף חלון. גררו אותו',niche:'נוספה נישה. גררו אותה',pass:'נוסף מעבר. גררו אותו'}[type];
-  var msg=full?'אין מקום פנוי על הקיר, ההוספה חופפת. גררו להזזה':nm+' להזזה ואת הריבועים לשינוי גודל';
-  if(type==='niche'&&/thin|back/.test(nicheWhy(o,w.t)))msg=nicheWhyTxt(o,w.t)+'. '+msg;
-  if(fewer)msg='הקיר קצר, ולכן '+(fewer>1?'נכנסו רק '+fewer+' נישות':'נכנסה רק נישה אחת')+'. '+msg;
+  var nm={door:'נוספה דלת',window:'נוסף חלון',niche:'נוספה נישה',pass:'נוסף מעבר'}[type];
+  if(type==='niche'&&nicheOut(o,w.t))nm+=' בולטת'+(/thin|back/.test(nicheWhy(o,w.t))?' (הקיר דק מדי)':'');
+  var msg=full?'אין מקום פנוי על הקיר, ההוספה חופפת. גררו להזזה':nm+'. גררו כדי להזיז';
+  if(fewer)msg='הקיר קצר: '+(fewer>1?'נכנסו '+fewer+' נישות':'נכנסה נישה אחת')+'. '+msg;
   flash(msg);
 }
 function dupOpening(o){
@@ -4320,7 +4347,8 @@ $('mSnap').addEventListener('change',function(e){$('snapSel').value=e.target.val
 /* ---------- what's new (once, for people who already know the app) ---------- */
 var NEW_KEY='apt-new-3';
 var NEWS=[
-  {i:'◠',nw:1,t:'נישות וקשתות',d:'ארון ספרים קשתי עם מדפים, נישה לטלוויזיה, מדף במקלחת ומעבר בלי דלת. גם לדלת ולחלון אפשר לתת ראש קשתי. ובסיכום: רשימת כל הפתחים עם המידות.',a:'נסו',f:function(){if(view==='3d')setView('plan');openNiches();}},
+  {i:'◠',nw:1,t:'נישות וקשתות',d:'ארון ספרים קשתי, נישה לטלוויזיה, מדף במקלחת ומעבר בלי דלת. גם לדלת ולחלון אפשר קשת.',a:'נסו',f:function(){if(view==='3d')setView('plan');openNiches();}},
+  {i:'🚪',nw:1,t:'רשימת פתחים',d:'כל הדלתות, החלונות, הנישות והמעברים עם המידות, בסיכום ובייצוא PDF. לנגר ולספק האלומיניום.',a:'פתח',f:function(){openSummary();}},
   {i:'🎨',nw:1,t:'צבעים וחומרים בהדמיה',d:'צבע לקירות, לדלתות, לחלונות, למטבח ולשליכט, וסוג רצפה. לכל הבית או לחדר אחד.',a:'נסו',f:function(){setView('3d');openMat();}},
   {i:'🔲',nw:1,t:'ריצוף ופריסת אריחים',d:'גודל, פריסה ונקודת ההתחלה של האריחים, ועמוד ב־PDF עם כל החיתוכים לרצף.',a:'נסו',f:function(){setView('3d');if(view==='3d'){matGuideOpen=true;openMat();}}},
   {i:'📐',nw:1,t:'PDF עם מידות',d:'המידות מחושבות לבד: קירות, חלונות, דלתות, שקעים ונקודות מים, וגם חזיתות ופריסות קירות.',a:'פתח',f:function(){openExport();}},
@@ -4704,13 +4732,24 @@ function opsSvg(){
   s+='<line x1="'+M+'" y1="'+(M+9)+'" x2="'+(PW-M)+'" y2="'+(M+9)+'" stroke="#111" stroke-width=".3"/>';
   var xr=PW-M,cols=[['#',8],['סוג',14],['חדר',40],['רוחב × גובה',24],['מהרצפה',16],['הערות',PW-2*M-102]],y=M+20,rh=7;
   function row(vals,bold,shade){
-    if(shade)s+='<rect x="'+M+'" y="'+(y-4.8)+'" width="'+(PW-2*M)+'" height="'+rh+'" fill="'+shade+'"/>';
+    /* notes too long for the column go on two lines (split between items), then shrink only if still too long */
+    var lines=[String(vals[5])];
+    if(lines[0].length>46){
+      var parts=lines[0].split(' · '),a=[],b=[],half=lines[0].length/2,n=0;
+      parts.forEach(function(q){(n<half?a:b).push(q);n+=q.length+3;});
+      if(b.length)lines=[a.join(' · '),b.join(' · ')];
+    }
+    if(shade)s+='<rect x="'+M+'" y="'+(y-4.8)+'" width="'+(PW-2*M)+'" height="'+(rh+(lines.length-1)*3.6)+'" fill="'+shade+'"/>';
     var x=xr;cols.forEach(function(c,i){
       var v=String(vals[i]),fsz=3;
-      if(i===5&&v.length>46)fsz=Math.max(2,3*46/v.length);
-      s+='<text x="'+(x-1.5)+'" y="'+y+'" text-anchor="end" font-size="'+fsz+'"'+(bold?' font-weight="700"':'')+' fill="#111" '+F+'>'+esc(v)+'</text>';x-=c[1];
+      if(i===5){
+        var mx=Math.max.apply(null,lines.map(function(l){return l.length;}));if(mx>46)fsz=Math.max(2,3*46/mx);
+        /* direction="rtl": a line that starts with a number ("3 נישות") would otherwise show the number at the far end */
+        lines.forEach(function(l,k){s+='<text x="'+(x-1.5)+'" y="'+(y+k*3.6)+'" text-anchor="start" direction="rtl" font-size="'+fsz+'" fill="#111" '+F+'>'+esc(l)+'</text>';});
+      }else s+='<text x="'+(x-1.5)+'" y="'+y+'" text-anchor="end" font-size="'+fsz+'"'+(bold?' font-weight="700"':'')+' fill="#111" '+F+'>'+esc(v)+'</text>';
+      x-=c[1];
     });
-    y+=rh;
+    y+=rh+(lines.length-1)*3.6;
   }
   row(cols.map(function(c){return c[0];}),1,'#f1f3f6');
   L.forEach(function(r,i){
@@ -4729,15 +4768,24 @@ function openSummary(){
   }).join('');
   $('sumRest').textContent=!d.total.any?'אין עדיין נקודות חשמל או אינסטלציה בתוכנית. מוסיפים אותן מ־"+ חשמל…" ומ־"+ אינסטלציה…".'
     :(d.empty.length?'בלי נקודות: '+d.empty.map(function(r){return r.name;}).join(', '):'');
-  $('sumCopy').disabled=$('sumPdf').disabled=!d.total.any;
+  $('sumPtsSub').hidden=!d.total.any;
+  $('sumCopy').disabled=$('sumPdf').disabled=!d.total.any&&!opsData().length;
   $('dlgSum').hidden=false;
 }
 function summaryText(){
   var d=summaryData(),line=function(c){return CAT.filter(function(ct){return c[ct.id];}).map(function(ct){return catLabel(ct,c[ct.id]);}).join(', ');};
-  var t='סיכום נקודות: '+state.name+'\n';
-  d.rows.forEach(function(r){t+='• '+r.name+': '+line(r.c)+'\n';});
-  t+='סה״כ: '+line(d.total.c)+'\n(שקע כפול נספר כשני שקעים)';
-  return t;
+  var t='סיכום: '+state.name+'\n';
+  if(d.total.any){
+    t+='\nנקודות חשמל ומים לפי חדר:\n';
+    d.rows.forEach(function(r){t+='• '+r.name+': '+line(r.c)+'\n';});
+    t+='סה״כ: '+line(d.total.c)+'\n(שקע כפול נספר כשני שקעים)\n';
+  }
+  var L=opsData();
+  if(L.length){
+    t+='\nפתחים (רוחב × גובה, בס״מ):\n';
+    L.forEach(function(r,i){t+=(i+1)+'. '+r.type+(r.rooms?' · '+r.rooms:'')+': '+r.size+(r.sl?', מהרצפה '+r.sl:'')+(r.notes.length?' ('+r.notes.join(', ')+')':'')+'\n';});
+  }
+  return t.replace(/\n+$/,'');
 }
 function fitRect(x,y,w,h){
   var r=svg.getBoundingClientRect();if(!r.width)return;
@@ -4770,7 +4818,13 @@ function summarySvg(){
 }
 $('sumClose').addEventListener('click',function(){$('dlgSum').hidden=true;});
 $('dlgSum').addEventListener('click',function(e){if(e.target===$('dlgSum'))$('dlgSum').hidden=true;});
-$('sumPdf').addEventListener('click',function(){$('dlgSum').hidden=true;exportPdf();});
+$('sumPdf').addEventListener('click',function(){
+  $('dlgSum').hidden=true;
+  var src=[printSvg()];
+  if(summaryData().total.any)src.push(summarySvg());
+  if(opsData().length)src.push(opsSvg());
+  pagesToPdf(src,'apartment-plan-summary.pdf');
+});
 $('sumOps').addEventListener('click',function(e){
   var b=e.target.closest&&e.target.closest('[data-op]');if(!b)return;
   var o=byId(b.getAttribute('data-op'));if(!o)return;
@@ -4785,7 +4839,7 @@ $('sumList').addEventListener('click',function(e){
 });
 $('sumCopy').addEventListener('click',function(){
   var t=summaryText();
-  if(navigator.share){navigator.share({title:'סיכום נקודות',text:t}).catch(function(){});return;}
+  if(navigator.share){navigator.share({title:'סיכום',text:t}).catch(function(){});return;}
   try{navigator.clipboard.writeText(t).then(function(){flash('הסיכום הועתק. אפשר להדביק בוואטסאפ או במייל');},function(){flash('ההעתקה נכשלה');});}catch(x){flash('ההעתקה נכשלה');}
 });
 function save3dPng(){
@@ -5019,7 +5073,7 @@ function tdHi(){
     var pp=MS.item.split('|'),k=pp[0],id=pp[1];
     T.pick.forEach(function(m){
       var u=m.userData;
-      if((k==='w'&&u.wall===id&&((+pp[2]>0?u.rp:u.rm)||'')===(pp[3]||''))||(k==='d'&&u.doorId===id)||(k==='a'&&u.win===id))T.selB.push(selBox(m,'--sel'));
+      if((k==='w'&&u.wall===id&&((+pp[2]>0?u.rp:u.rm)||'')===(pp[3]||''))||(k==='d'&&u.doorId===id)||(k==='a'&&u.win===id)||(k==='n'&&u.niche===id))T.selB.push(selBox(m,'--sel'));
     });
   }
   if(T.hi){T.sc.remove(T.hi);T.hi.traverse(function(n){if(n.geometry)n.geometry.dispose();if(n.material)n.material.dispose();});T.hi=null;}
@@ -5183,6 +5237,7 @@ $('panel').addEventListener('change',function(e){
   mutate(function(){applyField(o,k,t.value);});
   if(/^(kind|top|build|count|depth|t)$/.test(k))renderPanel();
 });
+$('panel').addEventListener('toggle',function(e){if(e.target.classList&&e.target.classList.contains('pmore'))panelMore=e.target.open;},true);
 $('panel').addEventListener('keydown',function(e){if(e.key==='Enter'&&e.target.tagName==='INPUT'){e.target.blur();}});
 $('panel').addEventListener('click',function(e){
   var a=e.target.getAttribute&&e.target.getAttribute('data-a'),o=sel?byId(sel):null;
@@ -5192,6 +5247,7 @@ $('panel').addEventListener('click',function(e){
   if(a==='fold'){panelFold=!panelFold;renderPanel();return;}
   if(!o)return;
   if(a==='elev'){setView('elev');return;}
+  if(a==='top'){var tv=e.target.getAttribute('data-v');if((tv==='arch')!==isArch(o)){mutate(function(){applyField(o,'top',tv);});renderPanel();}return;}
   if(a==='mat'){var rid=o.id;select(null);setView('3d');if(view!=='3d')return;MS={room:rid};openMat();return;}
   if(a==='del'){delSel();return;}
   if(a==='dup'){
