@@ -259,6 +259,8 @@ button.danger{color:var(--sel)}
 .sumcard b{font-size:14px}
 .sumcard.tot{background:var(--paper);border:1px solid var(--line);border-radius:8px;cursor:default}
 .chips{display:flex;flex-wrap:wrap;gap:4px}
+.sumh{font-size:15px;margin:14px 0 6px}
+#sumOps,#sumList{grid-auto-rows:max-content}
 .chip{font-size:12px;border-radius:10px;padding:1px 8px;border:1px solid var(--line);background:var(--panel);white-space:nowrap}
 .chip.el{border-color:var(--elec);color:var(--elec)}
 .chip.pl{border-color:var(--plumb);color:var(--plumb)}
@@ -824,6 +826,8 @@ button.hl{animation:hl .6s ease 3;border-color:var(--sel)}
       <div id="sumTotal"></div>
       <div id="sumList" class="vlist"></div>
       <p id="sumRest"></p>
+      <h3 class="sumh" id="sumOpsH">🚪 פתחים: דלתות, חלונות, נישות ומעברים</h3>
+      <div id="sumOps" class="vlist"></div>
       <div class="row"><button id="sumCopy" type="button" class="pri">📤 שליחה כטקסט</button><button id="sumPdf" type="button">⬇ PDF עם הסיכום</button><button id="sumClose" type="button">סגור</button></div>
     </div>
   </div>
@@ -1062,7 +1066,77 @@ function bays(o){var n=nCount(o),bw=bayW(o),g=nGap(o),out=[],x=-o.w/2;for(var i=
 function riseMax(o){return Math.max(5,Math.min(bayW(o)/2,o.h));}
 function riseOf(o){return isArch(o)?clamp(isFinite(o.rise)?o.rise:bayW(o)/2,5,riseMax(o)):0;}
 function wallT(o){var w=wallOf(o);return w?w.t:10;}
-function nicheOut(o,t){if(t===undefined)t=wallT(o);return o.build==='out'||o.depth>t-5;}
+function nicheOut(o,t){return !!nicheWhy(o,t);}
+/* why a niche is built out: 'set' (chosen), 'thin' (the wall is too thin for its depth),
+   'back' (a niche in the other face of the wall at the same place leaves too little wall), or '' */
+function nicheWhy(o,t){
+  var w=wallOf(o);if(t===undefined)t=w?w.t:10;
+  if(o.build==='out')return 'set';
+  if(o.depth>t-5)return 'thin';
+  return backNiche(o,w,t)?'back':'';
+}
+/* an earlier niche cut into the other face of the same wall, overlapping this one; the later one is built out */
+function backNiche(o,w,t){
+  if(!w)return null;
+  var idx=state.objs.indexOf(o),s=openS(o,w),n=nicheN(o);
+  for(var i=0;i<idx;i++){
+    var q=state.objs[i];
+    if(!isNiche(q)||wallOf(q)!==w)continue;
+    var m=nicheN(q);if(m.x*n.x+m.y*n.y>0)continue;
+    if(Math.abs(openS(q,w)-s)>=(q.w+o.w)/2||q.sl>=o.sl+o.h||o.sl>=q.sl+q.h)continue;
+    if(o.depth+q.depth<=t-5||nicheWhy(q,t))continue;
+    return q;
+  }
+  return null;
+}
+/* why, in words, for the inspector and the messages */
+function nicheWhyTxt(o,t){
+  var k=nicheWhy(o,t);if(t===undefined)t=wallT(o);
+  if(k==='thin')return 'הקיר בעובי '+fmt(t)+' ס״מ, לכן הנישה בנויה בולטת '+fmt(o.depth)+' ס״מ לחדר';
+  if(k==='back')return 'בצד השני של הקיר יש נישה באותו מקום, ולא נשאר מספיק קיר. לכן הנישה בנויה בולטת '+fmt(o.depth)+' ס״מ לחדר';
+  if(k==='set')return 'בנויה בולטת '+fmt(o.depth)+' ס״מ לחדר';
+  return 'נכנסת לקיר. נשארים '+fmt(t-o.depth-(backDepth(o)||0))+' ס״מ קיר מאחוריה';
+}
+/* the depth of niches cut into the other face of the wall at the same place */
+function backDepth(o){
+  var w=wallOf(o);if(!w)return 0;
+  var s=openS(o,w),n=nicheN(o),d=0;
+  state.objs.forEach(function(q){
+    if(q===o||!isNiche(q)||wallOf(q)!==w||nicheOut(q,w.t))return;
+    var m=nicheN(q);if(m.x*n.x+m.y*n.y>0)return;
+    if(Math.abs(openS(q,w)-s)<(q.w+o.w)/2&&q.sl<o.sl+o.h&&o.sl<q.sl+q.h)d=Math.max(d,q.depth);
+  });
+  return d;
+}
+/* the colour of the inside of a niche: its own, or the wall it is in (base) */
+function nicheColOf(o,base){var it=matItems()['n|'+o.id];return isHex(it)?it:base;}
+/* local points of an opening (across, out from the wall) in world coordinates */
+function locPoly(d,pts){
+  var r=d.rot*Math.PI/180,c=Math.cos(r),sn2=Math.sin(r);
+  return pts.map(function(q){var lx=q[0]*d.fx,ly=q[1]*d.fy;return [d.x+lx*c-ly*sn2,d.y+lx*sn2+ly*c];});
+}
+/* the solid parts of a built-out niche in plan: the board beside and between the bays, or all of it when the bays start above the floor */
+function nicheBlocks(d){
+  var t=wallT(d);if(!nicheOut(d,t))return [];
+  var F=nFrame(d),P=d.depth,y0=t/2,B=bays(d),cols=[];
+  if(d.sl>0)cols.push([-d.w/2-F,d.w/2+F]);
+  else{cols.push([-d.w/2-F,-d.w/2]);for(var i=0;i+1<B.length;i++)cols.push([B[i][1],B[i+1][0]]);cols.push([d.w/2,d.w/2+F]);}
+  return cols.filter(function(c){return c[1]-c[0]>.5;}).map(function(c){return locPoly(d,[[c[0],y0],[c[1],y0],[c[1],y0+P],[c[0],y0+P]]);});
+}
+/* floor taken by built-out niches standing in a room (cm²) */
+function builtArea(r){
+  var a=0;
+  state.objs.forEach(function(d){
+    if(!isNiche(d))return;var t=wallT(d);if(!nicheOut(d,t))return;
+    var c=locPoly(d,[[0,t/2+d.depth/2]])[0];
+    if(c[0]>r.x&&c[0]<r.x+r.w&&c[1]>r.y&&c[1]<r.y+r.h)a+=(d.w+2*nFrame(d))*d.depth;
+  });
+  return a;
+}
+function areaTxt(r){
+  var a=r.w*r.h/10000,b=builtArea(r)/10000;
+  return 'שטח: '+a.toFixed(1)+' מ״ר'+(b>.005?' · בלי הנישות הבולטות: '+(a-b).toFixed(1)+' מ״ר':'');
+}
 function nFrame(o){return nicheOut(o)?clamp(isFinite(o.frame)?o.frame:10,0,60):0;}
 function nShelves(o){return clamp(Math.round(o.shelves||0),0,20);}
 /* the side of its wall a niche opens to, as a plan direction */
@@ -1493,7 +1567,7 @@ function renderPanel(){
     if(view==='plan')h+=fld('מיקום אופקי','x',fmt(o.x))+fld('מיקום אנכי','y',fmt(o.y));
   }else if(o.type==='rect'){
     h+=fld('שם','label',o.label,true)+fld('רוחב','w',fmt(o.w))+fld('אורך','h',fmt(o.h));
-    if(o.kind==='room')h+='<div class="meta" id="area">שטח: '+(o.w*o.h/10000).toFixed(1)+' מ״ר</div>';
+    if(o.kind==='room')h+='<div class="meta" id="area">'+areaTxt(o)+'</div>';
     else h+=fld('גובה','fh',fmt(furnH(o)));
     if(view==='plan')h+=fld('מיקום אופקי','x',fmt(o.x))+fld('מיקום אנכי','y',fmt(o.y));
   }else if(isPt(o)){
@@ -1518,7 +1592,7 @@ function renderPanel(){
       var nt=wallT(o),nout=nicheOut(o,nt);
       h+=sel2('בנייה','build',nout?'out':'in',[['in','בקיר'],['out','בולטת']]);
       if(nout)h+=fld('מסגרת','frame',fmt(nFrame(o)));
-      h+='<div class="meta" style="grid-column:1/-1">'+(nout?(o.depth>nt-5&&o.build!=='out'?'הקיר בעובי '+fmt(nt)+' ס״מ, לכן הנישה בנויה בולטת ':'בנויה בולטת ')+fmt(o.depth)+' ס״מ לחדר':'נכנסת לקיר. נשארים '+fmt(nt-o.depth)+' ס״מ קיר מאחוריה')+'</div>';
+      h+='<div class="meta" style="grid-column:1/-1">'+nicheWhyTxt(o,nt)+'</div>';
     }
     if(view==='elev')h+=fld('מרחק מתחילת הקיר','pos',fmt(openPos(o)));
   }
@@ -1551,10 +1625,15 @@ function syncPanel(){
     else if(k==='wh')v=fmt(wallH(o));
     else if(k==='fh')v=fmt(furnH(o));
     else if(k==='note')v=o.note||'';
+    else if(k==='rise')v=fmt(riseOf(o));
+    else if(k==='count')v=nCount(o);
+    else if(k==='gap')v=fmt(nGap(o));
+    else if(k==='shelves')v=nShelves(o);
+    else if(k==='frame')v=fmt(nFrame(o));
     else v=fmt(o[k]);
     inp.value=v;
   }
-  var a=$('area'); if(a&&o.type==='rect')a.textContent='שטח: '+(o.w*o.h/10000).toFixed(1)+' מ״ר';
+  var a=$('area'); if(a&&o.type==='rect')a.textContent=areaTxt(o);
   var pm=$('ptMeta'); if(pm&&isPt(o))pm.textContent=ptMeta(o);
 }
 var inGesture=false;
@@ -1622,7 +1701,8 @@ function applyField(o,k,v){
   if(k==='build'){
     if(v==='in'){
       var bt=wallT(o);delete o.build;
-      if(o.depth>bt-5)flash('הקיר בעובי '+fmt(bt)+' ס״מ: נישה בעומק '+fmt(o.depth)+' לא נכנסת בו. אפשר להקטין את העומק ל־'+fmt(Math.max(0,bt-5))+' או פחות');
+      if(nicheWhy(o,bt)==='thin')flash('הקיר בעובי '+fmt(bt)+' ס״מ: נישה בעומק '+fmt(o.depth)+' לא נכנסת בו. אפשר להקטין את העומק ל־'+fmt(Math.max(0,bt-5))+' או פחות');
+      else if(nicheWhy(o,bt)==='back')flash(nicheWhyTxt(o,bt));
     }else o.build='out';
     return;
   }
@@ -1654,7 +1734,7 @@ function applyField(o,k,v){
     else if(isNiche(o)){
       if(k==='depth'){
         var dt=wallT(o),wasOut=nicheOut(o,dt);o.depth=clamp(n,2,100);
-        if(!wasOut&&nicheOut(o,dt))flash('הקיר בעובי '+fmt(dt)+' ס״מ, הנישה תיבנה בולטת '+fmt(o.depth)+' ס״מ לחדר');
+        if(!wasOut&&nicheOut(o,dt))flash(nicheWhyTxt(o,dt));
       }
       else if(k==='count')o.count=clamp(Math.round(n),1,12);
       else if(k==='gap')o.gap=clamp(n,2,100);
@@ -2424,7 +2504,12 @@ function addTemplate(k){
 function addOpening(type,wall,at,preset){
   var w=wall||(elWall?byId(elWall):null);if(!w)return;
   setPanOnly(false,true);if(state.lay.act!=='base')setLayer('base');
-  var L=wallLen(w),ux=(w.x2-w.x1)/L,uy=(w.y2-w.y1)/L,width=(preset&&preset.w)||{door:90,window:120,niche:90,pass:100}[type];
+  var L=wallLen(w),ux=(w.x2-w.x1)/L,uy=(w.y2-w.y1)/L,width=(preset&&preset.w)||{door:90,window:120,niche:90,pass:100}[type],fewer=0;
+  /* a run of bays longer than the wall: keep the bays as wide as they are, and fit fewer of them */
+  if(type==='niche'&&preset&&preset.count>1&&width>L-10){
+    var g0=preset.gap||10,bw0=(width-(preset.count-1)*g0)/preset.count,n0=Math.max(1,Math.floor((L-10+g0)/(bw0+g0)));
+    if(n0<preset.count){var pp={};for(var pk0 in preset)pp[pk0]=preset[pk0];pp.count=n0;preset=pp;width=n0*bw0+(n0-1)*g0;fewer=n0;}
+  }
   if(width>L-10)width=Math.max(type==='niche'?10:30,Math.floor(L-10));
   var s=isFinite(at)?at:freeSpot(w,width,L/2),full=false;
   if(s===null){s=L/2;full=true;}
@@ -2446,7 +2531,8 @@ function addOpening(type,wall,at,preset){
   select(o.id);
   var nm={door:'נוספה דלת. גררו אותה',window:'נוסף חלון. גררו אותו',niche:'נוספה נישה. גררו אותה',pass:'נוסף מעבר. גררו אותו'}[type];
   var msg=full?'אין מקום פנוי על הקיר, ההוספה חופפת. גררו להזזה':nm+' להזזה ואת הריבועים לשינוי גודל';
-  if(type==='niche'&&nicheOut(o,w.t)&&o.build!=='out')msg='הקיר בעובי '+fmt(w.t)+' ס״מ, ולכן הנישה בנויה בולטת '+fmt(o.depth)+' ס״מ לחדר. '+msg;
+  if(type==='niche'&&/thin|back/.test(nicheWhy(o,w.t)))msg=nicheWhyTxt(o,w.t)+'. '+msg;
+  if(fewer)msg='הקיר קצר, ולכן '+(fewer>1?'נכנסו רק '+fewer+' נישות':'נכנסה רק נישה אחת')+'. '+msg;
   flash(msg);
 }
 function dupOpening(o){
@@ -2617,7 +2703,7 @@ function box(parent,x0,x1,y0,y1,t,mat){
 }
 /* a box through z0..z1 (cm) instead of centred on the wall */
 function boxZ(parent,x0,x1,y0,y1,z0,z1,mat){
-  if(z1-z0<.3)return;
+  if(z1-z0<.1)return;
   var m=box(parent,x0,x1,y0,y1,z1-z0,mat);if(m)m.position.z=(z0+z1)/200;return m;
 }
 /* arches, in cm on the wall: x0..x1 across, springing at ys and rising r */
@@ -2767,7 +2853,8 @@ function floorCanvas(F){
   return FLOOR_CV[key]={c:c,pw:pw,ph:ph,rot:0,rough:.7};
 }
 /* per room and per item choices: mat.rooms[roomId] = {floor, floorC, wall, door};
-   mat.items['w|wallId|side|roomId'] = one side of a wall within a room, 'd|doorId' = a door, 'a|windowId' = a window frame */
+   mat.items['w|wallId|side|roomId'] = one side of a wall within a room, 'd|doorId' = a door, 'a|windowId' = a window frame,
+   'n|nicheId' = the inside of a niche */
 function matRooms(){var o=matObj();return (o&&o.rooms&&typeof o.rooms==='object')?o.rooms:{};}
 function matItems(){var o=matObj();return (o&&o.items&&typeof o.items==='object')?o.items:{};}
 function roomOver(id){var r=matRooms()[id];return (r&&typeof r==='object')?r:{};}
@@ -2836,6 +2923,8 @@ function doorRoom(d){
   var r=d.rot*Math.PI/180,lx=0,ly=d.w*.5*d.fy;
   var rm=roomAt(d.x+lx*Math.cos(r)-ly*Math.sin(r),d.y+lx*Math.sin(r)+ly*Math.cos(r));return rm?rm.id:null;
 }
+/* the room a niche opens into */
+function nicheRoom(o){var t=wallT(o),n=nicheN(o),d=t/2+(nicheOut(o,t)?o.depth:0)+15,r=roomAt(o.x+n.x*d,o.y+n.y*d);return r?r.id:null;}
 function doorColOf(d,MT){
   var it=matItems()['d|'+d.id];if(isHex(it))return it;
   var rid=doorRoom(d),R=rid?roomOver(rid):{};return isHex(R.door)?R.door:MT.door;
@@ -2897,7 +2986,8 @@ function tdBuild(){
       var px=w.x1+ux*sm,py=w.y1+uy*sm,dd=t/2+15;
       var rp=roomAt(px-uy*dd,py+ux*dd),rn=roomAt(px+uy*dd,py-ux*dd),ip=rp?rp.id:null,im=rn?rn.id:null;
       var ep=outPlan(px-uy*dd,py+ux*dd),em=outPlan(px+uy*dd,py-ux*dd);
-      return {p:mc(wallColOf(ip,w.id,1,MT,ep)),n:mc(wallColOf(im,w.id,-1,MT,em)),ud:{wall:w.id,rp:ip,rm:im,ep:ep,em:em}};
+      var hp=wallColOf(ip,w.id,1,MT,ep),hn=wallColOf(im,w.id,-1,MT,em);
+      return {p:mc(hp),n:mc(hn),hp:hp,hn:hn,ud:{wall:w.id,rp:ip,rm:im,ep:ep,em:em}};
     }
     function wbox(x0,x1,y0,y1,z0,z1){
       if(z0===undefined){z0=-t/2;z1=t/2;}
@@ -2909,17 +2999,28 @@ function tdBuild(){
       }
     }
     /* the wall over an arch: from the curve up to yTo */
-    function wover(a,b,ys,r,yTo,z0,z1){
+    function wover(a,b,ys,r,yTo,z0,z1,em){
       if(z0===undefined){z0=-t/2;z1=t/2;}
       var A=arcOf(a,b,ys,r),c=wcol((a+b)/2);
       yTo=Math.max(yTo,ys+r+.5);
-      var m=extrude(g,shapeOf(arcPts(A,a,b,24).concat([[b,yTo],[a,yTo]])),z0,z1,[wmat,c.n,c.p]);
+      var m=extrude(g,shapeOf(arcPts(A,a,b,24).concat([[b,yTo],[a,yTo]])),z0,z1,[em||wmat,c.n,c.p]);
       m.userData=c.ud;T.pick.push(m);
     }
     /* above an opening or a bay: plain wall, or the wall over its arch */
-    function wtop(a,b,top,r,yTo,z0,z1){
-      if(r>0)wover(a,b,top-r,r,yTo,z0,z1);
+    function wtop(a,b,top,r,yTo,z0,z1,em){
+      if(r>0)wover(a,b,top-r,r,yTo,z0,z1,em);
       else if(yTo>top)wbox(a,b,top,yTo,z0,z1);
+    }
+    /* the inside of a niche bay (a..b across, the hollow z0..z1, zb its back): thin lining in the niche colour,
+       so it can have its own colour and be picked in the colours panel */
+    function nmatOf(o,s){var c=wcol(s),n=nicheN(o),side=(n.x*-uy+n.y*ux)>0;return mc(nicheColOf(o,side?c.hp:c.hn));}
+    function lining(o,a,b,y0,y1,top,r,z0,z1,zb,nm){
+      var e=.6,ud={niche:o.id},ms=[];
+      ms.push(boxZ(g,a,b,y0,top,zb===z0?z0:z1-e,zb===z0?z0+e:z1,nm));
+      ms.push(boxZ(g,a,a+e,y0,top-r,z0,z1,nm),boxZ(g,b-e,b,y0,top-r,z0,z1,nm));
+      if(y0>0)ms.push(boxZ(g,a,b,y0,y0+e,z0,z1,nm));
+      if(!(r>0))ms.push(boxZ(g,a,b,top-e,top,z0,z1,nm));
+      ms.forEach(function(m){if(m){m.userData=ud;T.pick.push(m);}});
     }
     function shelves(o,a,b,y0,y1,z0,z1){
       var n=nShelves(o);if(!n)return;
@@ -2937,10 +3038,12 @@ function tdBuild(){
         bx.forEach(function(q,i){if(i+1<bx.length)cols.push([s+q[1],s+bx[i+1][0]]);});
         cols.push([s+o.w/2,s+o.w/2+F]);
         cols.forEach(function(q){if(q[1]-q[0]>.5)wbox(q[0],q[1],0,bt,z0,z1);});
+        var nmo=nmatOf(o,s);
         bx.forEach(function(q){
           var a=s+q[0],b=s+q[1];
           if(o.sl>0)wbox(a,b,0,o.sl,z0,z1);
-          wtop(a,b,o.sl+o.h,r,bt,z0,z1);
+          wtop(a,b,o.sl+o.h,r,bt,z0,z1,nmo);
+          lining(o,a,b,o.sl,o.sl+o.h-r,o.sl+o.h,r,z0,z1,zs>0?z0:z1,nmo);
           shelves(o,a,b,o.sl,o.sl+o.h-r,z0,z1);
         });
         return;
@@ -2955,13 +3058,14 @@ function tdBuild(){
       var top=Math.min(H,o.sl+o.h),ys=top-r;
       if(isNiche(o)){
         /* cut into the wall: wall between the bays, and behind each bay what is left of the wall */
-        var bx=bays(o),zb0=it.zs>0?-t/2:t/2-(t-o.depth),zb1=it.zs>0?-t/2+(t-o.depth):t/2,zr0=it.zs>0?zb1:-t/2,zr1=it.zs>0?t/2:zb0,c0=a;
+        var bx=bays(o),zb0=it.zs>0?-t/2:t/2-(t-o.depth),zb1=it.zs>0?-t/2+(t-o.depth):t/2,zr0=it.zs>0?zb1:-t/2,zr1=it.zs>0?t/2:zb0,c0=a,nmi=nmatOf(o,it.s);
         bx.forEach(function(q){
           var qa=Math.max(a,it.s+q[0]),qb=Math.min(b,it.s+q[1]);if(qb<=qa)return;
           wbox(c0,qa,0,H);
-          wtop(qa,qb,top,r,H);
+          wtop(qa,qb,top,r,H,undefined,undefined,nmi);
           if(o.sl>0)wbox(qa,qb,0,o.sl);
           wbox(qa,qb,o.sl,top,zb0,zb1);
+          lining(o,qa,qb,o.sl,ys,top,r,zr0,zr1,it.zs>0?zr0:zr1,nmi);
           shelves(o,qa,qb,o.sl,ys,zr0,zr1);
           c0=qb;
         });
@@ -4102,6 +4206,7 @@ function expParts(){
   var fac=facadeFaces(),elv=elevFaces();
   return [
     {k:'plan',t:'🏠 התוכנית',d:'כמו שהיא על המסך, עם השכבות שמוצגות',ok:true,src:function(){return [printSvg()];}},
+    {k:'ops',t:'🚪 רשימת פתחים',d:'כל הדלתות, החלונות, המעברים והנישות עם המידות. לנגר ולספק האלומיניום',ok:state.objs.some(isOpen),no:'אין פתחים בתוכנית',src:function(){return [opsSvg()];}},
     {k:'sum',t:'📋 סיכום נקודות לפי חדר',d:'כמה שקעים, מתגים ונקודות מים יש בכל חדר',ok:summaryData().total.any,no:'אין עדיין נקודות חשמל או מים',src:function(){return [summarySvg()];}},
     {k:'base',t:'📐 מידות קירות, פתחים וריהוט קבוע',d:'מהפינה לכל חלון ודלת, אורך כל קיר, מטבח, כיורים ואסלה',ok:true,src:function(){return [printSvg('base')];}},
     {k:'elec',t:'⚡ חשמל: מיקום וגובה',d:'מידות לכל שקע, מתג ונקודת תאורה, וגובה מהרצפה',ok:has('elec'),no:'אין נקודות חשמל בתוכנית',src:function(){return [printSvg('elec')];}},
@@ -4215,7 +4320,7 @@ $('mSnap').addEventListener('change',function(e){$('snapSel').value=e.target.val
 /* ---------- what's new (once, for people who already know the app) ---------- */
 var NEW_KEY='apt-new-3';
 var NEWS=[
-  {i:'◠',nw:1,t:'נישות וקשתות',d:'ארון ספרים קשתי עם מדפים, נישה לטלוויזיה, מדף במקלחת ומעבר בלי דלת. גם לדלת ולחלון אפשר לתת ראש קשתי.',a:'נסו',f:function(){if(view==='3d')setView('plan');openNiches();}},
+  {i:'◠',nw:1,t:'נישות וקשתות',d:'ארון ספרים קשתי עם מדפים, נישה לטלוויזיה, מדף במקלחת ומעבר בלי דלת. גם לדלת ולחלון אפשר לתת ראש קשתי. ובסיכום: רשימת כל הפתחים עם המידות.',a:'נסו',f:function(){if(view==='3d')setView('plan');openNiches();}},
   {i:'🎨',nw:1,t:'צבעים וחומרים בהדמיה',d:'צבע לקירות, לדלתות, לחלונות, למטבח ולשליכט, וסוג רצפה. לכל הבית או לחדר אחד.',a:'נסו',f:function(){setView('3d');openMat();}},
   {i:'🔲',nw:1,t:'ריצוף ופריסת אריחים',d:'גודל, פריסה ונקודת ההתחלה של האריחים, ועמוד ב־PDF עם כל החיתוכים לרצף.',a:'נסו',f:function(){setView('3d');if(view==='3d'){matGuideOpen=true;openMat();}}},
   {i:'📐',nw:1,t:'PDF עם מידות',d:'המידות מחושבות לבד: קירות, חלונות, דלתות, שקעים ונקודות מים, וגם חזיתות ופריסות קירות.',a:'פתח',f:function(){openExport();}},
@@ -4273,8 +4378,8 @@ function doorPoly(d){
 }
 /* the hollow of a niche in plan, the whole niche across and its full depth, in world coordinates */
 function nichePoly(d){
-  var t=wallT(d),y0=nicheOut(d,t)?t/2:t/2-d.depth,r=d.rot*Math.PI/180,c=Math.cos(r),sn2=Math.sin(r);
-  return [[-d.w/2,y0],[d.w/2,y0],[d.w/2,y0+d.depth],[-d.w/2,y0+d.depth]].map(function(q){var lx=q[0]*d.fx,ly=q[1]*d.fy;return [d.x+lx*c-ly*sn2,d.y+lx*sn2+ly*c];});
+  var t=wallT(d),y0=nicheOut(d,t)?t/2:t/2-d.depth;
+  return locPoly(d,[[-d.w/2,y0],[d.w/2,y0],[d.w/2,y0+d.depth],[-d.w/2,y0+d.depth]]);
 }
 function fname(o){return o.label||'רהיט';}
 function isSeat(o){return furnType(o)==='chair'||/כורסה|כיסא|כסא|שרפרף/.test(o.label||'');}
@@ -4310,9 +4415,13 @@ function issuesAll(){
     var WP=Wl.map(wallPoly);
     /* furniture standing in a niche is not "in the wall" */
     var NP=state.objs.filter(isNiche).map(function(n){return {w:wallOf(n),p:nichePoly(n)};});
+    /* the board of built-out niches stands in the room like a wall */
+    var NB=[];state.objs.filter(isNiche).forEach(function(n){var ps=nicheBlocks(n);if(ps.length)NB.push({id:n.id,ps:ps});});
+    var NBP=[];NB.forEach(function(b){NBP=NBP.concat(b.ps);});
     F.forEach(function(f,fi){
       var fp=furnPoly(f);
       D.forEach(function(d){var v=pen(fp,doorPoly(d));if(v>5)out.push({key:'door:'+f.id+':'+d.id,obj:f.id,lvl:'warn',text:'"'+fname(f)+'" חוסם את פתיחת הדלת (חפיפה של '+Math.round(v)+' ס״מ)'});});
+      NB.forEach(function(b){var v=0;b.ps.forEach(function(q){v=Math.max(v,pen(fp,q));});if(v>3)out.push({key:'nb:'+f.id+':'+b.id,obj:f.id,lvl:'warn',text:'"'+fname(f)+'" נכנס לבנייה של נישה בולטת ('+Math.round(v)+' ס״מ)'});});
       Wl.forEach(function(w,wi){var v=pen(fp,WP[wi]);if(v>3&&!NP.some(function(n){return n.w===w&&pen(fp,n.p)>.5;}))out.push({key:'wall:'+f.id+':'+w.id,obj:f.id,lvl:'warn',text:'"'+fname(f)+'" נכנס לתוך קיר ('+Math.round(v)+' ס״מ)'});});
       for(var gi=fi+1;gi<F.length;gi++){
         var g=F[gi];if(overlapOk(f,g))continue;
@@ -4321,7 +4430,7 @@ function issuesAll(){
       }
       var need=frontNeed(f);
       if(need){
-        var obst=WP.concat(F.filter(function(q){return q!==f;}).map(furnPoly)),free=null;
+        var obst=WP.concat(NBP,F.filter(function(q){return q!==f;}).map(furnPoly)),free=null;
         for(var dd=2;dd<=need;dd+=2){
           var rp=frontRect(f,dd);
           if(obst.some(function(op){return pen(rp,op)>.5;})){free=dd-2;break;}
@@ -4552,7 +4661,67 @@ function catLabel(ct,v){return v===1?'1 '+ct.n1:v+' '+ct.n;}
 function sumChips(c){
   return CAT.filter(function(ct){return c[ct.id];}).map(function(ct){return '<span class="chip '+(ct.ly==='elec'?'el':'pl')+'">'+(ct.ly==='elec'?'⚡ ':'💧 ')+catLabel(ct,c[ct.id])+'</span>';}).join('');
 }
+/* ---------- the list of openings, for the carpenter and the aluminium supplier ---------- */
+var OPN={door:'דלת',window:'חלון',pass:'מעבר',niche:'נישה'},OPORD={door:0,window:1,pass:2,niche:3};
+/* the rooms an opening is between, by name */
+function opRooms(o){
+  if(isNiche(o)){var nr=nicheRoom(o);return nr?roomName(nr):'';}
+  var r=o.rot*Math.PI/180,nx=-Math.sin(r),ny=Math.cos(r),d=wallT(o)/2+20;
+  var a=roomAt(o.x+nx*d,o.y+ny*d),b=roomAt(o.x-nx*d,o.y-ny*d),n=[];
+  [a,b].forEach(function(q){if(q&&n.indexOf(roomName(q.id))<0)n.push(roomName(q.id));});
+  var bb=bboxAll(true),out=function(x,y){return x<bb.x||x>bb.x+bb.w||y<bb.y||y>bb.y+bb.h;};
+  if(!a&&out(o.x+nx*d,o.y+ny*d)||!b&&out(o.x-nx*d,o.y-ny*d))n.push('חוץ');
+  return n.join(' ↔ ');
+}
+function opNotes(o){
+  var n=[];
+  if(o.type==='door'){var dr=doorRoom(o);if(dr)n.push('נפתחת ל'+roomName(dr));}
+  if(isArch(o))n.push(riseOf(o)>=riseMax(o)-.5?'קשת חצי עיגול':'קשת בגובה '+fmt(riseOf(o)));
+  if(isNiche(o)){
+    n.push('עומק '+fmt(o.depth),nicheOut(o)?'בולטת לחדר':'בתוך הקיר');
+    if(nCount(o)>1)n.push(nCount(o)+' נישות ברוחב '+fmt(bayW(o)));
+    if(nShelves(o))n.push(nShelves(o)+' מדפים בכל נישה');
+  }
+  return n;
+}
+function opsData(){
+  return state.objs.filter(isOpen).map(function(o){
+    return {o:o,type:OPN[o.type],rooms:opRooms(o),size:fmt(o.w)+' × '+fmt(o.h),sl:o.sl>0?fmt(o.sl):'',notes:opNotes(o)};
+  }).sort(function(p,q){return OPORD[p.o.type]-OPORD[q.o.type]||p.rooms.localeCompare(q.rooms,'he');});
+}
+function renderOps(){
+  var L=opsData();
+  $('sumOpsH').hidden=!L.length;
+  $('sumOps').innerHTML=L.map(function(r){
+    return '<button type="button" class="sumcard" data-op="'+r.o.id+'"><b>'+r.type+(r.rooms?' · '+esc(r.rooms):'')+'</b><div class="chips"><span class="chip">רוחב × גובה: '+r.size+'</span>'+(r.sl?'<span class="chip">מהרצפה '+r.sl+'</span>':'')+r.notes.map(function(t){return '<span class="chip">'+esc(t)+'</span>';}).join('')+'</div></button>';
+  }).join('');
+}
+function opsSvg(){
+  var L=opsData(),PW=210,PH=297,M=12,F='font-family="Arial, Helvetica, sans-serif"';
+  var s='<svg xmlns="http://www.w3.org/2000/svg" width="'+(PW*8)+'" height="'+(PH*8)+'" viewBox="0 0 '+PW+' '+PH+'"><rect width="'+PW+'" height="'+PH+'" fill="#fff"/>';
+  s+='<text x="'+(PW-M)+'" y="'+(M+6)+'" text-anchor="end" font-size="6" font-weight="700" fill="#111" '+F+'>רשימת פתחים</text>';
+  s+='<text x="'+M+'" y="'+(M+6)+'" text-anchor="start" font-size="3.2" fill="#444" '+F+'>'+esc(state.name)+' · מידות בס״מ</text>';
+  s+='<line x1="'+M+'" y1="'+(M+9)+'" x2="'+(PW-M)+'" y2="'+(M+9)+'" stroke="#111" stroke-width=".3"/>';
+  var xr=PW-M,cols=[['#',8],['סוג',14],['חדר',40],['רוחב × גובה',24],['מהרצפה',16],['הערות',PW-2*M-102]],y=M+20,rh=7;
+  function row(vals,bold,shade){
+    if(shade)s+='<rect x="'+M+'" y="'+(y-4.8)+'" width="'+(PW-2*M)+'" height="'+rh+'" fill="'+shade+'"/>';
+    var x=xr;cols.forEach(function(c,i){
+      var v=String(vals[i]),fsz=3;
+      if(i===5&&v.length>46)fsz=Math.max(2,3*46/v.length);
+      s+='<text x="'+(x-1.5)+'" y="'+y+'" text-anchor="end" font-size="'+fsz+'"'+(bold?' font-weight="700"':'')+' fill="#111" '+F+'>'+esc(v)+'</text>';x-=c[1];
+    });
+    y+=rh;
+  }
+  row(cols.map(function(c){return c[0];}),1,'#f1f3f6');
+  L.forEach(function(r,i){
+    if(y>PH-M)return;
+    row([i+1,r.type,r.rooms,r.size,r.sl||'–',r.notes.join(' · ')],0,i%2?'#fafbfc':'');
+  });
+  if(y>PH-M)s+='<text x="'+(PW-M)+'" y="'+(PH-M+4)+'" text-anchor="end" font-size="2.6" fill="#555" '+F+'>הרשימה ארוכה מעמוד אחד: לא כל הפתחים מופיעים</text>';
+  return {svg:s+'</svg>',w:PW*8,h:PH*8};
+}
 function openSummary(){
+  renderOps();
   var d=summaryData();
   $('sumTotal').innerHTML=d.total.any?'<div class="sumcard tot"><b>סה״כ בדירה</b><div class="chips">'+sumChips(d.total.c)+'</div></div>':'';
   $('sumList').innerHTML=d.rows.map(function(r){
@@ -4602,6 +4771,12 @@ function summarySvg(){
 $('sumClose').addEventListener('click',function(){$('dlgSum').hidden=true;});
 $('dlgSum').addEventListener('click',function(e){if(e.target===$('dlgSum'))$('dlgSum').hidden=true;});
 $('sumPdf').addEventListener('click',function(){$('dlgSum').hidden=true;exportPdf();});
+$('sumOps').addEventListener('click',function(e){
+  var b=e.target.closest&&e.target.closest('[data-op]');if(!b)return;
+  var o=byId(b.getAttribute('data-op'));if(!o)return;
+  $('dlgSum').hidden=true;if(view!=='plan')setView('plan');
+  fitRect(o.x-120,o.y-120,240,240);select(o.id);
+});
 $('sumList').addEventListener('click',function(e){
   var b=e.target.closest&&e.target.closest('[data-room]');if(!b)return;
   var r=byId(b.getAttribute('data-room'));if(!r)return;
@@ -4756,10 +4931,10 @@ function renderMat(){
   }).join('')+'</select></label>';
   if(MS.item){
     var it=matItems()[MS.item],kind=MS.item[0],up=kind==='a'?'כל הבית':(MS.room?roomName(MS.room):'כל הבית');
-    var cur=kind==='w'?wallColOf(MS.room,MS.item.split('|')[1],+MS.item.split('|')[2],MT,MS.ext):kind==='d'?doorColOf(byId(MS.item.slice(2))||{},MT):aluColOf({id:MS.item.slice(2)},MT);
+    var cur=kind==='w'?wallColOf(MS.room,MS.item.split('|')[1],+MS.item.split('|')[2],MT,MS.ext):kind==='d'?doorColOf(byId(MS.item.slice(2))||{},MT):kind==='n'?nicheColOf({id:MS.item.slice(2)},(function(){var R=MS.room?roomOver(MS.room):{};return isHex(R.wall)?R.wall:MT.wall;})()):aluColOf({id:MS.item.slice(2)},MT);
     h+='<div class="mitem"><span>✏️ פריט אחד, מסומן בהדמיה:</span><b>'+MS.label+'</b><button type="button" data-scope="'+(MS.room||'')+'">→ חזרה ל'+(MS.room?esc(roomName(MS.room)):'כל הבית')+'</button></div>';
     if(MS.ext)up='שליכט של כל הבית';
-    h+=matRow(kind==='w'?'צבע הקיר':kind==='d'?'צבע הדלת':'צבע האלומיניום','v',cur,rowsOf(kind==='w'?(MS.ext?'ext':'wall'):kind==='d'?'door':'alu'),isHex(it),'כמו ב'+up);
+    h+=matRow(kind==='w'?'צבע הקיר':kind==='d'?'צבע הדלת':kind==='n'?'צבע פנים הנישה':'צבע האלומיניום','v',cur,rowsOf(kind==='w'||kind==='n'?(MS.ext?'ext':'wall'):kind==='d'?'door':'alu'),isHex(it),kind==='n'?'כמו הקיר':'כמו ב'+up);
   }else if(MS.room){
     var R=roomOver(MS.room),rm=byId(MS.room),F=floorOf(rm,MT),wet=isWetRoom(rm.label);
     var ht=wet?MT.wet:MT.floor,tn=function(t){for(var i=0;i<FLOOR_T.length;i++)if(FLOOR_T[i][0]===t)return FLOOR_T[i][1];return t;};
@@ -4886,6 +5061,7 @@ function tdHitMat(e){
     ms={item:'w|'+u.wall+'|'+side+'|'+(rid||''),room:rid,ext:ex,label:ex?'קיר חיצוני (שליכט)':'קיר'+(rid?' · '+esc(roomName(rid)):'')};
   }else if(u.doorId){var dr=doorRoom(byId(u.doorId)||{});ms={item:'d|'+u.doorId,room:dr,label:'דלת'+(dr?' · '+esc(roomName(dr)):'')};}
   else if(u.win)ms={item:'a|'+u.win,label:'חלון'};
+  else if(u.niche){var nq=byId(u.niche),nr=nq?nicheRoom(nq):null;ms={item:'n|'+u.niche,room:nr,label:'פנים הנישה'+(nr?' · '+esc(roomName(nr)):'')};}
   else return null;
   return {ms:ms,mesh:hit.object,label:ms.item?ms.label.replace(/&[^;]+;/g,''):'רצפה · '+roomName(ms.room)};
 }
